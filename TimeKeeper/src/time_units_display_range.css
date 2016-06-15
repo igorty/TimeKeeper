@@ -1,0 +1,7 @@
+﻿.low-thumb {
+	-fx-shape: "M32 48L40 32L32 16L28 16L28 48Z"
+}
+
+.high-thumb {
+	-fx-shape: "M36 48L36 16L32 16L24 32L32 48Z"
+}

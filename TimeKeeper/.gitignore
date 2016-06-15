@@ -1,0 +1,17 @@
+﻿# Directories
+/bin/
+.settings/
+
+# Java files
+.classpath
+*.class
+*.jar
+*.war
+*.ear
+
+# Eclipse files
+.project
+
+# Windows specific files
+Thumbs.db
+Desktop.ini
