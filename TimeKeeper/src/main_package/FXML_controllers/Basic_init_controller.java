@@ -26,29 +26,22 @@ public class Basic_init_controller
 	@FXML
 	public ImageView mode_image;
 	
-	// TODO: Установить описание в вызывающей области видимости
 	/** Описание назначения панели компоновки. */
 	@FXML
 	public Label layout_description;
 	
-	// TODO: setOnAction() в вызывающей области видимости
 	/** Кнопка перехода на предыдущую компоновку окна. */
 	@FXML
 	public Button previous_button;
 	
-	// TODO: setOnAction() в вызывающей области видимости
 	/** Кнопка перехода на следующую компоновку окна. */
 	@FXML
 	public Button next_button;
 	
-	// TODO: setOnAction() в вызывающей области видимости
-	// TODO: Ctrl+Enter расценивается как нажатие этой кнопки (Scene.setOnKeyTyped())
 	/** Кнопка подтверждения создания счетчика времени. */
 	@FXML
 	public Button apply_button;
 	
-	// TODO: setOnAction() в вызывающей области видимости
-	// TODO: Ctrl+Esc расценивается как нажатие этой кнопки (Scene.setOnKeyTyped())
 	/** Кнопка отмены создания счетчика времени. */
 	@FXML
 	public Button cancel_button;

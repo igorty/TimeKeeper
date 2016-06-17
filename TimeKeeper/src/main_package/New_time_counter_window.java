@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +22,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import main_package.FXML_controllers.Basic_init_controller;
@@ -33,10 +35,9 @@ import main_package.FXML_controllers.Init_Solo_counter_controller.Time_values;
 import main_package.dialog.Error_dialog;
 import main_package.dialog.Error_dialog.Template_message;
 import time_obj.Mode;
+import time_obj.Settings;
 
 
-/* TODO: При создании нового счетчика времени перезаписывать файл настроек
- * новым стилем отображения */
 /**
  * Реализует окно создания счетчика времени. Экземпляр данного класса можно
  * использовать повторно.
@@ -54,6 +55,16 @@ class New_time_counter_window
 	 * <b>Важно!</b> Ссылается на {@link Collections#unmodifiableMap(Map)}.
 	 * Попытка изменения содержимого контейнера вызовет ошибку времени выполнения. */
 	private static final Map<Mode, String> mode_img_directories;
+	/** <i>Basic_init_layout.fxml</i> file's relative directory. */
+	private static final String basic_init_layout_directory;
+	/** <i>Init_Time_counter_type_layout.fxml</i> file's relative directory. */
+	private static final String init_Time_counter_type_layout_directory;
+	/** <i>Init_Solo_counter_layout.fxml</i> file's relative directory. */
+	private static final String init_Solo_counter_layout_directory;
+	/** <i>Init_Instance_counter_layout.fxml</i> file's relative directory. */
+	private static final String init_Instance_counter_layout_directory;
+	/** <i>Init_settings_layout.fxml</i> file's relative directory. */
+	private static final String init_settings_layout_directory;
 	
 	/** Комбинация нажатия клавиш {@code Ctrl}&nbsp;{@code +}&nbsp;{@code Enter},
 	 * которая должна приводить нажатию кнопки {@code Apply} на корневой панели
@@ -106,6 +117,11 @@ class New_time_counter_window
 		
 		mode_img_directories =
 				Collections.unmodifiableMap(mode_img_directories_init);
+		basic_init_layout_directory = "Basic_init_layout.fxml";
+		init_Time_counter_type_layout_directory = "Init_Time_counter_type_layout.fxml";
+		init_Solo_counter_layout_directory = "Init_Solo_counter_layout.fxml";
+		init_Instance_counter_layout_directory = "Init_Instance_counter_layout.fxml";
+		init_settings_layout_directory = "Init_settings_layout.fxml";
 		shortcut_enter_key_combination =
 				new KeyCodeCombination(KeyCode.ENTER, KeyCombination.SHORTCUT_DOWN);
 		shortcut_esc_key_combination =
@@ -173,28 +189,49 @@ class New_time_counter_window
 	private Init_settings_controller init_settings_pane_controller;
 	
 	/** Сцена окна, создаваемого в этом классе. */
-	private final Scene new_time_counter_window_scene;
+	private final Scene scene;
 	/** Подмостки окна, создаваемого в этом классе. */
-	private final Stage new_time_counter_window_stage;
+	private final Stage stage;
 	
+	/** Contains this object's window accelerators. */
+	private final ObservableMap<KeyCombination, Runnable> accelerators;
 	/** Предназначен для обработки нажатия комбинации клавиш
 	 * {@code Ctrl}&nbsp;{@code +}&nbsp;{@code N}. */
 	private final Runnable shortcut_n_accelerator;
+	
+	/** Handles moving from 1st to 2nd stage event of creating time counter. */
+	private final EventHandler<ActionEvent> from_1_to_2_stage_event_handler;
+	/** Handles moving from 2nd to 3rd stage event of creating time counter. */
+	private final EventHandler<ActionEvent> from_2_to_3_stage_event_handler;
+	/** Handles moving from 3rd to 2nd stage event of creating time counter. */
+	private final EventHandler<ActionEvent> from_3_to_2_stage_event_handler;
+	/** Handles moving from 2nd to 1st stage event of creating time counter. */
+	private final EventHandler<ActionEvent> from_2_to_1_stage_event_handler;
 
 	
 	///// Нестатическая инициализация =====================================/////
 	{
 		basic_init_controller_fxml_loader = new FXMLLoader();
 		basic_init_controller_fxml_loader.setLocation(
-				New_time_counter_window.class.getResource("Basic_init_layout.fxml"));
+				New_time_counter_window.class.getResource(basic_init_layout_directory));
 		root_pane_controller = basic_init_controller_fxml_loader.getController();
 		
 		init_Time_counter_type_controller_fxml_loader = new FXMLLoader();
 		init_Time_counter_type_controller_fxml_loader.setLocation(
 				New_time_counter_window.class.getResource(
-						"Init_Time_counter_type_layout.fxml"));
+						init_Time_counter_type_layout_directory));
 		time_counter_type_set_pane_controller =
 				init_Time_counter_type_controller_fxml_loader.getController();
+		
+		root_pane_controller.cancel_button.setOnAction(new EventHandler<ActionEvent>()
+		{
+			@Override
+			public void handle(final ActionEvent event)
+			{
+				close_window();
+				back_to_initial_state();
+			}
+		});
 
 		init_stopwatch_pane = null;
 		init_stopwatch_pane_controller = null;
@@ -211,7 +248,7 @@ class New_time_counter_window
 		init_settings_pane = null;
 		init_settings_pane_controller = null;
 		
-		new_time_counter_window_stage = new Stage();
+		stage = new Stage();
 		
 		shortcut_n_accelerator = new Runnable()
 		{
@@ -221,73 +258,8 @@ class New_time_counter_window
 				init_elapsed_from_pane_controller.fire_now_button();
 			}
 		};
-	}
-	
-	
-	///// Конструкторы по умолчанию =======================================/////
-	/**
-	 * @throws IOException Не&nbsp;удалось загрузить панель компоновки из
-	 * {@code FXML}&#8209;файла.
-	 */
-	New_time_counter_window() throws IOException
-	{
-		root_pane = basic_init_controller_fxml_loader.load();
-		time_counter_type_set_pane =
-				init_Time_counter_type_controller_fxml_loader.load();
-		new_time_counter_window_scene = new Scene(root_pane);
-	}
-	
-	
-	///// Методы по умолчанию экземпляра ==================================/////
-	// TODO: Создать мнемоники для быстрых действий вместо нажатия клавиш
-	/* TODO: Создать исходные всплывающие сообщения с указанием мнемоник над
-	 * клавишами */
-	/**
-	 * Отображает окно для создания нового счетчика времени и создает новый
-	 * счетчик времени. Окно содержит три этапа создания счетчика времени:
-	 * <ol><li>Выбор режима в котором будет работать счетчик времени, согласно
-	 * именованным константам перечисления {@link Mode}. Является
-	 * <u>обязательным</u>.</li>
-	 * <li>Установка исходных значений для счетчика времени. Является
-	 * <u>обязательным</u>.</li>
-	 * <li>Установка настроек отображения счетчика времени. Является
-	 * <u>необязательным</u>.</li></ol>
-	 * 
-	 * @param owner_window Окно вызывающей области видимости, доступ к которому
-	 * будет блокирован на время отображения окна данного метода.
-	 * 
-	 * @throws IOException Не&nbsp;удалось получить панель компоновки из
-	 * {@code fxml}&#8209;файла.
-	 * 
-	 * @exception NullPointerException В качестве аргумента передан {@code null}.
-	 */
-	void show_window(final Window owner_window) throws IOException
-	{
-		// Аргумент метода не может быть null
-		if (owner_window == null)
-		{
-			throw new NullPointerException(
-					Window.class.getName() + " argument is null");
-		}
 		
-		root_pane.setCenter(time_counter_type_set_pane);
-		
-		// TODO: Переместить в глобальную область
-		root_pane_controller.cancel_button.setOnAction(new EventHandler<ActionEvent>()
-		{
-			@Override
-			public void handle(final ActionEvent event)
-			{
-				close_window();
-				set_defaults();
-			}
-		});
-		
-		// TODO [next]: Переместить в глобальную область
-		/* Обработчик события перехода с 1-го ко 2-му этапу создания счетчика
-		 * времени */
-		final EventHandler<ActionEvent> from_1_to_2_stage_event_handler =
-				new EventHandler<ActionEvent>()
+		from_1_to_2_stage_event_handler = new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(final ActionEvent event)
@@ -299,6 +271,7 @@ class New_time_counter_window
 				final Mode time_counter_mode =
 						time_counter_type_set_pane_controller.get_selected_mode();
 				
+				// Choosing a pane to show
 				switch (time_counter_mode)
 				{
 				case M_stopwatch:
@@ -309,7 +282,7 @@ class New_time_counter_window
 						stage_2_fxml_loader = new FXMLLoader();
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
-										"Init_Solo_counter_layout.fxml"));
+										init_Solo_counter_layout_directory));
 						init_stopwatch_pane_controller =
 								stage_2_fxml_loader.getController();
 						
@@ -324,7 +297,7 @@ class New_time_counter_window
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 							
 							return;
 						}
@@ -348,9 +321,30 @@ class New_time_counter_window
 								return;
 							}
 							
-							// TODO: Создать счетчик времени в режиме секундомера
+							/* If user hasn't moved to wizard's 3rd stage which
+							 * contains time counter layout settings */
+							if (init_settings_pane == null)
+							{
+								/* TODO: Create stopwatch mode time counter,
+								 * using constructor which DOESN'T TAKE layout
+								 * settings as argument */
+							}
+							else
+							{
+								// Time counter's layout settings
+								final Init_settings init_settings =
+										init_settings_pane_controller.get_init_settings();
+										
+								/* TODO: Create stopwatch mode time counter,
+								 * using constructor which TAKES layout settings
+								 * as argument */
+								/* TODO: Set created time counter's value
+								 * display on title if requested */
+								overwrite_default_layout_settings();
+							}
+							
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 						}
 					});
 					
@@ -364,7 +358,7 @@ class New_time_counter_window
 						stage_2_fxml_loader = new FXMLLoader();
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
-										"Init_Solo_counter_layout.fxml"));
+										init_Solo_counter_layout_directory));
 						init_countdown_pane_controller =
 								stage_2_fxml_loader.getController();
 						
@@ -379,7 +373,7 @@ class New_time_counter_window
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 							
 							return;
 						}
@@ -403,9 +397,30 @@ class New_time_counter_window
 								return;
 							}
 							
-							// TODO: Создать счетчик времени в режиме таймера
+							/* If user hasn't moved to wizard's 3rd stage which
+							 * contains time counter layout settings */
+							if (init_settings_pane == null)
+							{
+								/* TODO: Create countdown mode time counter,
+								 * using constructio which DOESN'T TAKE layout
+								 * settings as argument */
+							}
+							else
+							{
+								// Time counter's layout settings
+								final Init_settings init_settings =
+										init_settings_pane_controller.get_init_settings();
+								
+								/* TODO: Create countdown mode time counter,
+								 * using constructor which TAKES layout settings
+								 * as argument */
+								/* TODO: Set created time counter's value
+								 * display on title if requested */
+								overwrite_default_layout_settings();
+							}
+							
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 						}
 					});
 					
@@ -419,7 +434,7 @@ class New_time_counter_window
 						stage_2_fxml_loader = new FXMLLoader();
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
-										"Init_Instance_counter_layout.fxml"));
+										init_Instance_counter_layout_directory));
 						init_elapsed_from_pane_controller =
 								stage_2_fxml_loader.getController();
 						
@@ -434,7 +449,7 @@ class New_time_counter_window
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 							
 							return;
 						}
@@ -443,7 +458,7 @@ class New_time_counter_window
 								"< " + shortcut_n_key_combination.getDisplayText() + " >");
 					}
 					
-					new_time_counter_window_scene.getAccelerators().put(
+					accelerators.put(
 							shortcut_n_key_combination, shortcut_n_accelerator);
 					
 					root_pane.setCenter(init_elapsed_from_pane);
@@ -465,10 +480,30 @@ class New_time_counter_window
 								return;
 							}
 							
-							/* TODO: Создать счетчик времени в режиме прошедшего
-							 * времени с указанного момента */
+							/* If user hasn't moved to wizard's 3rd stage which
+							 * contains time counter layout settings */
+							if (init_settings_pane == null)
+							{
+								/* TODO: Create elapsed-from-specified-instant
+								 * mode time counter, using constructor which
+								 * DOESN'T TAKE layout settings as argument */
+							}
+							else
+							{
+								// Time counter's layout settings
+								final Init_settings init_settings =
+										init_settings_pane_controller.get_init_settings();
+								
+								/* TODO: Create elapsed-from-specified-instant
+								 * mode time counter, using constructor which
+								 * TAKES layout settings as argument */
+								/* TODO: Set created time counter's value
+								 * display on title if requested */
+								overwrite_default_layout_settings();
+							}
+							
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 						}
 					});
 					
@@ -482,7 +517,7 @@ class New_time_counter_window
 						stage_2_fxml_loader = new FXMLLoader();
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
-										"Init_Instance_counter_layout.fxml"));
+										init_Instance_counter_layout_directory));
 						init_countdown_till_pane_controller =
 								stage_2_fxml_loader.getController();
 						
@@ -497,7 +532,7 @@ class New_time_counter_window
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 							
 							return;
 						}
@@ -523,10 +558,30 @@ class New_time_counter_window
 								return;
 							}
 							
-							/* TODO: Создать счетчик времени в режиме таймера
-							 * обратного отсчета с привязкой к будущей дате */
+							/* If user hasn't moved to wizard's 3rd stage which
+							 * contains time counter layout settings */
+							if (init_settings_pane == null)
+							{
+								/* TODO: Create remains-to-specified-instant
+								 * mode time counter, which DOESN'T TAKE layout
+								 * settings as argument */
+							}
+							else
+							{
+								// Time counter's layout settings
+								final Init_settings init_settings =
+										init_settings_pane_controller.get_init_settings();
+								
+								/* TODO: Create remains-to-specified-instant
+								 * mode time counter, which TAKES layout
+								 * settings as argument */
+								/* TODO: Set created time counter's value
+								 * display on title if requested */
+								overwrite_default_layout_settings();
+							}
+							
 							close_window();
-							set_defaults();
+							back_to_initial_state();
 						}
 					});
 					
@@ -537,19 +592,36 @@ class New_time_counter_window
 							Mode.class, time_counter_mode.name());
 				}
 				
-				// TODO: Установить обработчик события для кнопки "Previous"
+				root_pane_controller.previous_button.setOnAction(
+						from_2_to_1_stage_event_handler);
+				
 				root_pane_controller.apply_button.setDisable(false);
 				root_pane_controller.previous_button.setDisable(false);
+				root_pane_controller.cancel_button.setCancelButton(false);
+				root_pane_controller.previous_button.setCancelButton(true);
+				
+				accelerators.put(shortcut_enter_key_combination, new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						root_pane_controller.apply_button.fire();
+					}
+				});
+				
 				root_pane_controller.mode_image.setImage(
 						new Image(mode_img_directories.get(time_counter_mode)));
+				
+				root_pane_controller.previous_button.setTooltip(
+						new Tooltip(esc_key_combination_text));
+				root_pane_controller.apply_button.setTooltip(new Tooltip(
+						"< " + shortcut_enter_key_combination.getDisplayText() + " >"));
+				root_pane_controller.cancel_button.getTooltip().setText(
+						"< " + shortcut_esc_key_combination.getDisplayText() + " >");
 			}
 		};
 		
-		// TODO: Переместить в глобальную область
-		/* Обработчик события перехода с 2-го к 3-му этапу создания счетчика
-		 * времени */
-		final EventHandler<ActionEvent> from_2_to_3_stage_event_handler =
-				new EventHandler<ActionEvent>()
+		from_2_to_3_stage_event_handler = new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(final ActionEvent event)
@@ -631,7 +703,7 @@ class New_time_counter_window
 					
 					stage_3_fxml_loader.setLocation(
 							New_time_counter_window.class.getResource(
-									"Init_settings_layout.fxml"));
+									init_settings_layout_directory));
 					init_settings_pane_controller =
 							stage_3_fxml_loader.getController();
 					
@@ -655,8 +727,8 @@ class New_time_counter_window
 				}
 				
 				root_pane.setCenter(init_settings_pane);
-				new_time_counter_window_scene.getAccelerators().remove(
-						shortcut_n_key_combination);
+				accelerators.remove(shortcut_n_key_combination);
+				
 				root_pane_controller.next_button.setDefaultButton(false);
 				root_pane_controller.next_button.setDisable(true);
 				root_pane_controller.apply_button.setDefaultButton(true);
@@ -675,23 +747,31 @@ class New_time_counter_window
 						{
 						case M_stopwatch:
 							// TODO: Создать счетчик времени в режиме секундомера
+							/* TODO: Set created time counter's value display on
+							 * title if requested */
 							
 							break;
 							
 						case M_countdown:
 							// TODO: Создать счетчик времени в режиме таймера
+							/* TODO: Set created time counter's value display on
+							 * title if requested */
 							
 							break;
 							
 						case M_elapsed_from:
 							/* TODO: Создать счетчик времени в режиме подсчета
 							 * прошедшего времени с указанного момента */
+							/* TODO: Set created time counter's value display on
+							 * title if requested */
 							
 							break;
 							
 						case M_countdown_till:
 							/* TODO: Создать счетчик времени в режиме таймера
 							 * обратного отсчета до указанного момента */
+							/* TODO: Set created time counter's value display on
+							 * title if requested */
 							
 							break;
 							
@@ -700,12 +780,14 @@ class New_time_counter_window
 									Mode.class, selected_mode.name());
 						}
 						
+						overwrite_default_layout_settings();
 						close_window();
-						set_defaults();
+						back_to_initial_state();
 					}
 				});
 				
-				// TODO: Обработчик события для кнопки "Previous"
+				root_pane_controller.previous_button.setOnAction(
+						from_3_to_2_stage_event_handler);
 				
 				root_pane_controller.next_button.setTooltip(null);
 				root_pane_controller.apply_button.getTooltip().setText(
@@ -714,11 +796,7 @@ class New_time_counter_window
 			}
 		};
 		
-		// TODO: Переместить в глобальную область
-		/* Обработчик события перехода с 3-го к 2-му этапу создания счетчика
-		 * времени */
-		final EventHandler<ActionEvent> from_3_to_2_stage_event_handler =
-				new EventHandler<ActionEvent>()
+		from_3_to_2_stage_event_handler = new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(final ActionEvent event)
@@ -742,7 +820,7 @@ class New_time_counter_window
 					
 				case M_elapsed_from:
 					root_pane.setCenter(init_elapsed_from_pane);
-					new_time_counter_window_scene.getAccelerators().put(
+					accelerators.put(
 							shortcut_n_key_combination, shortcut_n_accelerator);
 					
 					break;
@@ -757,33 +835,83 @@ class New_time_counter_window
 							Mode.class, time_counter_mode.name());
 				}
 				
-				// TODO: Обработчик события нажатия кнопки "Previous"
-				
+				root_pane_controller.previous_button.setOnAction(
+						from_2_to_1_stage_event_handler);
 				root_pane_controller.next_button.setOnAction(
 						from_2_to_3_stage_event_handler);
+				
 				root_pane_controller.apply_button.setDefaultButton(false);
 				root_pane_controller.next_button.setDefaultButton(true);
 				root_pane_controller.next_button.setDisable(false);
-				root_pane_controller.apply_button.getTooltip().setText(
-						"< " + shortcut_enter_key_combination + " >");
+				
 				root_pane_controller.next_button.setTooltip(
 						new Tooltip(enter_key_combination_text));
+				root_pane_controller.apply_button.getTooltip().setText(
+						"< " + shortcut_enter_key_combination + " >");
 			}
 		};
 		
-		// TODO: Переместить в глобальную область
-		/* Обработчик события перехода с 2-го к 1-му этапу создания счетчика
-		 * времени */
-		final EventHandler<ActionEvent> from_2_to_1_stage_event_handler =
-				new EventHandler<ActionEvent>()
+		from_2_to_1_stage_event_handler = new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(final ActionEvent event)
 			{
-				set_defaults();
+				back_to_initial_state();
 				root_pane.setCenter(time_counter_type_set_pane);
 			}
 		};
+	}
+	
+	
+	///// Конструкторы по умолчанию =======================================/////
+	/**
+	 * @param owner Owner window which will be blocked while this object's
+	 * window is shown.
+	 * 
+	 * @throws IOException Не&nbsp;удалось загрузить панель компоновки из
+	 * {@code FXML}&#8209;файла.
+	 * 
+	 * @exception NullPointerException Received argument is&nbsp;{@code null}.
+	 */
+	New_time_counter_window(final Window owner) throws IOException
+	{
+		// Аргумент метода не может быть null
+		if (owner == null)
+		{
+			throw new NullPointerException(
+					Window.class.getName() + " argument is null");
+		}
+		
+		root_pane = basic_init_controller_fxml_loader.load();
+		time_counter_type_set_pane =
+				init_Time_counter_type_controller_fxml_loader.load();
+		scene = new Scene(root_pane);
+		accelerators = scene.getAccelerators();
+		
+		stage.setScene(scene);
+		stage.initOwner(owner);
+		stage.initModality(Modality.APPLICATION_MODAL);
+		stage.setResizable(false);
+	}
+	
+	
+	///// Методы по умолчанию экземпляра ==================================/////
+	/**
+	 * Отображает окно для создания нового счетчика времени и создает новый
+	 * счетчик времени. Окно содержит три этапа создания счетчика времени:
+	 * <ol><li>Выбор режима в котором будет работать счетчик времени, согласно
+	 * именованным константам перечисления {@link Mode}. Является
+	 * <u>обязательным</u>.</li>
+	 * <li>Установка исходных значений для счетчика времени. Является
+	 * <u>обязательным</u>.</li>
+	 * <li>Установка настроек отображения счетчика времени. Является
+	 * <u>необязательным</u>.</li></ol>
+	 */
+	void show_window()
+	{
+		set_root_pane_to_initial_state();
+		root_pane.setCenter(time_counter_type_set_pane);
+		stage.show();
 	}
 	
 	
@@ -791,11 +919,11 @@ class New_time_counter_window
 	/**
 	 * Закрывает окно этого класса и обнуляет ссылки на объекты, которые
 	 * не&nbsp;будут использоваться при следующем вызове метода
-	 * {@link #show_window(Window)}.
+	 * {@link #show_window()}.
 	 */
 	private void close_window()
 	{
-		new_time_counter_window_stage.close();
+		stage.close();
 		
 		init_stopwatch_pane = null;
 		init_stopwatch_pane_controller = null;
@@ -821,30 +949,94 @@ class New_time_counter_window
 	
 	
 	/**
-	 * Приводит {@link #root_pane} к исходному состоянию.
+	 * Sets {@link #root_pane} to initial state.
 	 */
-	private void set_defaults()
+	private void set_root_pane_to_initial_state()
 	{
+		root_pane_controller.next_button.setTooltip(
+				new Tooltip(enter_key_combination_text));
+		root_pane_controller.cancel_button.setTooltip(new Tooltip(
+				"< " + shortcut_esc_key_combination.getDisplayText() + " > or "
+						+ esc_key_combination_text));
+		
+		root_pane_controller.next_button.setOnAction(
+				from_1_to_2_stage_event_handler);
+		
+		accelerators.put(shortcut_esc_key_combination, new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				root_pane_controller.cancel_button.fire();
+			}
+		});
+	}
+	
+	
+	/**
+	 * Sets {@link #root_pane} back to initial state at the&nbsp;end of
+	 * executing {@link #show_window()}.
+	 */
+	private void back_to_initial_state()
+	{
+		set_root_pane_to_initial_state();
 		root_pane_controller.mode_image.setImage(null);
 		
 		root_pane_controller.apply_button.setDefaultButton(false);
 		root_pane_controller.next_button.setDefaultButton(true);
-		root_pane_controller.previous_button.setDefaultButton(false);
-		root_pane_controller.cancel_button.setDefaultButton(true);
+		root_pane_controller.previous_button.setCancelButton(false);
+		root_pane_controller.cancel_button.setCancelButton(true);
 		
-		root_pane_controller.previous_button.setTooltip(null);
-		root_pane_controller.next_button.setTooltip(
-				new Tooltip(enter_key_combination_text));
-		root_pane_controller.apply_button.setTooltip(null);
-		root_pane_controller.cancel_button.getTooltip().setText(
-				"< " + shortcut_esc_key_combination.getDisplayText() + " > or "
-						+ esc_key_combination_text);
-		
-		// Мнемоники окна этого класса
-		final ObservableMap<KeyCombination, Runnable> accelerators =
-				new_time_counter_window_scene.getAccelerators();
+		root_pane_controller.previous_button.setDisable(true);
+		root_pane_controller.apply_button.setDisable(true);
+		root_pane_controller.next_button.setDisable(false);
 		
 		accelerators.remove(shortcut_enter_key_combination);
 		accelerators.remove(shortcut_n_key_combination);
+		
+		root_pane_controller.previous_button.setTooltip(null);
+		root_pane_controller.apply_button.setTooltip(null);
+	}
+	
+	
+	/**
+	 * Overwrites time&nbsp;counter user&nbsp;defined layout settings using
+	 * separate thread.<br>
+	 * <b>Warning!</b> This method <u>doesn't check</u>
+	 * {@link #init_settings_pane_controller} initialization, from where it
+	 * takes layout settings.
+	 * 
+	 * @exception NullPointerException If {@link #init_settings_pane_controller}
+	 * is {@code null}.
+	 */
+	private void overwrite_default_layout_settings()
+	{
+		Executors.newSingleThreadExecutor().execute(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				// Application's settings
+				final Settings settings = Settings.get_instance();
+				// New time counter's layout settings
+				final Init_settings init_settings =
+						init_settings_pane_controller.get_init_settings();
+				
+				settings.set_time_unit_layout_setting(init_settings.time_unit_layout);
+				settings.set_time_display_style_setting(init_settings.time_display_style);
+				
+				// If time counter's displayed range is set
+				if (init_settings.left_displayed_edge != null &&
+						init_settings.right_displayed_edge != null)
+				{
+					settings.set_time_value_edges(init_settings.left_displayed_edge,
+							init_settings.right_displayed_edge);
+				}
+				
+				/* TODO: Uncomment after making "Settings.serialize()" method
+				 * public */
+//				settings.serialize();
+			}
+		});
 	}
 }

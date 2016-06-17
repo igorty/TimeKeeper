@@ -163,8 +163,6 @@ public class Init_Solo_counter_controller
 	@FXML
 	private TextField seconds_field;
 
-	/* TODO: Вывести текст предупреждения в случае ввода некорректных значений
-	 * даты и времени */
 	/** Текстовая метка, отображающая текст предупреждения в&nbsp;случае ввода
 	 * некорректных значений даты и времени. */
 	@FXML
@@ -443,6 +441,7 @@ public class Init_Solo_counter_controller
 	}
 	
 	
+	// TODO [with separate commit]: Remove method (not needed)
 	/**
 	 * Выводит указанное предупреждение в отведенном участке панели компоновки.
 	 * 
