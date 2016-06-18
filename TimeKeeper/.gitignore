@@ -1,6 +1,7 @@
 ﻿# Directories
 /bin/
 .settings/
+/lib/
 
 # Java files
 .classpath
