@@ -9,19 +9,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.time.format.TextStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
-import java.util.Locale;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javafx.scene.control.Tooltip;
 
 
 /**
@@ -45,14 +39,14 @@ import javafx.scene.control.Tooltip;
  */
 public class Instance_counter extends Time_counter implements Serializable
 {
-	///// Поля по умолчанию статические ==================================/////
+	///// Fields default static ===========================================/////
 	/** Барьер всех экземпляров данного класса для синхронного выполнения
 	 * метода {@link #difference_calculation()}. Устанавливается из
 	 * {@link Time_counter_control}. */
 	static CyclicBarrier difference_calculation_barrier;
 	
 	
-	///// Поля private статические =======================================/////
+	///// Fields private static ===========================================/////
 	/** Отвечает за логирование событий. */
 	private static final Logger logger;
 	
@@ -80,7 +74,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	}
 	
 	
-	///// Поля private экземпляра ========================================/////
+	///// Fields public of-instance =======================================/////
 	/** Значение даты и времени, относительно которого будет вестись подсчет
 	 * оставшегося/прошедшего времени (еще называемое здесь&nbsp;&#0151;
 	 * <i>"целевое" время</i>).
@@ -88,14 +82,16 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * @serial После десериализации не&nbsp;должен быть {@code null}. При
 	 * несоответствии условию проверки генерируется исключение
 	 * {@link InvalidObjectException}. */
-	private final ZonedDateTime time_instance;
+	public final ZonedDateTime time_instance;
 	
+	
+	///// Поля private экземпляра =========================================/////
 	/** Смещение целевого времени {@link #time_instance} в секундах
 	 * относительно гринвичского времени. */
 	private transient int time_instance_offset;
 	
 	
-	///// Конструкторы public ============================================/////
+	///// Constructors public =============================================/////
 	/**
 	 * @param mode_set Режим работы счетчика времени согласно перечислению
 	 * {@link time_obj.Mode}.<br>
@@ -156,7 +152,6 @@ public class Instance_counter extends Time_counter implements Serializable
 			}
 		}
 		
-		set_time_instance_tooltip();
 		difference_calculation();
 	}
 	
@@ -193,7 +188,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * "difference_calculation()" */
 	
 	
-	///// Методы по умолчанию экземпляра =================================/////
+	///// Methods default of-instance =====================================/////
 	/**
 	 * Вычисляет разницу во времени между текущей датой и целевой датой
 	 * {@link #time_instance}.
@@ -260,7 +255,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	}
 	
 	
-	///// Методы private экземпляра ======================================/////
+	///// Methods private of-instance =====================================/////
 	/**
 	 * Вспомогательный метод для {@link #difference_calculation()}.
 	 * Отвечает за преобразование единиц времени, полученных методом
@@ -548,33 +543,7 @@ public class Instance_counter extends Time_counter implements Serializable
 		}
 		
 		time_instance_offset = time_instance.getOffset().getTotalSeconds();
-		set_time_instance_tooltip();
 		difference_calculation();
 		deserialization_restore();
-	}
-	
-	
-	/**
-	 * Устанавливает всплывающее сообщение над {@link Time_counter#time_counter}
-	 * и {@link Time_counter#mode_image}, содержащее {@link #time_instance}.
-	 */
-	private void set_time_instance_tooltip()
-	{
-		// Текст всплывающего сообщения счетчика времени
-		final StringBuilder tooltip_text = new StringBuilder(
-				instance_mode.equals(Mode.M_elapsed_from) ?
-						"Elapsed from " : "Remains till ");
-		
-		tooltip_text.append(time_instance.getDayOfWeek().getDisplayName(
-				TextStyle.SHORT, Locale.getDefault()));
-		tooltip_text.append(' ');
-		tooltip_text.append(time_instance.format(
-				DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)));
-		
-		// Всплывающее сообщение
-		final Tooltip tooltip = new Tooltip(tooltip_text.toString());
-		
-		time_counter.setTooltip(tooltip);
-		Tooltip.install(mode_image, tooltip);
 	}
 }
