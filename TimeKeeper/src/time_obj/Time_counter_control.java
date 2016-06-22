@@ -23,13 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.Window;
-
-import main_package.Main_class;
 import time_obj.containers.Modified_ArrayList;
 import time_obj.dialog.Read_write_dialog;
 
@@ -748,50 +741,7 @@ public class Time_counter_control
 			}
 		}
 	}
-	
 
-	// TODO: No need
-	/**
-	 * Выводит окно&nbsp;ГПИ для создания объекта {@link Solo_counter}.
-	 * Созданный объект добавляется в контейнер типа {@link Modified_ArrayList},
-	 * который можно получить вызовом метода {@link #get_time_counters()},
-	 * а&nbsp;также помещается на панель компоновки
-	 * {@link Main_class#time_counters_pane}.
-	 * 
-	 * @param owner Вызвавшее окно, которое будет деактивировано на&nbsp;время
-	 * существования окна для создания объекта {@link Solo_counter}.
-	 * 
-	 * @param time_counter_mode Режим работы созданного счетчика времени.
-	 * Данному методу может передаваться <u>только</u> {@link Mode#M_stopwatch}
-	 * или {@link Mode#M_countdown}. Иные аргументы вызовут исключение.
-	 * 
-	 * @exception IllegalArgumentException В&nbsp;качестве режима работы передан
-	 * некорректный аргумент.
-	 * 
-	 * @exception NullPointerException Хотя&nbsp;бы один из переданных
-	 * аргументов&nbsp;&#0151;&nbsp;{@code null}.
-	 */
-	public void create_Solo_counter(
-			final Window owner, final Mode time_counter_mode)
-	{
-		// TODO: IllegalArgumentException
-
-		// Корневая панель компоновки
-		final BorderPane root_node = new BorderPane();
-		// TODO: Подогнать размер
-		final Scene scene = new Scene(root_node, 300, 300);  // Сцена окна
-		final Stage stage = new Stage();  // Подмостки окна
-		
-		stage.setScene(scene);
-		stage.initOwner(owner);
-		stage.initModality(Modality.APPLICATION_MODAL);
-		stage.setResizable(false);
-		stage.show();
-	}
-	
-	
-	// TODO: Метод create_Instance_counter
-	
 	
 	///// Методы private экземпляра =======================================/////
 	/**
