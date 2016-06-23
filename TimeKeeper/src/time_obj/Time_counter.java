@@ -622,8 +622,6 @@ public abstract class Time_counter implements Serializable
 	 */
 	protected void build_time_string()
 	{
-		formatter = new Formatter();
-		
 		try
 		{
 			layout_fields_semaphore.acquire(layout_fields_semaphore_permits);
@@ -633,6 +631,8 @@ public abstract class Time_counter implements Serializable
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
+		
+		formatter = new Formatter();
 		
 		// Если выбран строгий диапазон отображаемых единиц времени
 		if (object_time_display_style.equals(Time_display_style.TDS_custom_strict))
@@ -730,9 +730,9 @@ public abstract class Time_counter implements Serializable
 			}
 		}
 		
-		layout_fields_semaphore.release(layout_fields_semaphore_permits);
 		time_counter_text = formatter.toString();
 		formatter.close();
+		layout_fields_semaphore.release(layout_fields_semaphore_permits);
 	}
 	
 	
