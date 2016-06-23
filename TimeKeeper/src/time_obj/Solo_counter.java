@@ -6,20 +6,12 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.Period;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javafx.application.Platform;
-import javafx.scene.control.Button;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.ImageView;
 
 
 /**
@@ -43,22 +35,39 @@ import javafx.scene.image.ImageView;
  */
 public class Solo_counter extends Time_counter implements Serializable
 {
-	///// Перечисления private ============================================/////
+	///// Inner classes public ============================================/////
 	/**
-	 * Именованные константы кнопок класса {@link Solo_counter}.
+	 * Serves as container to return initial time&nbsp;counter's values. This
+	 * class is used by {@link Solo_counter#get_initial_time_values()} method.
 	 * 
-	 * @author Cryptor
+	 * @version 1.0
+	 * @author Igor Taranenko
 	 */
-	private enum Button_key_solo
+	public class Initial_time_values
 	{
-		/** Кропка Старт со значением "Старт". */
-		BKS_START_start,
-		/** Кнопка Старт со значением "Пауза". */
-		BKS_START_pause,
-		/** Кнопка Старт со значением "Возобновить". */
-		BKS_START_resume,
-		/** Кнопка "Перезапустить". */
-		BKS_restart
+		///// Fields public of-instance ===================================/////
+		/** Initial years, months and days time values. */
+		public final Period period_initial;
+		/** Initial hours, minutes and seconds time values. */
+		public final LocalTime duration_initial;
+		
+		
+		///// Constructors default ========================================/////
+		/**
+		 * <b>Warning!</b> Although passing {@code null} as any of arguments
+		 * <u>is&nbsp;forbidden</u>, the&nbsp;constructor <u>does&nbsp;not</u>
+		 * provide {@code null}&nbsp;argument checking.
+		 * 
+		 * @param period_initial Initial years, months and days time values.
+		 * @param duration_initial Initial hours, minutes and seconds time
+		 * values.
+		 */
+		Initial_time_values(
+				final Period period_initial, final LocalTime duration_initial)
+		{
+			this.period_initial = period_initial;
+			this.duration_initial = duration_initial;
+		}
 	}
 	
 	
@@ -66,81 +75,16 @@ public class Solo_counter extends Time_counter implements Serializable
 	/** Логирует события в данном классе. */
 	private static final Logger logger;
 	
-	/** Относительные директории изображений кнопок {@link #button_start} и
-	 * {@link #button_restart} согласно перечислению {@link Button_key_solo}.<br>
-	 * <b>Важно!</b> Ссылается на {@link Collections#unmodifiableMap(Map)}.
-	 * Попытка изменения содержимого контейнера приведет к ошибке времени
-	 * выполнения. */
-	private static final Map<Button_key_solo, String> button_images;
-	
-	/** Тексты всплывающих подсказок согласоно перечислению
-	 * {@link Button_key_solo}.<br>
-	 * <b>Важно!</b> Ссылается на {@link Collections#unmodifiableMap(Map)}.
-	 * Попытка изменения содержимого контейнера приведет к ошибке времени
-	 * выполнения. */
-	private static final Map<Button_key_solo, String> button_tooltips;
-	
 	/** Сообщение, отображаемое вместо счетчика времени в случае переполнения. */
 	private static final String numeric_overflow_message;
+	
 	
 	static
 	{
 		logger = Logger.getLogger(Solo_counter.class.getName());
-		
-		/* Строки с относительными директориями изображений для инициализации
-		 * контейнера "button_images" */
-		final String[] button_image_urls = { "images/start.gif",
-				"images/pause.gif", "images/resume.gif",
-				"images/restart.gif" };
-		// Все элементы перечисления "Button_key_solo"
-		final Button_key_solo[] button_key_solo_values = Button_key_solo.values();
-		
-		assert button_image_urls.length == button_key_solo_values.length :
-			"Array size with values doesn\'t match with quantity of "
-				+ Button_key_solo.class.getName() + " elements";
-		
-		// Инициализатор контейнера "button_images"
-		final Map<Button_key_solo, String> button_images_init =
-				new EnumMap<>(Button_key_solo.class);
-		
-		/* Инициализация контейнера "button_images_init" относительными
-		 * директориями изображений */
-		for (final Button_key_solo i : button_key_solo_values)
-		{
-			button_images_init.put(i, button_image_urls[i.ordinal()]);
-		}
-		
-		button_images = Collections.unmodifiableMap(button_images_init);
-		
-		// Значения для контейнера "button_tooltips"
-		final String[] button_tooltips_values = { "Start", "Pause", "Resume",
-				"Restart" };
-		
-		assert button_image_urls.length == button_key_solo_values.length :
-			"Array size with values doesn\'t match with quantity of "
-				+ Button_key_solo.class.getName() + " elements";
-		
-		// Инициализатор контейнера "button_tooltips"
-		final Map<Button_key_solo, String> button_tooltips_init =
-				new EnumMap<>(Button_key_solo.class);
-		
-		// Присваивание значений контейнеру "button_tooltips_init"
-		for (final Button_key_solo i : button_key_solo_values)
-		{
-			button_tooltips_init.put(i, button_tooltips_values[i.ordinal()]);
-		}
-		
-		button_tooltips = Collections.unmodifiableMap(button_images_init);
 		numeric_overflow_message = "numeric overflow";
 	}
 	
-	
-	///// Поля public экземпляра ==========================================/////
-	/** Запуск/приостановка/возобновление отсчета времени. */
-	public transient Button button_start;
-	/** Перезапуск отсчета времени. */
-	public transient Button button_restart;
-
 	
 	///// Поля private экземпляра =========================================/////
 	/** <u>Начальные</u> значения в годах, месяцах и днях.
@@ -199,17 +143,14 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <i>Условие проверки:</i> <u>Не&nbsp;должен</u> быть {@code null}. */
 	private final Days_in_year days_count;
 
-	/** От данного поля зависит изображение кнопки {@link #button_start}.
-	 * {@code true}&nbsp;&#0151; отсчет уже начинался (кнопка
-	 * {@link #button_start} была нажата). В этом случае, после приостановки
-	 * отсчета времени, указанная кнопка будет с рисунком согласно именованной
-	 * константе {@link Button_key_solo#BKS_START_resume}.
-	 * {@code false}&nbsp;&#0151; отсчет еще не&nbsp;начинался. В этом случае
-	 * рисунок кнопки будет согласно именованной константе
-	 * {@link Button_key_solo#BKS_START_start}.
+	// TODO: Provide listener
+	/** {@code true}&nbsp;&#0151; time&nbsp;counting <u>was&nbsp;started</u>
+	 * after instance creation (or after restart while
+	 * the&nbsp;time&nbsp;counter was stopped); {@code false}&nbsp;&#0151
+	 * time&nbsp;counting <u>was&nbsp;not</u> started yet.
 	 * 
-	 * @serial Десериализованное значение не&nbsp;проверяется. */
-	private boolean counting_have_started;
+	 * @serial Deserialized value <u>does&nbsp;not</u>&nbsp;checked. */
+	private boolean counting_has_started;
 	
 	/** Содержит поток, выполняющий ход времени. */
 	private transient Runnable thread_counter;
@@ -217,6 +158,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	/** Периодически выполняет поток {@link #thread_counter}. */
 	private transient ScheduledExecutorService thread_counter_executor;
 	
+	// TODO: Provide listener
 	/** Флаг числового переполнения счетчика времени. {@code false}&nbsp;&#0151;
 	 * числового переполнения нет; счетчик времени работает в штатном режиме.
 	 * {@code true}&nbsp;&#0151; счетчик времени достиг максимально возможного
@@ -237,7 +179,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * может быть неполным</u>):</i>
 	 * <ul><li>{@link #period_passed};</li>
 	 * <li>{@link #duration_passed};</li>
-	 * <li>{@link #counting_have_started};</li>
+	 * <li>{@link #counting_has_started};</li>
 	 * <li>{@link Time_counter#time_unit_values};</li>
 	 * <li>{@link Time_counter#is_positive_value}.</li></ul> */
 	private transient ReentrantLock lock;
@@ -245,18 +187,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	// Нестатическая инициализация ========================================/////
 	{
-		/* TODO: Обработчики событий для всех четырех кнопок. Реализовать:
-		 * наведение, убирание курсора, нажатие */
-		button_start = new Button("",
-				new ImageView(button_images.get(Button_key_solo.BKS_START_start)));
-		button_start.setTooltip(
-				new Tooltip(button_tooltips.get(Button_key_solo.BKS_START_start)));
-		button_restart = new Button("",
-				new ImageView(button_images.get(Button_key_solo.BKS_restart)));
-		button_restart.setTooltip(
-				new Tooltip(button_tooltips.get(Button_key_solo.BKS_restart)));
-		button_restart.setDisable(true);
-		counting_have_started = false;
+		counting_has_started = false;
 		is_positive_value = true;
 		thread_counter_init();
 		numeric_overflow = false;
@@ -342,7 +273,6 @@ public class Solo_counter extends Time_counter implements Serializable
 		set_time_unit_values();
 		build_time_string();
 		set_time_counter_text();
-		set_initial_time_tooltip();
 	}
 	
 	
@@ -430,106 +360,91 @@ public class Solo_counter extends Time_counter implements Serializable
 	/* TODO: Make synchronized access for 'start' action after dividing
 	 * on two separated methods */
 	/**
-	 * Отвечает за запуск и приостановку отсчета времени.<br>
-	 * <i>Примечания.</i>
-	 * <ul><li>При повторном запуске уже запущенного (либо&nbsp;повторной
-	 * приостановке уже приостановленного) отсчета времени ничего
-	 * не&nbsp;происходит.</li>
-	 * <li>Если счетчик времени экземпляра класса достиг максимального значения,
-	 * данный метод не&nbsp;будет выполняться.</li></ul>
+	 * Starts (resumes) time&nbsp;counting.
 	 * 
-	 * @param start {@code true}&nbsp;&#0151; запуск отсчета времени;
-	 * {@code false}&nbsp;&#0151; приостановка отсчета времени.
+	 * @return {@code true}&nbsp;&#0151; time&nbsp;counting
+	 * <u>was</u>&nbsp;successfully started (resumed). {@code false}&nbsp;&#0151;
+	 * time&nbsp;counting <u>was&nbsp;not</u>&nbsp;started (resumed). This may
+	 * occur due&nbsp;to following reasons:
+	 * <ul><li>time&nbsp;counter is already running;</li>
+	 * <li>numeric overflow occurred.</li></ul>
 	 */
-	public void thread_counter_manager(boolean start)
+	public boolean start()
 	{
-		// Если необходимо запустить отсчет времени
-		if (start)
+		// Если (отсчет времени уже хотя бы раз запускался И ...
+		if ((thread_counter_executor != null &&
+				/* ... отсчет времени сейчас выполняется) ИЛИ счетчик
+				 * времени достиг максимально возможного значения */
+				!thread_counter_executor.isShutdown()) || numeric_overflow)
 		{
-			// Если (отсчет времени уже хотя бы раз запускался И ...
-			if ((thread_counter_executor != null &&
-					/* ... отсчет времени сейчас выполняется) ИЛИ счетчик
-					 * времени достиг максимально возможного значения */
-					!thread_counter_executor.isShutdown()) || numeric_overflow)
-			{
-				return;
-			}
-			
-			thread_counter_executor =
-					Executors.newSingleThreadScheduledExecutor();
-			thread_counter_executor.scheduleAtFixedRate(
-					thread_counter, 1, 1, TimeUnit.SECONDS);
-			
-			// Изменение изображения кнопки "Старт"
-			Platform.runLater(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					button_start.setGraphic(new ImageView(button_images.get(
-							Button_key_solo.BKS_START_pause)));
-					button_start.setTooltip(new Tooltip(button_tooltips.get(
-							Button_key_solo.BKS_START_pause)));
-					button_restart.setDisable(false);
-				}
-			});
+			return false;
 		}
-		else
-		{
-			// Если отсчет времени ни разу не запускался
-			if (thread_counter_executor == null)
-			{
-				return;
-			}
-			
-			thread_counter_executor.shutdown();
-			
-			try
-			{
-				thread_counter_executor.awaitTermination(1, TimeUnit.SECONDS);
-			}
-			catch (final InterruptedException exc)
-			{
-				logger.log(Level.INFO, "Tread interrupts");
-				Thread.currentThread().interrupt();
-			}
-			finally
-			{
-				// Если поток не был остановлен в течении времени ожидания
-				if (!thread_counter_executor.isTerminated())
-				{
-					logger.log(Level.WARNING,
-							"Forcible thread termination due to long waiting");
-					thread_counter_executor.shutdownNow();
-				}
-			}
-			
-			// Изменение изображения кнопки "Старт"
-			Platform.runLater(new Runnable()
-			{
-				@Override
-				public void run()
-				{
-					button_start.setGraphic(new ImageView(button_images.get(
-							Button_key_solo.BKS_START_resume)));
-					// TODO: Сделать шрифт серым
-					button_start.setTooltip(new Tooltip(button_tooltips.get(
-							Button_key_solo.BKS_START_resume)));
-				}
-			});
-		}
+		
+		thread_counter_executor =
+				Executors.newSingleThreadScheduledExecutor();
+		thread_counter_executor.scheduleAtFixedRate(
+				thread_counter, 1, 1, TimeUnit.SECONDS);
+		
+		return true;
 	}
 	
 	
 	/**
-	 * Перезапуск счетчика времени начиная с первоначально заданного времени.<br>
-	 * <i>Примечания.</i>
-	 * <ul><li>Если отсчет времени еще не&nbsp;начинался, данная функция
-	 * не&nbsp;выполняет никаких действий.</li>
-	 * <li>Корректировка времени вперед и/или назад не&nbsp;сказывается на
-	 * значении первоначально заданного времени.</li></ul>
-	 * <i>Примечание по&nbsp;производительности.</i> Данный метод содержит
-	 * синхронизированные участки.
+	 * Pauses time&nbsp;counting.
+	 * 
+	 * @return {@code true}&nbsp;&#0151; time&nbsp;counting
+	 * <u>was</u>&nbsp;successfully paused. {@code false}&nbsp;&#0151;
+	 * time&nbsp;counting <u>was&nbsp;not</u>&nbsp;paused. This may occur if
+	 * time&nbsp;counter is already in paused state (whether after calling this
+	 * method, due&nbsp;to numeric overflow or if it was&nbsp;not&nbsp;started
+	 * yet).
+	 */
+	public boolean pause()
+	{
+		// Если отсчет времени ни разу не запускался
+		if (thread_counter_executor == null)
+		{
+			return false;
+		}
+		
+		thread_counter_executor.shutdown();
+		
+		try
+		{
+			thread_counter_executor.awaitTermination(1, TimeUnit.SECONDS);
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Tread interrupts");
+			Thread.currentThread().interrupt();
+		}
+		finally
+		{
+			// Если поток не был остановлен в течении времени ожидания
+			if (!thread_counter_executor.isTerminated())
+			{
+				logger.log(Level.WARNING,
+						"Forcible thread termination due to long waiting");
+				thread_counter_executor.shutdownNow();
+			}
+		}
+		
+		return true;
+	}
+	
+	
+	/**
+	 * Sets time&nbsp;counter to its initial state (sets time&nbsp;value with
+	 * which it was&nbsp;created). This method <u>does&nbsp;not</u> resume
+	 * counting if time&nbsp;counter was&nbsp;paused (whether by calling
+	 * {@link #pause()} or due&nbsp;to numeric overflow).<br>
+	 * <i>Notes.</i>
+	 * <ul><li>If time&nbsp;counter is already (or yet) in its intital state,
+	 * this method <u>does&nbsp;nothing.</u></li>
+	 * <li>Subsequent time correction
+	 * (using {@link #time_values_correction(long, boolean)}) after instance
+	 * creation <u>does&nbsp;not</u> affect to its initial time&nbsp;set.</li></ul>
+	 * <i>Perfomance note.</i> This method contains synchronized sections.
 	 */
 	public void restart()
 	{
@@ -546,7 +461,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		try
 		{
 			// Если отсчет времени еще не начинался
-			if (!counting_have_started)
+			if (!counting_has_started)
 			{
 				return;
 			}
@@ -557,23 +472,13 @@ public class Solo_counter extends Time_counter implements Serializable
 			// Если ход счетчика времени сейчас приостановлен
 			if (thread_counter_executor.isShutdown())
 			{
-				Platform.runLater(new Runnable()
-				{
-					@Override
-					public void run()
-					{
-						button_start.setGraphic(new ImageView(
-								button_images.get(Button_key_solo.BKS_START_start)));
-						button_start.setTooltip(new Tooltip(
-								button_tooltips.get(Button_key_solo.BKS_START_start)));
-						button_restart.setDisable(true);
-					}
-				});
-				
-				counting_have_started = false;
+				// TODO: Notify listeners
+				counting_has_started = false;
+				// TODO: Notify listeners if value has changed
 				numeric_overflow = false;
 			}
 
+			// TODO: Notify listeners if value has changed
 			is_positive_value = true;
 			set_time_unit_values();
 			build_time_string();
@@ -618,7 +523,8 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * в&nbsp;результате корректировки слишком большое (при&nbsp;этом остается
 	 * прежнее значение счетчика времени).
 	 * 
-	 * @exception IllegalArgumentException Параметр "seconds_amount" меньше нуля.
+	 * @exception IllegalArgumentException Параметр {@code seconds_amount}
+	 * меньше нуля.
 	 */
 	public boolean time_values_correction(
 			final long seconds_amount, final boolean add)
@@ -708,6 +614,7 @@ public class Solo_counter extends Time_counter implements Serializable
 					 * нулевая точка времени */
 					if (seconds_corrected < 0)
 					{
+						// TODO: Notify listeners if value has changed
 						is_positive_value = false;
 						seconds_corrected = Math.abs(seconds_corrected);
 					}
@@ -740,6 +647,7 @@ public class Solo_counter extends Time_counter implements Serializable
 					else if (seconds_passed < 0 &&
 							instance_mode.equals(Mode.M_countdown))
 					{
+						// TODO: Notify listeners if value has changed
 						is_positive_value = true;
 						seconds_corrected = Math.abs(seconds_corrected);
 					}
@@ -816,7 +724,8 @@ public class Solo_counter extends Time_counter implements Serializable
 			// Скорректированное кол-во минут
 			final int minutes = day_seconds / minutes_in_hour;
 			
-			duration_passed = LocalTime.of(hours, minutes, day_seconds % minutes_in_hour);
+			duration_passed =
+					LocalTime.of(hours, minutes, day_seconds % minutes_in_hour);
 			set_time_unit_values();
 			build_time_string();
 			set_time_counter_text();
@@ -827,6 +736,64 @@ public class Solo_counter extends Time_counter implements Serializable
 		{
 			lock.unlock();
 		}
+	}
+	
+	
+	/**
+	 * Lets know whether counting had started after creation (or after restart
+	 * while the&nbsp;time&nbsp;counter was stopped).
+	 * 
+	 * @return {@code true}&nbsp;&#0151; time&nbsp;counter had started;
+	 * {@code false}&nbsp;&#0151; had&nbsp;not.
+	 */
+	public boolean counting_had_started()
+	{
+		return counting_has_started;
+	}
+	
+	
+	/**
+	 * Lets know whether time&nbsp;counter is currently running.<br>
+	 * <i>Note.</i> Time&nbsp;counter can be stopped not&nbsp;only after
+	 * {@link #pause()} method calling. It also stops if numeric overflow occurs
+	 * (method {@link #numeric_overflow_status()} returns {@code true}).
+	 * 
+	 * @return {@code true}&nbsp;&#0151; time&nbsp;counter currently running;
+	 * {@code false}&nbsp;&#0151; is&nbsp;paused.
+	 */
+	public boolean is_running()
+	{
+		// If time counter is running
+		if (thread_counter_executor != null && !thread_counter_executor.isShutdown())
+		{
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
+	/**
+	 * When time&nbsp;counter reaches its maximum possible value it stops
+	 * counting and sets numeric overflow status to {@code true}. In this case
+	 * calling {@link #start()} <u>does&nbsp;nothing</u>. But time&nbsp;counter
+	 * can be restarted by calling {@link #restart()}.
+	 * 
+	 * @return {@code true}&nbsp;&#0151; numeric overflow occurred;
+	 * {@code false}&nbsp;&#0151; time&nbsp;counter is&nbsp;in&nbsp;normal state.
+	 */
+	public boolean numeric_overflow_status()
+	{
+		return numeric_overflow;
+	}
+	
+	
+	/**
+	 * @return Initial time&nbsp;counter's values.
+	 */
+	public Initial_time_values get_initial_time_values()
+	{
+		return new Initial_time_values(period_init, duration_init);
 	}
 	
 	
@@ -928,37 +895,15 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		set_time_unit_values();
 		thread_counter_init();
-		set_initial_time_tooltip();
-		button_restart = new Button("",
-				new ImageView(button_images.get(Button_key_solo.BKS_restart)));
-		button_restart.setTooltip(
-				new Tooltip(button_tooltips.get(Button_key_solo.BKS_restart)));
-		
-		// Если отсчет начался перед сериализацией
-		if (counting_have_started)
-		{
-			button_start = new Button("", new ImageView(
-					button_images.get(Button_key_solo.BKS_START_resume)));
-			button_start.setTooltip(new Tooltip(
-					button_tooltips.get(Button_key_solo.BKS_START_resume)));
-		}
-		else
-		{
-			button_start = new Button("", new ImageView(
-					button_images.get(Button_key_solo.BKS_START_start)));
-			button_start.setTooltip(new Tooltip(
-					button_tooltips.get(Button_key_solo.BKS_START_start)));
-			button_restart.setDisable(true);
-		}
-		
 		lock = new ReentrantLock();
 		deserialization_restore();
 	}
 	
 	
 	/**
-	 * Вспомогательный метод для {@link #Solo_counter(Mode, Period, LocalTime, Days_in_year)}
-	 * и {@link #readObject(ObjectInputStream)}, выполняющий проверку полей
+	 * Вспомогательный метод для
+	 * {@link #Solo_counter(Mode, Period, LocalTime, Days_in_year)} и
+	 * {@link #readObject(ObjectInputStream)}, выполняющий проверку полей
 	 * {@link Time_counter#instance_mode}, {@link #period_init} и
 	 * {@link #duration_init} на соответствие требованиям класса.
 	 * 
@@ -1136,6 +1081,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	}
 	
 	
+	// TODO: ? Move to instance initialization scope
 	/**
 	 * Инициализирует поле {@link #thread_counter}.
 	 */
@@ -1161,7 +1107,8 @@ public class Solo_counter extends Time_counter implements Serializable
 				
 				try
 				{
-					counting_have_started = true;
+					// TODO: Notify listeners if value has changed
+					counting_has_started = true;
 					
 					/* Если экземпляр класса работает в режиме секундомера ИЛИ
 					 * это режим таймера, и нулевое время уже было достигнуто */
@@ -1181,30 +1128,16 @@ public class Solo_counter extends Time_counter implements Serializable
 							}
 							catch(final ArithmeticException exc)
 							{
+								// TODO: Notify listeners
 								numeric_overflow = true;
 								
-								Platform.runLater(new Runnable()
-								{
-									@Override
-									public void run()
-									{
-										time_counter.setText(
-												numeric_overflow_message);
-										/* TODO: Установить красный фон или красный
-										 * текст */
-										button_start.setGraphic(new ImageView(
-												button_images.get(
-														Button_key_solo.BKS_START_start)));
-										button_start.setDisable(true);
-									}
-								});
-								
-								thread_counter_manager(false);
+								pause();
 								
 								return;
 							}
 						}
 					}
+					// Instance works in timer mode and zero time isn't reached yet
 					else
 					{
 						duration_passed = duration_passed.minusSeconds(1);
@@ -1251,6 +1184,7 @@ public class Solo_counter extends Time_counter implements Serializable
 							else if (months_remain == 0 && years_remain == 0)
 							{
 								duration_passed = duration_passed.plusSeconds(2);
+								// TODO: Notify listeners if value has changed
 								is_positive_value = false;
 							}
 						}
@@ -1266,81 +1200,5 @@ public class Solo_counter extends Time_counter implements Serializable
 				}
 			}
 		};
-	}
-	
-	
-	/**
-	 * Если {@link Time_counter#instance_mode} имеет значение
-	 * {@link time_obj.Mode#M_countdown}, метод устанавливает всплывающее
-	 * сообщение над {@link Time_counter#time_counter} и
-	 * {@link Time_counter#mode_image}, содержащее {@link #period_init} и
-	 * {@link #duration_init}. В&nbsp;ином случае не&nbsp;делает ничего.
-	 */
-	private void set_initial_time_tooltip()
-	{
-		// Если экземпляр класса работает в режиме секундомера
-		if (instance_mode != Mode.M_countdown)
-		{
-			return;
-		}
-		
-		// Текст всплывающего сообщения
-		final StringBuilder tooltip_text =
-				new StringBuilder("Initial timer\'s time: ");
-		/* Формирование текста всплывающей подсказки, содержащей отображаемые
-		 * единицы времени, происходит от больших единиц времени к меньшим.
-		 * Как только значение одной из единиц времени оказывается значащим
-		 * (т.е. отличным от нуля), - все меньшие единицы времени должны
-		 * отображаться в любом случае.
-		 * true - значащая единица времени достигнута; false - нет */
-		boolean value_reached = false;
-		
-		// Если год имеет значащее число
-		if (period_init.getYears() != 0)
-		{
-			tooltip_text.append(period_init.getYears());
-			tooltip_text.append("yr ");
-			value_reached = true;
-		}
-		
-		// Если значащая единица времени уже достигнута ИЛИ достигнута сейчас
-		if (value_reached || period_init.getMonths() != 0)
-		{
-			tooltip_text.append(period_init.getMonths());
-			tooltip_text.append("mn ");
-			value_reached = true;
-		}
-		
-		// Если значащая единица времени уже достигнута ИЛИ достигнута сейчас
-		if (value_reached || period_init.getDays() != 0)
-		{
-			tooltip_text.append(period_init.getDays());
-			tooltip_text.append("d ");
-			value_reached = true;
-		}
-		
-		// Если значащая единица времени уже достигнута ИЛИ достигнута сейчас
-		if (value_reached || duration_init.getHour() != 0)
-		{
-			tooltip_text.append(duration_init.getHour());
-			tooltip_text.append("hr ");
-			value_reached = true;
-		}
-		
-		// Если значащая единица времени уже достигнута ИЛИ достигнута сейчас
-		if (value_reached || duration_init.getMinute() != 0)
-		{
-			tooltip_text.append(duration_init.getMinute());
-			tooltip_text.append("min ");
-		}
-		
-		tooltip_text.append(duration_init.getSecond());
-		tooltip_text.append("sec");
-		
-		// Всплывающее сообщение
-		final Tooltip tooltip = new Tooltip(tooltip_text.toString());
-		
-		time_counter.setTooltip(tooltip);
-		Tooltip.install(mode_image, tooltip);
 	}
 }
