@@ -152,7 +152,7 @@ public class Time_counter_control
 				 * ЕСЛИ до этого десериализированные поля были корректными */
 				if (deserialization_status)
 				{
-					temp.get_deserialization_status();
+					deserialization_status = temp.get_deserialization_status();
 				}
 				
 				time_counters.add(temp);
