@@ -39,7 +39,7 @@ import java.util.logging.Logger;
  */
 public class Instance_counter extends Time_counter implements Serializable
 {
-	///// Fields default static ===========================================/////
+	///// Fields default-access static ====================================/////
 	/** Барьер всех экземпляров данного класса для синхронного выполнения
 	 * метода {@link #difference_calculation()}. Устанавливается из
 	 * {@link Time_counter_control}. */
@@ -65,10 +65,10 @@ public class Instance_counter extends Time_counter implements Serializable
 		{
 			zone_rules = ZoneId.systemDefault();
 		}
-		catch(DateTimeException exc)
+		catch(final DateTimeException exc)
 		{
 			logger.log(Level.WARNING,
-					"Cannot obtain system ZoneId. Exception\'s stack trace:", exc);
+					"Cannot obtain system ZoneId. Exception stack trace:", exc);
 			zone_rules = null;
 		}
 	}
@@ -183,17 +183,16 @@ public class Instance_counter extends Time_counter implements Serializable
 	}
 	
 	
-	/* TODO: ? Метод, обновляющий локальные настройки временной зоны "ZoneId"
-	 * (рассмотреть необходимость). Синхронизировать с
-	 * "difference_calculation()" */
+	/* TODO: Метод, обновляющий локальные настройки временной зоны "ZoneId".
+	 * Синхронизировать с "difference_calculation()" */
 	
 	
-	///// Methods default of-instance =====================================/////
+	///// Methods default-access of-instance ==============================/////
 	/**
 	 * Вычисляет разницу во времени между текущей датой и целевой датой
 	 * {@link #time_instance}.
 	 */
-	void difference_calculation()
+	final void difference_calculation()
 	{
 		time_current = ZonedDateTime.now(zone_rules);
 		
@@ -236,55 +235,53 @@ public class Instance_counter extends Time_counter implements Serializable
 		{
 			difference_calculation_barrier.await();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts after encountering "
-					+ InterruptedException.class.getName() + "while waiting for"
-					+ " all same threads to reach this poing. This is a handled exception.");
+					+ InterruptedException.class.getName() + " while waiting for"
+					+ " all same threads to reach this point. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		// При возникновении данного исключения поток доведет выполнение до конца
-		catch (BrokenBarrierException exc)
+		catch (final BrokenBarrierException exc)
 		{
 			logger.log(Level.INFO, "Thread encountered broken common barrier"
 					+ " while waiting for all same threads to reach this point."
-					+ " It will continue executing.");
+					+ " It will continue executing. Exception stack trace:", exc);
 		}
 		
-		set_time_counter_text();
+		time_counter_text_listeners_notification();
 	}
 	
 	
 	///// Methods private of-instance =====================================/////
 	/**
-	 * Вспомогательный метод для {@link #difference_calculation()}.
-	 * Отвечает за преобразование единиц времени, полученных методом
-	 * {@link Temporal#until(Temporal, java.time.temporal.TemporalUnit)}, в
-	 * значения для {@link Time_counter#time_unit_values}.
+	 * Auxiliary method for {@link #difference_calculation()}.
+	 * Is&nbsp;in&nbsp;charge for converting time&nbsp;units, obtained from
+	 * {@link Temporal#until(Temporal, java.time.temporal.TemporalUnit)}, into
+	 * values for {@link Time_counter#time_unit_values}.
 	 * 
-	 * @param <Type1> Обобщенный тип параметра {@code date_time_now},
-	 * реализующий интерфейс {@link Temporal}. Данный интерфейс является общим
-	 * для типов {@link ZonedDateTime} и {@link LocalDateTime}.
+	 * @param <Type1> This generic type is common for {@link ZonedDateTime} and
+	 * {@link LocalDateTime}, which are expected as {@code date_time_now}
+	 * argument.
 	 * 
-	 * @param date_time_now Текущие дата и время.
+	 * @param date_time_now Current date and time.
 	 * 
-	 * @param calculation_till {@code true} обозначает подсчет времени в режиме
-	 * {@link time_obj.Mode#M_countdown_till}. В этом случае поле
-	 * {@link Time_counter#is_positive_value} будет иметь значение {@code true},
-	 * если целевое время ({@link #time_instance}) еще не&nbsp;наступило
-	 * (иными&nbsp;словами, когда текущее время <u>меньше</u> по&nbsp;значению
-	 * чем целевое время). Если&nbsp;же <u>текущее время больше по&nbsp;значению
-	 * чем целевое время</u>&nbsp;&#0151; {@link Time_counter#is_positive_value}
-	 * будет иметь значение {@code false}.<br>
-	 * При передаче значения {@code false} в качестве параметра (подсчет
-	 * времени в режиме {@link time_obj.Mode#M_elapsed_from}) происходит
-	 * обратная ситуация. В этом случае поле
-	 * {@link Time_counter#is_positive_value} будет иметь значение {@code true},
-	 * <u>если текущее время больше по&nbsp;значению чем целевое время
-	 * {@link #time_instance}</u> (иными&nbsp;словами, когда целевое время уже
-	 * наступило). Если&nbsp;же <u>целевое время больше по&nbsp;значению чем
-	 * текущее время</u>&nbsp;&#0151; {@link Time_counter#is_positive_value}
-	 * будет иметь заначение {@code false}.
+	 * @param calculation_till {@code true} means calculating time in
+	 * {@link Mode#M_countdown_till}&nbsp;mode. In this case
+	 * time&nbsp;difference <u>will be positive if
+	 * target&nbsp;time&nbsp;({@link #time_instance}) has&nbsp;not yet come</u>
+	 * (in&nbsp;other words, when current time&nbsp;value <u>is&nbsp;less</u>
+	 * than target&nbsp;time). If current time&nbsp;value <u>is&nbsp;greater
+	 * than target&nbsp;time</u>, time&nbsp;difference <u>will be negative</u>.<br>
+	 * When passing {@code false} as the&nbsp;argument (means calculating time
+	 * in {@link Mode#M_elapsed_from}), the&nbsp;reverse situation occurs.
+	 * In&nbsp;this case time&nbsp;difference <u>will be positive if current
+	 * time&nbsp;value is&nbsp;greater than
+	 * target&nbsp;time&nbsp;({@link #time_instance})</u> (in&nbsp;other words,
+	 * when target&nbsp;time <u>has&nbsp;already&nbsp;come</u>). If
+	 * target&nbsp;time&nbsp;value <u>is&nbsp;greater than current&nbsp;time</u>,
+	 * time&nbsp;difference <u>will be negative</u>.
 	 */
 	private <Type1 extends Temporal>
 	void difference_calculation_sub_method(final Type1 date_time_now,
@@ -304,14 +301,14 @@ public class Instance_counter extends Time_counter implements Serializable
 		{
 			/* В режиме "Mode.M_countdown_till" положительное кол-во секунд
 			 * означает положительные значения таймера обратного отсчета */
-			is_positive_value = (seconds >= 0 ? true : false);
+			set_time_counter_value_sign(seconds >= 0 ? true : false);
 		}
 		else
 		{
 			/* В режиме "Mode.M_elapsed_from" отрицательное кол-во секунд
 			 * означает положительные значения времени, прошедшего с
 			 * определенного времени */
-			is_positive_value = (seconds < 0 ? true : false);
+			set_time_counter_value_sign(seconds < 0 ? true : false);
 		}
 		
 		/* Если разница во времени между текущей и целевой датами насчитывает
@@ -533,17 +530,16 @@ public class Instance_counter extends Time_counter implements Serializable
 						"Incompatible time mode for Instance_counter object");
 			}
 		}
-		catch (NullPointerException exc)
+		catch (final NullPointerException exc)
 		{
 			logger.log(Level.SEVERE, "Deserialized object has at least one"
 					+ " important field whith value null. This object cannot be"
-					+ " used. Exception\'s stack trace:", exc);
+					+ " used. Exception stack trace:", exc);
 			throw new InvalidObjectException(
 					"At least one of deserialized fields is null");
 		}
 		
 		time_instance_offset = time_instance.getOffset().getTotalSeconds();
 		difference_calculation();
-		deserialization_restore();
 	}
 }

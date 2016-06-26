@@ -18,8 +18,6 @@ import java.util.logging.Logger;
  * Реализует режимы секундомера и таймера обратного отсчета без привязки к дате
  * (согласно именованным константам {@link Mode#M_stopwatch} и
  * {@link Mode#M_countdown} соответственно).<br>
- * <b>Важно!</b> Содержит элементы JavaFX. Инициализация экземпляров перед
- * запуском компонентов JavaFX приведет к ошибке времени выполнения.<br>
  * <i>Примечания.</i>
  * <ul><li>После создания объект добавляет себя в общий контейнер элементов типа
  * {@link Time_counter}, находящийся в singleton'е {@link Time_counter_control}.</li>
@@ -52,7 +50,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		public final LocalTime duration_initial;
 		
 		
-		///// Constructors default ========================================/////
+		///// Constructors default-access =================================/////
 		/**
 		 * <b>Warning!</b> Although passing {@code null} as any of arguments
 		 * <u>is&nbsp;forbidden</u>, the&nbsp;constructor <u>does&nbsp;not</u>
@@ -77,6 +75,9 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	/** Сообщение, отображаемое вместо счетчика времени в случае переполнения. */
 	private static final String numeric_overflow_message;
+	
+	/* TODO: static final int time_counter_frequency = 100 (means time in
+	 * milliseconds in which "thread_counter" is invoked) */
 	
 	
 	static
@@ -174,21 +175,24 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * {@link InvalidObjectException}. */
 	private volatile boolean numeric_overflow;
 	
-	/** Регулирует доступ к изменению значения счетчика времени.<br>
-	 * <i>Поля, доступ к которым синхронизируется данным семафором (<u>список
-	 * может быть неполным</u>):</i>
+	/** Regulates time&nbsp;counter value modify access.<br>
+	 * <i>Fields and methods access to which is synchronized by this lock
+	 * (<u>list can be incomplete</u>):</i>
 	 * <ul><li>{@link #period_passed};</li>
 	 * <li>{@link #duration_passed};</li>
 	 * <li>{@link #counting_has_started};</li>
 	 * <li>{@link Time_counter#time_unit_values};</li>
-	 * <li>{@link Time_counter#is_positive_value}.</li></ul> */
+	 * <li>{@link #numeric_overflow};</li>
+	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
+	 * <li>{@link Time_counter#is_positive_value()};</li>
+	 * <li>{@link #start()}.</li></ul> */
 	private transient ReentrantLock lock;
 	
 	
 	// Нестатическая инициализация ========================================/////
 	{
 		counting_has_started = false;
-		is_positive_value = true;
+		set_time_counter_value_sign(true);
 		thread_counter_init();
 		numeric_overflow = false;
 		lock = new ReentrantLock();
@@ -262,8 +266,8 @@ public class Solo_counter extends Time_counter implements Serializable
 		catch (final InvalidObjectException exc)
 		{
 			logger.log(Level.SEVERE, "Fatal error.\nReason: Incorrect method"
-					+ " behaviour when calling from class\'s constructor."
-					+ " Exception\'s stack trace:", exc);
+					+ " behaviour when calling from class constructor."
+					+ " Exception stack trace:", exc);
 			throw new RuntimeException("Incorrect method behaviour when calling from "
 					+ Solo_counter.class.getName() + " class\'s constructor");
 		}
@@ -272,7 +276,6 @@ public class Solo_counter extends Time_counter implements Serializable
 		duration_passed = duration_init;
 		set_time_unit_values();
 		build_time_string();
-		set_time_counter_text();
 	}
 	
 	
@@ -357,8 +360,6 @@ public class Solo_counter extends Time_counter implements Serializable
 
 	
 	///// Методы public экземпляра ========================================/////
-	/* TODO: Make synchronized access for 'start' action after dividing
-	 * on two separated methods */
 	/**
 	 * Starts (resumes) time&nbsp;counting.
 	 * 
@@ -371,21 +372,38 @@ public class Solo_counter extends Time_counter implements Serializable
 	 */
 	public boolean start()
 	{
-		// Если (отсчет времени уже хотя бы раз запускался И ...
-		if ((thread_counter_executor != null &&
-				/* ... отсчет времени сейчас выполняется) ИЛИ счетчик
-				 * времени достиг максимально возможного значения */
-				!thread_counter_executor.isShutdown()) || numeric_overflow)
+		try
 		{
-			return false;
+			lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
 		}
 		
-		thread_counter_executor =
-				Executors.newSingleThreadScheduledExecutor();
-		thread_counter_executor.scheduleAtFixedRate(
-				thread_counter, 1, 1, TimeUnit.SECONDS);
-		
-		return true;
+		try
+		{
+			// Если (отсчет времени уже хотя бы раз запускался И ...
+			if ((thread_counter_executor != null &&
+					/* ... отсчет времени сейчас выполняется) ИЛИ счетчик
+					 * времени достиг максимально возможного значения */
+					!thread_counter_executor.isShutdown()) || numeric_overflow)
+			{
+				return false;
+			}
+			
+			thread_counter_executor =
+					Executors.newSingleThreadScheduledExecutor();
+			thread_counter_executor.scheduleAtFixedRate(
+					thread_counter, 1, 1, TimeUnit.SECONDS);
+			
+			return true;
+		}
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -411,11 +429,12 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		try
 		{
+			// TODO: Change waiting to 1/10 second using special static field
 			thread_counter_executor.awaitTermination(1, TimeUnit.SECONDS);
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Tread interrupts");
+			logger.log(Level.INFO, "Tread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		finally
@@ -444,7 +463,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <li>Subsequent time correction
 	 * (using {@link #time_values_correction(long, boolean)}) after instance
 	 * creation <u>does&nbsp;not</u> affect to its initial time&nbsp;set.</li></ul>
-	 * <i>Perfomance note.</i> This method contains synchronized sections.
+	 * <i>Perfomance note.</i> Contains synchronized sections.
 	 */
 	public void restart()
 	{
@@ -454,7 +473,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Tread interrupts.");
+			logger.log(Level.INFO, "Tread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -474,15 +493,14 @@ public class Solo_counter extends Time_counter implements Serializable
 			{
 				// TODO: Notify listeners
 				counting_has_started = false;
-				// TODO: Notify listeners if value has changed
+				// TODO: ? Notify listeners if value has changed
 				numeric_overflow = false;
 			}
 
-			// TODO: Notify listeners if value has changed
-			is_positive_value = true;
+			set_time_counter_value_sign(true);
 			set_time_unit_values();
 			build_time_string();
-			set_time_counter_text();
+			time_counter_text_listeners_notification();
 		}
 		finally
 		{
@@ -548,7 +566,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Tread interrupts.");
+			logger.log(Level.INFO, "Tread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -592,7 +610,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			{
 				/* Если экземпляр класса работает в режиме секундомера ИЛИ это
 				 * режим таймера, и нулевое время уже было достигнуто */
-				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
+				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value())
 				{
 					try
 					{
@@ -614,8 +632,8 @@ public class Solo_counter extends Time_counter implements Serializable
 					 * нулевая точка времени */
 					if (seconds_corrected < 0)
 					{
-						// TODO: Notify listeners if value has changed
-						is_positive_value = false;
+						// TODO: ? Notify listeners if value has changed
+						set_time_counter_value_sign(false);
 						seconds_corrected = Math.abs(seconds_corrected);
 					}
 				}
@@ -624,7 +642,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			{
 				/* Если экземпляр класса работает в режиме секундомера ИЛИ это
 				 * режим таймера, и нулевое время уже было достигнуто */
-				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
+				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value())
 				{
 					seconds_corrected = seconds_passed - seconds_amount;
 					
@@ -638,7 +656,7 @@ public class Solo_counter extends Time_counter implements Serializable
 						duration_passed = LocalTime.of(0, 0, 0);
 						set_time_unit_values();
 						build_time_string();
-						set_time_counter_text();
+						time_counter_text_listeners_notification();
 						
 						return true;
 					}
@@ -647,8 +665,8 @@ public class Solo_counter extends Time_counter implements Serializable
 					else if (seconds_passed < 0 &&
 							instance_mode.equals(Mode.M_countdown))
 					{
-						// TODO: Notify listeners if value has changed
-						is_positive_value = true;
+						// TODO: ? Notify listeners if value has changed
+						set_time_counter_value_sign(true);
 						seconds_corrected = Math.abs(seconds_corrected);
 					}
 				}
@@ -728,7 +746,7 @@ public class Solo_counter extends Time_counter implements Serializable
 					LocalTime.of(hours, minutes, day_seconds % minutes_in_hour);
 			set_time_unit_values();
 			build_time_string();
-			set_time_counter_text();
+			time_counter_text_listeners_notification();
 			
 			return true;
 		}
@@ -859,7 +877,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			logger.log(Level.SEVERE, "Deserialized object has incorrect "
 					+ Period.class.getName() + " field which causes"
 					+ " numeric overflow. Deserialized object cannot be used."
-					+ " Exception\'s stack trace:", exc);
+					+ " Exception stack trace:", exc);
 			throw new InvalidObjectException("Numeric overflow occurred while"
 					+ " normalizing deserialized Period type object");
 		}
@@ -883,20 +901,20 @@ public class Solo_counter extends Time_counter implements Serializable
 				throw new InvalidObjectException("Discrepancy between numeric"
 						+ " overflow flag and time counter value");
 			}
-
-			time_counter.setText(numeric_overflow_message);
+			
+			build_time_string(numeric_overflow_message);
 		}
 		
-		// В режиме секундомера поле "is_positive_value" может быть только true
+		/* В режиме секундомера значение счетчика времени может быть только
+		 * положительным */
 		if (instance_mode.equals(Mode.M_stopwatch))
 		{
-			is_positive_value = true;
+			set_time_counter_value_sign(true);
 		}
 		
 		set_time_unit_values();
 		thread_counter_init();
 		lock = new ReentrantLock();
-		deserialization_restore();
 	}
 	
 	
@@ -964,14 +982,14 @@ public class Solo_counter extends Time_counter implements Serializable
 			{
 				logger.log(Level.SEVERE, "Fatal error.\nReason: "
 						+ Mode.class.getName() + " object passed to this"
-						+ " class\'s constructor is null. Exception\'s stack trace:", exc);
+						+ " class\'s constructor is null. Exception stack trace:", exc);
 				throw exc;
 			}
 			else
 			{
-				logger.log(Level.SEVERE, "Deserialized object\'s field "
+				logger.log(Level.SEVERE, "Deserialized object field "
 						+ Mode.class.getName() + " is null. This deserialized"
-						+ " object cannot be used. Exception\'s stack trace:", exc);
+						+ " object cannot be used. Exception stack trace:", exc);
 				throw new InvalidObjectException(
 						"Deserialized instance_mode field is null");
 			}
@@ -1053,14 +1071,14 @@ public class Solo_counter extends Time_counter implements Serializable
 				{
 					logger.log(Level.SEVERE, "Fatal error.\nReason: Incorrect "
 							+ Period.class.getName() + " object passed to this"
-							+ " class\'s constructor. Exception\'s stack trace:", exc);
+							+ " class\'s constructor. Exception stack trace:", exc);
 					throw exc;
 				}
 				else
 				{
 					logger.log(Level.SEVERE, "Decerialized object\'s field of type "
 							+ Period.class.getName() + " is incorrect. This"
-							+ " deserizlized object cannot be used. Exception\'s"
+							+ " deserizlized object cannot be used. Exception"
 							+ " stack trace:", exc);
 					throw new InvalidObjectException("Deserialized "
 							+ Period.class.getName() + " type object is incorrect");
@@ -1081,7 +1099,6 @@ public class Solo_counter extends Time_counter implements Serializable
 	}
 	
 	
-	// TODO: ? Move to instance initialization scope
 	/**
 	 * Инициализирует поле {@link #thread_counter}.
 	 */
@@ -1101,7 +1118,7 @@ public class Solo_counter extends Time_counter implements Serializable
 				}
 				catch (final InterruptedException exc)
 				{
-					logger.log(Level.INFO, "Thread interrupts.");
+					logger.log(Level.INFO, "Tread interrupts. Exception stack trace:", exc);
 					Thread.currentThread().interrupt();
 				}
 				
@@ -1112,7 +1129,7 @@ public class Solo_counter extends Time_counter implements Serializable
 					
 					/* Если экземпляр класса работает в режиме секундомера ИЛИ
 					 * это режим таймера, и нулевое время уже было достигнуто */
-					if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
+					if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value())
 					{
 						duration_passed = duration_passed.plusSeconds(1);
 						
@@ -1130,6 +1147,7 @@ public class Solo_counter extends Time_counter implements Serializable
 							{
 								// TODO: Notify listeners
 								numeric_overflow = true;
+								build_time_string(numeric_overflow_message);
 								
 								pause();
 								
@@ -1184,15 +1202,15 @@ public class Solo_counter extends Time_counter implements Serializable
 							else if (months_remain == 0 && years_remain == 0)
 							{
 								duration_passed = duration_passed.plusSeconds(2);
-								// TODO: Notify listeners if value has changed
-								is_positive_value = false;
+								// TODO: ? Notify listeners if value has changed
+								set_time_counter_value_sign(false);
 							}
 						}
 					}
 					
 					set_time_unit_values();
 					build_time_string();
-					set_time_counter_text();
+					time_counter_text_listeners_notification();
 				}
 				finally
 				{
