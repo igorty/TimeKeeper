@@ -11,6 +11,7 @@ import java.util.Formatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -272,7 +273,7 @@ public abstract class Time_counter implements Serializable
 		}
 		
 		button_tooltips = Collections.unmodifiableMap(button_tooltip_init);
-		layout_fields_semaphore_permits = 3;
+		layout_fields_semaphore_permits = 2;
 		settings = Settings.get_instance();
 	}
 	
@@ -406,10 +407,13 @@ public abstract class Time_counter implements Serializable
 	 * восстановления после десериализации.
 	 * @serial */
 	private String description_text;
-	
-	/** Синхронизирует доступ к полям {@link #object_time_display_style},
-	 * {@link #object_time_value_edges}, {@link #time_unit_layout_value}. */
+
+	/** Synchronizes access to {@link #object_time_display_style} and
+	 * {@link #time_unit_layout_value} fields. */
 	private transient Semaphore layout_fields_semaphore;
+	// TODO: Create separated lock for "object_time_value_edges"
+	/** Synchronizes access to {@link #object_time_value_edges} field. */
+	private transient ReentrantLock object_time_value_edges_lock;
 
 
 	///// Нестатический блок инициализации ================================/////
@@ -426,6 +430,7 @@ public abstract class Time_counter implements Serializable
 		time_unit_layout_value = settings.get_time_unit_layout_setting();
 		layout_fields_semaphore =
 				new Semaphore(layout_fields_semaphore_permits);
+		object_time_value_edges_lock = new ReentrantLock();
 	}
 	
 	
@@ -496,8 +501,14 @@ public abstract class Time_counter implements Serializable
 			Thread.currentThread().interrupt();
 		}
 		
-		object_time_display_style = new_value;
-		layout_fields_semaphore.release();
+		try
+		{
+			object_time_display_style = new_value;
+		}
+		finally
+		{
+			layout_fields_semaphore.release();
+		}
 	}
 	
 	
@@ -546,7 +557,7 @@ public abstract class Time_counter implements Serializable
 		
 		try
 		{
-			layout_fields_semaphore.acquire();
+			object_time_value_edges_lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
@@ -554,9 +565,15 @@ public abstract class Time_counter implements Serializable
 			Thread.currentThread().interrupt();
 		}
 		
-		object_time_value_edges[0] = left_edge;
-		object_time_value_edges[1] = right_edge;
-		layout_fields_semaphore.release();
+		try
+		{
+			object_time_value_edges[0] = left_edge;
+			object_time_value_edges[1] = right_edge;
+		}
+		finally
+		{
+			object_time_value_edges_lock.unlock();
+		}
 	}
 	
 	
@@ -590,8 +607,14 @@ public abstract class Time_counter implements Serializable
 			Thread.currentThread().interrupt();
 		}
 		
-		time_unit_layout_value = layout_set;
-		layout_fields_semaphore.release();
+		try
+		{
+			time_unit_layout_value = layout_set;
+		}
+		finally
+		{
+			layout_fields_semaphore.release();
+		}
 	}
 	
 	
@@ -632,107 +655,135 @@ public abstract class Time_counter implements Serializable
 			Thread.currentThread().interrupt();
 		}
 		
-		formatter = new Formatter();
-		
-		// Если выбран строгий диапазон отображаемых единиц времени
-		if (object_time_display_style.equals(Time_display_style.TDS_custom_strict))
+		try
 		{
-			formatter.format(strict_display_mode_text);
-		}
-		
-		// Если значение отрицательное - в начале ставится знак "минус"
-		if (!is_positive_value)
-		{
-			formatter.format("\u0150");
-		}
-		
-		/* Если в настройках установлено отображение единиц времени, которые
-		 * "имеют вес" (т.е. значение которых достигнуто) */
-		if (object_time_display_style.equals(Time_display_style.TDS_if_reaches))
-		{
-			/* Формирование строки для форматирования, содержащей отображаемые
-			 * единицы времени, происходит от больших единиц времени к меньшим.
-			 * Как только значение одной из единиц времени оказывается значащим
-			 * (т.е. отличным от нуля), - все меньшие единицы времени должны
-			 * отображаться в любом случае.
-			 * true - значащая единица времени достигнута; false - нет */
-			boolean value_reached = false;
-			
-			/* Формирование строки для форматирования, содержащей отображаемые
-			 * единицы времени */
-			for (final Time_unit_name i : Time_unit_name.values())
+			try
 			{
-				/* Если значащая единица времени уже достигнута в предыдущих
-				 * итерациях ИЛИ достигнута в этой итарации ... */
-				if (value_reached || time_unit_values.get(i) != 0 ||
-						/* ... ИЛИ это секунды (должны отображаться в любом
-						 * случае) как наименьшая отображаемая единица времени */
-						i.equals(Time_unit_name.TUN_seconds))
-				{
-					value_reached = true;
-					format(i);
-				}
+				object_time_value_edges_lock.lockInterruptibly();
 			}
-		}
-		// Если в настройках установлено отображение всех единиц времени
-		else if (object_time_display_style.equals(Time_display_style.TDS_show_all))
-		{
-			/* Формирование строки для форматирования, содержащей отображаемые
-			 * единицы времени */
-			for (final Time_unit_name i : Time_unit_name.values())
+			catch (final InterruptedException exc)
 			{
-				format(i);
+				logger.log(Level.INFO, "Thread interrupts.");
+				Thread.currentThread().interrupt();
 			}
-		}
-		/* Если в настройках установлен конкретный диапазон отображаемых единиц
-		 * времени (строгий ИЛИ нестрогий) */
-		else if (object_time_display_style.equals(Time_display_style.TDS_custom_strict) ||
-				object_time_display_style.equals(Time_display_style.TDS_increase_able))
-		{
-			/* true - если установлен НЕСТРОГИЙ диапазон отображаемых единиц
-			 * времени; false - установлен СТРОГИЙ диапазон */
-			final boolean increase_able_is_set = object_time_display_style.equals(
-						Time_display_style.TDS_increase_able);
-			/* Формирование строки для форматирования, содержащей отображаемые
-			 * единицы времени, происходит от больших единиц времени к меньшим.
-			 * Соответственно, если большая единица времени имеет значение
-			 * (т.е. не равна 0), - меньшие единицы должны отображаться в любом
-			 * случае. Это касается режима НЕСТРОГОГО отображения диапазона
-			 * отображаемых единиц времени
-			 * (Time_display_style.TDS_increase_able). true - обнаружено
-			 * ненулевое значение единицы времени, превышающее установленный
-			 * диапазон для отображения; false - нет */
-			boolean out_of_set_range = false;
 			
-			/* Формирование строки для форматирования, содержащей отображаемые
-			 * единицы времени */
-			for (final Time_unit_name i : Time_unit_name.values())
+			try
 			{
-				/* Результат сравнения именованной константы текущей итерации и
-				 * крайней правой отображаемой единицы (наименьшей отображаемой
-				 * единицы) времени */
-				final int compare_to_1 = i.compareTo(object_time_value_edges[1]);
+				formatter = new Formatter();
 				
-				/* Если (единица времени входит в выставленный диапазон
-				 * отображения) ... */
-				if ((i.compareTo(object_time_value_edges[0]) >= 0 && compare_to_1 <= 0) ||
-						/* ... ИЛИ (установлен нестрогий диапазон отображаемых
-						 * единиц времени И (в предыдущих итерациях обнаружено
-						 * ненулевое значение единицы времени, превышающее
-						 * установленный диапазон для отображения ... */
-						(increase_able_is_set && (out_of_set_range ||
-								// ... ИЛИ (это обнаружилось в этой итерации)))
-								(compare_to_1 <= 0 && time_unit_values.get(i) != 0))))
+				// Если выбран строгий диапазон отображаемых единиц времени
+				if (object_time_display_style.equals(Time_display_style.TDS_custom_strict))
 				{
-					out_of_set_range = true;
-					format(i);
+					formatter.format(strict_display_mode_text);
 				}
+				
+				// Если значение отрицательное - в начале ставится знак "минус"
+				if (!is_positive_value)
+				{
+					formatter.format("\u0150");
+				}
+				
+				/* Если в настройках установлено отображение единиц времени,
+				 * которые "имеют вес" (т.е. значение которых достигнуто) */
+				if (object_time_display_style.equals(Time_display_style.TDS_if_reaches))
+				{
+					/* Формирование строки для форматирования, содержащей
+					 * отображаемые единицы времени, происходит от больших
+					 * единиц времени к меньшим. Как только значение одной из
+					 * единиц времени оказывается значащим (т.е. отличным от
+					 * нуля), - все меньшие единицы времени должны отображаться
+					 * в любом случае. true - значащая единица времени
+					 * достигнута; false - нет */
+					boolean value_reached = false;
+					
+					/* Формирование строки для форматирования, содержащей
+					 * отображаемые единицы времени */
+					for (final Time_unit_name i : Time_unit_name.values())
+					{
+						/* Если значащая единица времени уже достигнута в
+						 * предыдущих итерациях ИЛИ достигнута в этой итарации ... */
+						if (value_reached || time_unit_values.get(i) != 0 ||
+								/* ... ИЛИ это секунды (должны отображаться в
+								 * любом случае) как наименьшая отображаемая
+								 * единица времени */
+								i.equals(Time_unit_name.TUN_seconds))
+						{
+							value_reached = true;
+							format(i);
+						}
+					}
+				}
+				// Если в настройках установлено отображение всех единиц времени
+				else if (object_time_display_style.equals(Time_display_style.TDS_show_all))
+				{
+					/* Формирование строки для форматирования, содержащей
+					 * отображаемые единицы времени */
+					for (final Time_unit_name i : Time_unit_name.values())
+					{
+						format(i);
+					}
+				}
+				/* Если в настройках установлен конкретный диапазон отображаемых
+				 * единиц времени (строгий ИЛИ нестрогий) */
+				else if (object_time_display_style.equals(Time_display_style.TDS_custom_strict) ||
+						object_time_display_style.equals(Time_display_style.TDS_increase_able))
+				{
+					/* true - если установлен НЕСТРОГИЙ диапазон отображаемых
+					 * единиц времени; false - установлен СТРОГИЙ диапазон */
+					final boolean increase_able_is_set = object_time_display_style.equals(
+								Time_display_style.TDS_increase_able);
+					/* Формирование строки для форматирования, содержащей
+					 * отображаемые единицы времени, происходит от больших
+					 * единиц времени к меньшим. Соответственно, если большая
+					 * единица времени имеет значение (т.е. не равна 0), -
+					 * меньшие единицы должны отображаться в любом случае. Это
+					 * касается режима НЕСТРОГОГО отображения диапазона
+					 * отображаемых единиц времени
+					 * (Time_display_style.TDS_increase_able). true - обнаружено
+					 * ненулевое значение единицы времени, превышающее
+					 * установленный диапазон для отображения; false - нет */
+					boolean out_of_set_range = false;
+					
+					/* Формирование строки для форматирования, содержащей
+					 * отображаемые единицы времени */
+					for (final Time_unit_name i : Time_unit_name.values())
+					{
+						/* Результат сравнения именованной константы текущей
+						 * итерации и крайней правой отображаемой единицы
+						 * (наименьшей отображаемой единицы) времени */
+						final int compare_to_1 =
+								i.compareTo(object_time_value_edges[1]);
+						
+						/* Если (единица времени входит в выставленный диапазон
+						 * отображения) ... */
+						if ((i.compareTo(object_time_value_edges[0]) >= 0 && compare_to_1 <= 0) ||
+								/* ... ИЛИ (установлен нестрогий диапазон
+								 * отображаемых единиц времени И (в предыдущих
+								 * итерациях обнаружено ненулевое значение
+								 * единицы времени, превышающее установленный
+								 * диапазон для отображения ... */
+								(increase_able_is_set && (out_of_set_range ||
+										// ... ИЛИ (это обнаружилось в этой итерации)))
+										(compare_to_1 <= 0 && time_unit_values.get(i) != 0))))
+						{
+							out_of_set_range = true;
+							format(i);
+						}
+					}
+				}
+				
+				time_counter_text = formatter.toString();
+				formatter.close();
+			}
+			finally
+			{
+				object_time_value_edges_lock.unlock();
 			}
 		}
-		
-		time_counter_text = formatter.toString();
-		formatter.close();
-		layout_fields_semaphore.release(layout_fields_semaphore_permits);
+		finally
+		{
+			layout_fields_semaphore.release(layout_fields_semaphore_permits);
+		}
 	}
 	
 	
@@ -874,6 +925,7 @@ public abstract class Time_counter implements Serializable
 		
 		layout_fields_semaphore =
 				new Semaphore(layout_fields_semaphore_permits);
+		object_time_value_edges_lock = new ReentrantLock();
 		description = new TextField();
 		description.setPrefColumnCount(40);
 		

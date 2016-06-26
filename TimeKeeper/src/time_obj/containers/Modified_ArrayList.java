@@ -6,7 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
@@ -70,7 +70,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	private Time_counter_control counter_control;
 	
 	/** Синхронизирует работу всех переопределяемых методов базового класса. */
-	private Semaphore modification_semaphore;
+	private final ReentrantLock modification_lock;
 	
 	/** Кол&#8209;во элементов типа {@link Instance_counter}, содержащихся в
 	 * контейнере. */
@@ -80,7 +80,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	///// Нестатическая инициализация ====================================/////
 	{
 		counter_control = Time_counter_control.get_instance();
-		modification_semaphore = new Semaphore(1);
+		modification_lock = new ReentrantLock();
 		instance_counters_quantity = 0;
 	}
 	
@@ -174,31 +174,36 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Результат работы метода базового класса
-		final boolean to_return = super.add(element);
-		
-		assert to_return :
-			"Unexpected error occurred while adding element to the list";
-		
-		/* Если объектом для добавления является экземпляром класса
-		 * "Instance_counter" */
-		if (element instanceof Instance_counter)
+		try
 		{
-			++instance_counters_quantity;
-			counter_control.add_instance_counter((Instance_counter)element);
+			// Результат работы метода базового класса
+			final boolean to_return = super.add(element);
+			
+			assert to_return :
+				"Unexpected error occurred while adding element to the list";
+			
+			/* Если объектом для добавления является экземпляром класса
+			 * "Instance_counter" */
+			if (element instanceof Instance_counter)
+			{
+				++instance_counters_quantity;
+				counter_control.add_instance_counter((Instance_counter)element);
+			}
+			
+			return to_return;
 		}
-		
-		modification_semaphore.release();
-		
-		return to_return;
+		finally
+		{
+			modification_lock.unlock();
+		}
 	}
 	
 	
@@ -240,9 +245,9 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
@@ -250,26 +255,29 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			super.add(index, element);
-		}
-		catch (IndexOutOfBoundsException exc)
-		{
-			modification_semaphore.release();
+			try
+			{
+				super.add(index, element);
+			}
+			catch (final IndexOutOfBoundsException exc)
+			{
+				logger.log(Level.SEVERE, "Fatal error.\nReason: Passed index"
+						+ " argument is out of bounds. Exception\'s stack trace:", exc);
+				throw exc;
+			}
 			
-			logger.log(Level.SEVERE, "Fatal error.\nReason: Passed index"
-					+ " argument is out of bounds. Exception\'s stack trace:", exc);
-			throw exc;
+			/* Если объектом для добавления является экземпляром класса
+			 * "Instance_counter" */
+			if (element instanceof Instance_counter)
+			{
+				++instance_counters_quantity;
+				counter_control.add_instance_counter((Instance_counter)element);
+			}
 		}
-		
-		/* Если объектом для добавления является экземпляром класса
-		 * "Instance_counter" */
-		if (element instanceof Instance_counter)
+		finally
 		{
-			++instance_counters_quantity;
-			counter_control.add_instance_counter((Instance_counter)element);
+			modification_lock.unlock();
 		}
-		
-		modification_semaphore.release();
 	}
 	
 	
@@ -305,39 +313,45 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 					Collection.class.getName() + " argument contains null");
 		}
 		
-		/* Проверка элементов полученного контейнера на наличие их в этом
-		 * контейнере */
-		for (Time_counter i : collection)
-		{
-			if (this.contains(i))
-			{
-				throw new IllegalArgumentException("At least one element of "
-						+ Collection.class.getName()
-						+ " argument already exists in this container");
-			}
-		}
-		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Результат работы переопределенного метода базового класса
-		final boolean result = super.addAll(collection);
-		
-		assert result :
-			"Unexpected exception occurred while adding elements to the list";
-		
-		transfer_collection_to_counter_control(
-				collection, Transfer_collection_mode.TCM_add);
-		modification_semaphore.release();
-		
-		return result;
+		try
+		{
+			/* Проверка элементов полученного контейнера на наличие их в этом
+			 * контейнере */
+			for (Time_counter i : collection)
+			{
+				if (this.contains(i))
+				{
+					throw new IllegalArgumentException("At least one element of "
+							+ Collection.class.getName()
+							+ " argument already exists in this container");
+				}
+			}
+			
+			// Результат работы переопределенного метода базового класса
+			final boolean result = super.addAll(collection);
+			
+			assert result :
+				"Unexpected exception occurred while adding elements to the list";
+			
+			transfer_collection_to_counter_control(
+					collection, Transfer_collection_mode.TCM_add);
+			
+			return result;
+		}
+		finally
+		{
+			modification_lock.unlock();
+		}
 	}
 	
 	
@@ -379,52 +393,56 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 					Collection.class.getName() + " argument contains null");
 		}
 		
-		/* Проверка элементов полученного контейнера на наличие их в этом
-		 * контейнере */
-		for (Time_counter i : collection)
-		{
-			if (this.contains(i))
-			{
-				throw new IllegalArgumentException("At least one element of "
-						+ Collection.class.getName()
-						+ " argument already exists in this container");
-			}
-		}
-		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
-		
-		// Результат работы переопределенного метода базового класса
-		final boolean result;
-		
+
 		try
 		{
-			result = super.addAll(index, collection);
+			/* Проверка элементов полученного контейнера на наличие их в этом
+			 * контейнере */
+			for (Time_counter i : collection)
+			{
+				if (this.contains(i))
+				{
+					throw new IllegalArgumentException("At least one element of "
+							+ Collection.class.getName()
+							+ " argument already exists in this container");
+				}
+			}
+			
+			// Результат работы переопределенного метода базового класса
+			final boolean result;
+			
+			try
+			{
+				result = super.addAll(index, collection);
+			}
+			catch (final IndexOutOfBoundsException exc)
+			{
+				logger.log(Level.SEVERE, "Fatal error.\n Reason: Passed index"
+						+ " argument is out of bounds. Exception\'s stack trace:", exc);
+				throw exc;
+			}
+			
+			assert result :
+				"Unexpected error occurred while adding elements to the list";
+			
+			transfer_collection_to_counter_control(
+					collection, Transfer_collection_mode.TCM_add);
+			
+			return true;			
 		}
-		catch (IndexOutOfBoundsException exc)
+		finally
 		{
-			modification_semaphore.release();
-
-			logger.log(Level.SEVERE, "Fatal error.\n Reason: Passed index"
-					+ " argument is out of bounds. Exception\'s stack trace:", exc);
-			throw exc;
+			modification_lock.unlock();
 		}
-		
-		assert result :
-			"Unexpected error occurred while adding elements to the list";
-		
-		transfer_collection_to_counter_control(
-				collection, Transfer_collection_mode.TCM_add);
-		modification_semaphore.release();
-		
-		return true;
 	}
 	
 	
@@ -436,19 +454,25 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	{
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		super.clear();
-		
-		instance_counters_quantity = 0;
-		counter_control.clear_instance_counters_list();
-		modification_semaphore.release();
+		try
+		{
+			super.clear();
+			
+			instance_counters_quantity = 0;
+			counter_control.clear_instance_counters_list();
+		}
+		finally
+		{
+			modification_lock.unlock();
+		}
 	}
 	
 	
@@ -471,41 +495,46 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	{
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		final Time_counter removed_element;  // Элемент по удаленному индексу
-		
 		try
 		{
-			removed_element = super.remove(index);
-		}
-		catch (IndexOutOfBoundsException exc)
-		{
-			modification_semaphore.release();
+			// Элемент по удаленному индексу
+			final Time_counter removed_element;
 			
-			logger.log(Level.SEVERE, "Fatal error.\nReason: Passed index"
-					+ " argument is out of bounds. Exception\'s stack trace:", exc);
-			throw exc;
+			try
+			{
+				removed_element = super.remove(index);
+			}
+			catch (final IndexOutOfBoundsException exc)
+			{
+				logger.log(Level.SEVERE, "Fatal error.\nReason: Passed index"
+						+ " argument is out of bounds. Exception\'s stack trace:", exc);
+				throw exc;
+			}
+			
+			/* Если удаленный элемент является экземпляром класса
+			 * "Instance_counter", экземпляры которого должны выполняться
+			 * синхронно */
+			if (removed_element instanceof Instance_counter)
+			{
+				--instance_counters_quantity;
+				counter_control.remove_instance_counter(
+						(Instance_counter)removed_element);
+			}
+			
+			return null;			
 		}
-		
-		/* Если удаленный элемент является экземпляром класса "Instance_counter",
-		 * экземпляры которого должны выполняться синхронно */
-		if (removed_element instanceof Instance_counter)
+		finally
 		{
-			--instance_counters_quantity;
-			counter_control.remove_instance_counter(
-					(Instance_counter)removed_element);
+			modification_lock.unlock();
 		}
-		
-		modification_semaphore.release();
-		
-		return null;
 	}
 	
 	
@@ -536,27 +565,31 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Если контейнер не содержит указанного объекта
-		if (!super.remove(to_remove))
+		try
 		{
-			modification_semaphore.release();
+			// Если контейнер не содержит указанного объекта
+			if (!super.remove(to_remove))
+			{
+				return false;
+			}
 			
-			return false;
+			--instance_counters_quantity;
+			counter_control.remove_instance_counter((Instance_counter)to_remove);
+			
+			return true;			
 		}
-		
-		--instance_counters_quantity;
-		counter_control.remove_instance_counter((Instance_counter)to_remove);
-		modification_semaphore.release();
-		
-		return true;
+		finally
+		{
+			modification_lock.unlock();			
+		}
 	}
 	
 	
@@ -601,28 +634,33 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Если в результате работы метода базового класса было возвращено false
-		if (!super.removeAll(collection))
+		try
 		{
-			modification_semaphore.release();
+			/* Если в результате работы метода базового класса было возвращено
+			 * false */
+			if (!super.removeAll(collection))
+			{
+				return false;
+			}
 			
-			return false;
+			transfer_collection_to_counter_control(
+					(Collection<? extends Time_counter>)collection,
+					Transfer_collection_mode.TCM_remove);
+			
+			return true;			
 		}
-		
-		transfer_collection_to_counter_control(
-				(Collection<? extends Time_counter>)collection,
-				Transfer_collection_mode.TCM_remove);
-		modification_semaphore.release();
-		
-		return true;
+		finally
+		{
+			modification_lock.unlock();			
+		}
 	}
 	
 	
@@ -654,41 +692,45 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Список удаляемых элементов контейнера
-		final ArrayList<Time_counter> to_remove = new ArrayList<>();
-		
-		/* Отбор удаляемых элементов контейнера для последующего поиска в них
-		 * экземпляров типа "Instance_counter" */
-		for (Time_counter i : this)
+		try
 		{
-			// Если данный элемент контейнера необходимо удалить
-			if(filter.test(i))
-			{
-				to_remove.add(i);
-			}
-		}
-		
-		// Если ни один элемент контейнера не был удален
-		if (!super.removeIf(filter))
-		{
-			modification_semaphore.release();
+			// Список удаляемых элементов контейнера
+			final ArrayList<Time_counter> to_remove = new ArrayList<>();
 			
-			return false;
+			/* Отбор удаляемых элементов контейнера для последующего поиска в
+			 * них экземпляров типа "Instance_counter" */
+			for (Time_counter i : this)
+			{
+				// Если данный элемент контейнера необходимо удалить
+				if(filter.test(i))
+				{
+					to_remove.add(i);
+				}
+			}
+			
+			// Если ни один элемент контейнера не был удален
+			if (!super.removeIf(filter))
+			{
+				return false;
+			}
+			
+			transfer_collection_to_counter_control(
+					to_remove, Transfer_collection_mode.TCM_remove);
+			
+			return true;			
 		}
-		
-		transfer_collection_to_counter_control(
-				to_remove, Transfer_collection_mode.TCM_remove);
-		modification_semaphore.release();
-		
-		return true;
+		finally
+		{
+			modification_lock.unlock();			
+		}
 	}
 	
 	
@@ -748,32 +790,36 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Результат работы переопределяемого метода
-		final boolean result = super.retainAll(collection);
-		
-		/* Если контейнер не был изменен в результате вызова метода базового
-		 * класса */
-		if (!result)
+		try
 		{
-			modification_semaphore.release();
+			// Результат работы переопределяемого метода
+			final boolean result = super.retainAll(collection);
 			
-			return result;
+			/* Если контейнер не был изменен в результате вызова метода базового
+			 * класса */
+			if (!result)
+			{
+				return result;
+			}
+			
+			transfer_collection_to_counter_control(
+					(Collection<? extends Time_counter>)collection,
+					Transfer_collection_mode.TCM_retain);
+			
+			return result;			
 		}
-		
-		transfer_collection_to_counter_control(
-				(Collection<? extends Time_counter>)collection,
-				Transfer_collection_mode.TCM_retain);
-		modification_semaphore.release();
-		
-		return result;
+		finally
+		{
+			modification_lock.unlock();			
+		}
 	}
 	
 	
@@ -808,58 +854,62 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 					Time_counter.class.getName() + " argument is null");
 		}
 		
-		// Если контейнер уже содержит добавляемый элемент
-		if (this.contains(element))
-		{
-			throw new IllegalArgumentException(Time_counter.class.getName() +
-					" argument already exists in container");
-		}
-		
 		try
 		{
-			modification_semaphore.acquire();
+			modification_lock.lockInterruptibly();
 		}
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		final Time_counter to_replace;  // Элемент, который необходимо заменить
-		
 		try
 		{
-			to_replace = super.set(index, element);
-		}
-		catch (IndexOutOfBoundsException exc)
-		{
-			modification_semaphore.release();
+			// Если контейнер уже содержит добавляемый элемент
+			if (this.contains(element))
+			{
+				throw new IllegalArgumentException(Time_counter.class.getName() +
+						" argument already exists in container");
+			}
 			
-			logger.log(Level.SEVERE, "Passed index argument is out of bounds."
-					+ " Exception\'s stack trace:", exc);
-			throw exc;
+			// Элемент, который необходимо заменить
+			final Time_counter to_replace;
+			
+			try
+			{
+				to_replace = super.set(index, element);
+			}
+			catch (final IndexOutOfBoundsException exc)
+			{
+				logger.log(Level.SEVERE, "Passed index argument is out of bounds."
+						+ " Exception\'s stack trace:", exc);
+				throw exc;
+			}
+			
+			/* Если элемент, который необходимо заменить, имеет тип
+			 * "Instance_counter" */
+			if (to_replace instanceof Instance_counter)
+			{
+				--instance_counters_quantity;
+				counter_control.remove_instance_counter(
+						(Instance_counter)to_replace);
+			}
+			
+			/* Если элемент, который необходимо сохранить, имеет тип
+			 * "Instance_counter" */
+			if (element instanceof Instance_counter)
+			{
+				++instance_counters_quantity;
+				counter_control.add_instance_counter((Instance_counter)element);
+			}
+			
+			return null;			
 		}
-		
-		/* Если элемент, который необходимо заменить, имеет тип
-		 * "Instance_counter" */
-		if (to_replace instanceof Instance_counter)
+		finally
 		{
-			--instance_counters_quantity;
-			counter_control.remove_instance_counter(
-					(Instance_counter)to_replace);
+			modification_lock.unlock();
 		}
-		
-		/* Если элемент, который необходимо сохранить, имеет тип
-		 * "Instance_counter" */
-		if (element instanceof Instance_counter)
-		{
-			++instance_counters_quantity;
-			counter_control.add_instance_counter((Instance_counter)element);
-		}
-		
-		modification_semaphore.release();
-		
-		return null;
 	}
 	
 	
@@ -906,7 +956,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	{
 		/* Если метод вызван не во время выполнения синхронизированного участка
 		 * класса */
-		if (modification_semaphore.availablePermits() != 0)
+		if (!modification_lock.isLocked())
 		{
 			throw new IllegalStateException("Method invoked in inappropriate way");
 		}

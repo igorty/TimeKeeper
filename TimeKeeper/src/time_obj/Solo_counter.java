@@ -11,8 +11,8 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -238,10 +238,9 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <ul><li>{@link #period_passed};</li>
 	 * <li>{@link #duration_passed};</li>
 	 * <li>{@link #counting_have_started};</li>
-	 * <li>{@link #numeric_overflow};</li>
 	 * <li>{@link Time_counter#time_unit_values};</li>
 	 * <li>{@link Time_counter#is_positive_value}.</li></ul> */
-	private transient Semaphore time_change_semaphore;
+	private transient ReentrantLock lock;
 	
 	
 	// Нестатическая инициализация ========================================/////
@@ -261,7 +260,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		is_positive_value = true;
 		thread_counter_init();
 		numeric_overflow = false;
-		time_change_semaphore = new Semaphore(1);
+		lock = new ReentrantLock();
 	}
 
 
@@ -428,6 +427,8 @@ public class Solo_counter extends Time_counter implements Serializable
 
 	
 	///// Методы public экземпляра ========================================/////
+	/* TODO: Make synchronized access for 'start' action after dividing
+	 * on two separated methods */
 	/**
 	 * Отвечает за запуск и приостановку отсчета времени.<br>
 	 * <i>Примечания.</i>
@@ -489,26 +490,17 @@ public class Solo_counter extends Time_counter implements Serializable
 			}
 			catch (final InterruptedException exc)
 			{
-				logger.log(Level.WARNING, "Tread encountered "
-						+ InterruptedException.class.getName() + " while waiting for "
-						+ ScheduledExecutorService.class.getName()
-						+ " object\'s threads to terminate. This thread will"
-						+ " continue to execute in order to terminate threads"
-						+ " forcibly. Exception\'s stack trace:", exc);
+				logger.log(Level.INFO, "Tread interrupts");
+				Thread.currentThread().interrupt();
 			}
 			finally
 			{
 				// Если поток не был остановлен в течении времени ожидания
 				if (!thread_counter_executor.isTerminated())
 				{
+					logger.log(Level.WARNING,
+							"Forcible thread termination due to long waiting");
 					thread_counter_executor.shutdownNow();
-
-					/* Если в результате принудительной остановки потока не был
-					 * освобожден семафор */
-					if (time_change_semaphore.availablePermits() == 0)
-					{
-						time_change_semaphore.release();
-					}
 				}
 			}
 			
@@ -543,50 +535,54 @@ public class Solo_counter extends Time_counter implements Serializable
 	{
 		try
 		{
-			time_change_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Tread interrupted");
+			logger.log(Level.INFO, "Tread interrupts.");
 			Thread.currentThread().interrupt();
 		}
 		
-		// Если отсчет времени еще не начинался
-		if (!counting_have_started)
+		try
 		{
-			time_change_semaphore.release();
-			
-			return;
-		}
-		
-		period_passed = period_init;
-		duration_passed = duration_init;
-		
-		// Если ход счетчика времени сейчас приостановлен
-		if (thread_counter_executor.isShutdown())
-		{
-			Platform.runLater(new Runnable()
+			// Если отсчет времени еще не начинался
+			if (!counting_have_started)
 			{
-				@Override
-				public void run()
-				{
-					button_start.setGraphic(new ImageView(
-							button_images.get(Button_key_solo.BKS_START_start)));
-					button_start.setTooltip(new Tooltip(
-							button_tooltips.get(Button_key_solo.BKS_START_start)));
-					button_restart.setDisable(true);
-				}
-			});
+				return;
+			}
 			
-			counting_have_started = false;
-			numeric_overflow = false;
-		}
+			period_passed = period_init;
+			duration_passed = duration_init;
+			
+			// Если ход счетчика времени сейчас приостановлен
+			if (thread_counter_executor.isShutdown())
+			{
+				Platform.runLater(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						button_start.setGraphic(new ImageView(
+								button_images.get(Button_key_solo.BKS_START_start)));
+						button_start.setTooltip(new Tooltip(
+								button_tooltips.get(Button_key_solo.BKS_START_start)));
+						button_restart.setDisable(true);
+					}
+				});
+				
+				counting_have_started = false;
+				numeric_overflow = false;
+			}
 
-		is_positive_value = true;
-		set_time_unit_values();
-		build_time_string();
-		set_time_counter_text();
-		time_change_semaphore.release();
+			is_positive_value = true;
+			set_time_unit_values();
+			build_time_string();
+			set_time_counter_text();
+		}
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -642,197 +638,195 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		try
 		{
-			time_change_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Tread interrupted.");
+			logger.log(Level.INFO, "Tread interrupts.");
 			Thread.currentThread().interrupt();
-		}
-		
-		// Если режимом подсчета установлено 30 дней в каждом месяце
-		if (days_count.equals(Days_in_year.DIY_360))
-		{
-			// Кол-во дней в месяце где год состоит из 360-и дней
-			final int days_in_month = 30;
-			
-			seconds_passed = (period_passed.toTotalMonths() * days_in_month +
-					period_passed.getDays()) * seconds_in_day;
-		}
-		/* Если режимом подсчета установлено кол-во дней в месяце,
-		 * соответствующее месяцу */
-		else
-		{
-			final int days_in_year = 365;  // Кол-во дней в году
-			
-			seconds_passed =
-					period_passed.getYears() * days_in_year * seconds_in_day;
-			
-			/* Добавление кол-ва секунд из каждого наступившего месяца поля
-			 * "period_passed" */
-			for (int i = 0, months = period_passed.getMonths(); i < months; i++)
-			{
-				seconds_passed += month_sizes.get(i) * seconds_in_day;
-			}
-		}
-		
-		seconds_passed += period_passed.getDays() * seconds_in_day +
-				duration_passed.toSecondOfDay();
-		
-		/* Скорректированное кол-во секунд, которое будет содержаться в полях
-		 * "period_passed" и "duration_passed" */
-		long seconds_corrected;
-		
-		// Если необходимо добавить время
-		if (add)
-		{
-			/* Если экземпляр класса работает в режиме секундомера ИЛИ это
-			 * режим таймера, и нулевое время уже было достигнуто */
-			if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
-			{
-				try
-				{
-					seconds_corrected =
-							Math.addExact(seconds_passed, seconds_amount);
-				}
-				catch (final ArithmeticException exc)
-				{
-					time_change_semaphore.release();
-					
-					return false;
-				}
-			}
-			/* Фактически время отнимается, т.к. это режим таймера и нулевое
-			 * время еще не было достигнуто */
-			else
-			{
-				seconds_corrected = seconds_passed - seconds_amount;
-				
-				/* Если в результате корректировки времени была пересечена
-				 * нулевая точка времени */
-				if (seconds_corrected < 0)
-				{
-					is_positive_value = false;
-					seconds_corrected = Math.abs(seconds_corrected);
-				}
-			}
-		}
-		else
-		{
-			/* Если экземпляр класса работает в режиме секундомера ИЛИ это
-			 * режим таймера, и нулевое время уже было достигнуто */
-			if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
-			{
-				seconds_corrected = seconds_passed - seconds_amount;
-				
-				/* Если в результате корректировки времени было пересечено
-				 * нулевое время И экземпляр класса работает в режиме
-				 * секундомера */
-				if (seconds_corrected <= 0 &&
-						instance_mode.equals(Mode.M_stopwatch))
-				{
-					period_passed = Period.of(0, 0, 0);
-					duration_passed = LocalTime.of(0, 0, 0);
-					set_time_unit_values();
-					build_time_string();
-					set_time_counter_text();
-					time_change_semaphore.release();
-					
-					return true;
-				}
-				/* Если в результате корректировки времени было пересечено
-				 * нулевое время И экземпляр класса работает в режиме таймера */
-				else if (seconds_passed < 0 &&
-						instance_mode.equals(Mode.M_countdown))
-				{
-					is_positive_value = true;
-					seconds_corrected = Math.abs(seconds_corrected);
-				}
-			}
-			/* Фактически время добавляется, т.к. это режим таймера и нулевое
-			 * время еще не было достигнуто */
-			else
-			{
-				try
-				{
-					seconds_corrected =
-							Math.addExact(seconds_passed, seconds_amount);
-				}
-				catch (final ArithmeticException exc)
-				{
-					time_change_semaphore.release();
-					
-					return false;
-				}
-			}
-		}
-		
-		// Кол-во полных дней, получившееся из скорректированного кол-ва секунд
-		final long total_days = seconds_corrected / seconds_in_day;
-		/* Сохранение старого значения лет/месяцев/дней перед нормализацией
-		 * на случай исключения */
-		final Period buffer = period_passed;
-		
-		/* Если получившееся кол-во полных дней больше макс. числа,
-		 * помещающегося в int */
-		if (total_days > Integer.MAX_VALUE)
-		{
-			// Кол-во дней в году согласно режиму подсчета времени экземпляра
-			final int days_in_year =
-					(days_count.equals(Days_in_year.DIY_360) ? 360 : 365);
-			// Кол-во полных лет, получившееся из кол-ва полных дней "total_days"
-			final long total_years = total_days / days_in_year;
-			
-			/* Если получившееся кол-во полных лет больше макс. числа
-			 * помещающегося в int */
-			if (total_years > Integer.MAX_VALUE)
-			{
-				time_change_semaphore.release();
-				
-				return false;
-			}
-			
-			period_passed = Period.of(
-					(int)total_years, 0, (int)(total_days % days_in_year));
-		}
-		else
-		{
-			period_passed = Period.of(0, 0, (int)total_days);
 		}
 		
 		try
 		{
-			period_passed = normalize_period_obj(period_passed, days_count);
-		}
-		catch (final ArithmeticException exc)
-		{
-			period_passed = buffer;
-			time_change_semaphore.release();
+			// Если режимом подсчета установлено 30 дней в каждом месяце
+			if (days_count.equals(Days_in_year.DIY_360))
+			{
+				// Кол-во дней в месяце где год состоит из 360-и дней
+				final int days_in_month = 30;
+				
+				seconds_passed = (period_passed.toTotalMonths() * days_in_month +
+						period_passed.getDays()) * seconds_in_day;
+			}
+			/* Если режимом подсчета установлено кол-во дней в месяце,
+			 * соответствующее месяцу */
+			else
+			{
+				final int days_in_year = 365;  // Кол-во дней в году
+				
+				seconds_passed =
+						period_passed.getYears() * days_in_year * seconds_in_day;
+				
+				/* Добавление кол-ва секунд из каждого наступившего месяца поля
+				 * "period_passed" */
+				for (int i = 0, months = period_passed.getMonths(); i < months; i++)
+				{
+					seconds_passed += month_sizes.get(i) * seconds_in_day;
+				}
+			}
 			
-			return false;
+			seconds_passed += period_passed.getDays() * seconds_in_day +
+					duration_passed.toSecondOfDay();
+			
+			/* Скорректированное кол-во секунд, которое будет содержаться в полях
+			 * "period_passed" и "duration_passed" */
+			long seconds_corrected;
+			
+			// Если необходимо добавить время
+			if (add)
+			{
+				/* Если экземпляр класса работает в режиме секундомера ИЛИ это
+				 * режим таймера, и нулевое время уже было достигнуто */
+				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
+				{
+					try
+					{
+						seconds_corrected =
+								Math.addExact(seconds_passed, seconds_amount);
+					}
+					catch (final ArithmeticException exc)
+					{
+						return false;
+					}
+				}
+				/* Фактически время отнимается, т.к. это режим таймера и нулевое
+				 * время еще не было достигнуто */
+				else
+				{
+					seconds_corrected = seconds_passed - seconds_amount;
+					
+					/* Если в результате корректировки времени была пересечена
+					 * нулевая точка времени */
+					if (seconds_corrected < 0)
+					{
+						is_positive_value = false;
+						seconds_corrected = Math.abs(seconds_corrected);
+					}
+				}
+			}
+			else
+			{
+				/* Если экземпляр класса работает в режиме секундомера ИЛИ это
+				 * режим таймера, и нулевое время уже было достигнуто */
+				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
+				{
+					seconds_corrected = seconds_passed - seconds_amount;
+					
+					/* Если в результате корректировки времени было пересечено
+					 * нулевое время И экземпляр класса работает в режиме
+					 * секундомера */
+					if (seconds_corrected <= 0 &&
+							instance_mode.equals(Mode.M_stopwatch))
+					{
+						period_passed = Period.of(0, 0, 0);
+						duration_passed = LocalTime.of(0, 0, 0);
+						set_time_unit_values();
+						build_time_string();
+						set_time_counter_text();
+						
+						return true;
+					}
+					/* Если в результате корректировки времени было пересечено
+					 * нулевое время И экземпляр класса работает в режиме таймера */
+					else if (seconds_passed < 0 &&
+							instance_mode.equals(Mode.M_countdown))
+					{
+						is_positive_value = true;
+						seconds_corrected = Math.abs(seconds_corrected);
+					}
+				}
+				/* Фактически время добавляется, т.к. это режим таймера и нулевое
+				 * время еще не было достигнуто */
+				else
+				{
+					try
+					{
+						seconds_corrected =
+								Math.addExact(seconds_passed, seconds_amount);
+					}
+					catch (final ArithmeticException exc)
+					{
+						return false;
+					}
+				}
+			}
+			
+			// Кол-во полных дней, получившееся из скорректированного кол-ва секунд
+			final long total_days = seconds_corrected / seconds_in_day;
+			/* Сохранение старого значения лет/месяцев/дней перед нормализацией
+			 * на случай исключения */
+			final Period buffer = period_passed;
+			
+			/* Если получившееся кол-во полных дней больше макс. числа,
+			 * помещающегося в int */
+			if (total_days > Integer.MAX_VALUE)
+			{
+				// Кол-во дней в году согласно режиму подсчета времени экземпляра
+				final int days_in_year =
+						(days_count.equals(Days_in_year.DIY_360) ? 360 : 365);
+				// Кол-во полных лет, получившееся из кол-ва полных дней "total_days"
+				final long total_years = total_days / days_in_year;
+				
+				/* Если получившееся кол-во полных лет больше макс. числа
+				 * помещающегося в int */
+				if (total_years > Integer.MAX_VALUE)
+				{
+					return false;
+				}
+				
+				period_passed = Period.of(
+						(int)total_years, 0, (int)(total_days % days_in_year));
+			}
+			else
+			{
+				period_passed = Period.of(0, 0, (int)total_days);
+			}
+			
+			try
+			{
+				period_passed = normalize_period_obj(period_passed, days_count);
+			}
+			catch (final ArithmeticException exc)
+			{
+				period_passed = buffer;
+				
+				return false;
+			}
+			
+			// Кол-во секунд в оставшихся неполных сутках
+			int day_seconds = (int)(seconds_corrected % seconds_in_day);
+			// Секунд в одном часе
+			final int seconds_in_hour = (int)TimeUnit.HOURS.toSeconds(1);
+			// Сокрректированное кол-во часов
+			final int hours = day_seconds / seconds_in_hour;
+			
+			day_seconds %= seconds_in_hour;
+			
+			// Кол-во минут в часе
+			final int minutes_in_hour = (int)TimeUnit.HOURS.toMinutes(1);
+			// Скорректированное кол-во минут
+			final int minutes = day_seconds / minutes_in_hour;
+			
+			duration_passed = LocalTime.of(hours, minutes, day_seconds % minutes_in_hour);
+			set_time_unit_values();
+			build_time_string();
+			set_time_counter_text();
+			
+			return true;
 		}
-		
-		// Кол-во секунд в оставшихся неполных сутках
-		int day_seconds = (int)(seconds_corrected % seconds_in_day);
-		// Секунд в одном часе
-		final int seconds_in_hour = (int)TimeUnit.HOURS.toSeconds(1);
-		// Сокрректированное кол-во часов
-		final int hours = day_seconds / seconds_in_hour;
-		
-		day_seconds %= seconds_in_hour;
-		
-		// Кол-во минут в часе
-		final int minutes_in_hour = (int)TimeUnit.HOURS.toMinutes(1);
-		// Скорректированное кол-во минут
-		final int minutes = day_seconds / minutes_in_hour;
-		
-		duration_passed = LocalTime.of(hours, minutes, day_seconds % minutes_in_hour);
-		set_time_unit_values();
-		build_time_string();
-		set_time_counter_text();
-		time_change_semaphore.release();
-		
-		return true;
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -957,7 +951,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			button_restart.setDisable(true);
 		}
 		
-		time_change_semaphore = new Semaphore(1);
+		lock = new ReentrantLock();
 		deserialization_restore();
 	}
 	
@@ -1152,123 +1146,124 @@ public class Solo_counter extends Time_counter implements Serializable
 			@Override
 			public void run()
 			{
-				// Реализовать обращение к данному потоку раз в 1/10 секунды
+				/* TODO: Реализовать обращение к данному потоку раз в 1/10
+				 * секунды */
 				
 				try
 				{
-					time_change_semaphore.acquire();
+					lock.lockInterruptibly();
 				}
-				/* TODO: ? Может ли возникнуть данная ситуация (этот поток
-				 * выполняется ScheduledExecutorService'ом)? */
 				catch (final InterruptedException exc)
 				{
-					logger.log(Level.SEVERE, "Thread encountered unexpected "
-							+ InterruptedException.class.getName() + " while"
-							+ "acuiring semaphore\'s permission to continue"
-							+ " execution. This thread is handled by "
-							+ ScheduledExecutorService.class.getName()
-							+ ". Exception\'s stack trace:", exc);
+					logger.log(Level.INFO, "Thread interrupts.");
 					Thread.currentThread().interrupt();
 				}
 				
-				counting_have_started = true;
-				
-				/* Если экземпляр класса работает в режиме секундомера ИЛИ это
-				 * режим таймера, и нулевое время уже было достигнуто */
-				if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
+				try
 				{
-					duration_passed = duration_passed.plusSeconds(1);
+					counting_have_started = true;
 					
-					// Если суточное время обнулилось (наступило 0:00:00)
-					if (duration_passed.toSecondOfDay() == 0)
+					/* Если экземпляр класса работает в режиме секундомера ИЛИ
+					 * это режим таймера, и нулевое время уже было достигнуто */
+					if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value)
 					{
-						period_passed = period_passed.plusDays(1);
+						duration_passed = duration_passed.plusSeconds(1);
 						
-						try
+						// Если суточное время обнулилось (наступило 0:00:00)
+						if (duration_passed.toSecondOfDay() == 0)
 						{
-							period_passed = normalize_period_obj(
-									period_passed, days_count);
-						}
-						catch(final ArithmeticException exc)
-						{
-							numeric_overflow = true;
+							period_passed = period_passed.plusDays(1);
 							
-							Platform.runLater(new Runnable()
+							try
 							{
-								@Override
-								public void run()
+								period_passed = normalize_period_obj(
+										period_passed, days_count);
+							}
+							catch(final ArithmeticException exc)
+							{
+								numeric_overflow = true;
+								
+								Platform.runLater(new Runnable()
 								{
-									time_counter.setText(
-											numeric_overflow_message);
-									/* TODO: Установить красный фон или красный
-									 * текст */
-									button_start.setGraphic(new ImageView(
-											button_images.get(
-													Button_key_solo.BKS_START_start)));
-									button_start.setDisable(true);
-								}
-							});
-							
-							thread_counter_manager(false);
-							
-							return;
+									@Override
+									public void run()
+									{
+										time_counter.setText(
+												numeric_overflow_message);
+										/* TODO: Установить красный фон или красный
+										 * текст */
+										button_start.setGraphic(new ImageView(
+												button_images.get(
+														Button_key_solo.BKS_START_start)));
+										button_start.setDisable(true);
+									}
+								});
+								
+								thread_counter_manager(false);
+								
+								return;
+							}
 						}
 					}
-				}
-				else
-				{
-					duration_passed = duration_passed.minusSeconds(1);
-					
-					/* Время в секундах, соответствующее 23:59:59 в суточном
-					 * эквиваленте (24часа * 60минут * 60секунд - 1секунда) */
-					final long one_second_less = TimeUnit.DAYS.toSeconds(1) - 1;
-					
-					// Если суточное время - 23:59:59
-					if (duration_passed.toSecondOfDay() == one_second_less)
+					else
 					{
-						period_passed = period_passed.minusDays(1);
+						duration_passed = duration_passed.minusSeconds(1);
 						
-						/* Кол-во оставшихся месяцев в значении таймера
-						 * обратного отсчета */
-						final int months_remain = period_passed.getMonths();
-						/* Кол-во оставшихся лет в значении таймера обратного
-						 * отсчета */
-						final int years_remain = period_passed.getYears();
+						/* Время в секундах, соответствующее 23:59:59 в суточном
+						 * эквиваленте (24часа * 60минут * 60секунд - 1секунда) */
+						final long one_second_less = TimeUnit.DAYS.toSeconds(1) - 1;
 						
-						/* Если в результате декремента дня кол-во дней стало
-						 * отрицательным И ... */
-						if (period_passed.getDays() == -1 &&
-								/* ... (кол-во месяцев ИЛИ лет все еще
-								 * положительное) */
-								(months_remain > 0 || years_remain > 0))
+						// Если суточное время - 23:59:59
+						if (duration_passed.toSecondOfDay() == one_second_less)
 						{
-							// Если подсчет даты основывается на 360-и днях в году
-							if (days_count.equals(Days_in_year.DIY_360))
-							{
-								period_passed = period_passed.plusDays(31);
-							}
-							else
-							{
-								period_passed = period_passed.plusDays(
-										month_sizes.get(months_remain - 1) + 1);
-							}
+							period_passed = period_passed.minusDays(1);
 							
-							period_passed = period_passed.minusMonths(1);
-							period_passed = period_passed.normalized();
-						}
-						// Если кол-во оставшихся месяцев И лет равно нулю
-						else if (months_remain == 0 && years_remain == 0)
-						{
-							duration_passed = duration_passed.plusSeconds(2);
-							is_positive_value = false;
+							/* Кол-во оставшихся месяцев в значении таймера
+							 * обратного отсчета */
+							final int months_remain = period_passed.getMonths();
+							/* Кол-во оставшихся лет в значении таймера
+							 * обратного отсчета */
+							final int years_remain = period_passed.getYears();
+							
+							/* Если в результате декремента дня кол-во дней
+							 * стало отрицательным И ... */
+							if (period_passed.getDays() == -1 &&
+									/* ... (кол-во месяцев ИЛИ лет все еще
+									 * положительное) */
+									(months_remain > 0 || years_remain > 0))
+							{
+								/* Если подсчет даты основывается на 360-и днях
+								 * в году */
+								if (days_count.equals(Days_in_year.DIY_360))
+								{
+									period_passed = period_passed.plusDays(31);
+								}
+								else
+								{
+									period_passed = period_passed.plusDays(
+											month_sizes.get(months_remain - 1) + 1);
+								}
+								
+								period_passed = period_passed.minusMonths(1);
+								period_passed = period_passed.normalized();
+							}
+							// Если кол-во оставшихся месяцев И лет равно нулю
+							else if (months_remain == 0 && years_remain == 0)
+							{
+								duration_passed = duration_passed.plusSeconds(2);
+								is_positive_value = false;
+							}
 						}
 					}
+					
+					set_time_unit_values();
+					build_time_string();
+					set_time_counter_text();
 				}
-				
-				set_time_unit_values();
-				build_time_string();
-				set_time_counter_text();
-				time_change_semaphore.release();
+				finally
+				{
+					lock.unlock();
+				}
 			}
 		};
 	}

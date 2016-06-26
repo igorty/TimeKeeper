@@ -11,12 +11,15 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import time_obj.dialog.Read_write_dialog;
 
 
+/* TODO: Change description after removing "serialize()" method calling from
+ * some instance methods */
 /**
  * Содержит настройки программы. После каждого успешного обращения к методам,
  * устанавливающим настройки, поля класса перезаписываются в файл.<br>
@@ -32,7 +35,7 @@ public final class Settings implements Serializable
 	private static final Logger logger;
 	
 	/** Единственный экземпляр класса. */
-	private static Settings instance;
+	private static final Settings instance;
 	
 	/** Режим подсчета дней согласно перечислению {@link Days_in_year}.
 	 * По&nbsp;умолчанию установлено ({@link time_obj.Days_in_year#DIY_360}). */
@@ -65,7 +68,7 @@ public final class Settings implements Serializable
 	private static Time_unit_name[] time_value_edges;
 	
 	/** Название файла с настройками */
-	private static String file_name;
+	private static final String file_name;
 	
 	/** Кол&#8209;во разрешений для семафора {@link #common_semaphore}. */
 	private static final int common_semaphore_permits;
@@ -82,15 +85,15 @@ public final class Settings implements Serializable
 	
 	///// Поля private экземпляра ========================================/////
 	/** Синхронизирует доступ к полю {@link #time_value_edges}. */
-	private volatile Semaphore time_value_edges_semaphore;
+	private transient final ReentrantLock time_value_edges_lock;
 	/** Синхронизирует доступ записи в поля {@link #days_count},
 	 * {@link #time_display_style_setting}, {@link #time_unit_layout_setting}. */
-	private volatile Semaphore common_semaphore;
+	private transient final Semaphore common_semaphore;
 	
 	
 	///// Нестатическая инициализация ====================================/////
 	{
-		time_value_edges_semaphore = new Semaphore(1);
+		time_value_edges_lock = new ReentrantLock();
 		common_semaphore = new Semaphore(common_semaphore_permits);
 		
 		FileInputStream file_input = null;  // Входящий файловый поток
@@ -105,7 +108,7 @@ public final class Settings implements Serializable
 			object_input = new ObjectInputStream(buffered_input);
 			object_input.readObject();
 		}
-		catch (FileNotFoundException exc)
+		catch (final FileNotFoundException exc)
 		{
 			logger.log(Level.WARNING, "Cannot find \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
@@ -114,7 +117,7 @@ public final class Settings implements Serializable
 			set_defaults();
 		}
 		// Ожидается от "object_input"
-		catch (IOException exc)
+		catch (final IOException exc)
 		{
 			logger.log(Level.SEVERE, "Cannot read file \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
@@ -123,7 +126,7 @@ public final class Settings implements Serializable
 					+ " be set to default.");
 			set_defaults();
 		}
-		catch (ClassNotFoundException exc)
+		catch (final ClassNotFoundException exc)
 		{
 			logger.log(Level.SEVERE, '\"' + file_name + "\" settings file"
 					+ " contains incompatible class type. Exception\'s stack trace:", exc);
@@ -159,7 +162,7 @@ public final class Settings implements Serializable
 				}
 			}
 			// При неудачной попытке закрытия потока никаких действий не планируется
-			catch (IOException exc)
+			catch (final IOException exc)
 			{
 				logger.log(Level.WARNING, "Cannot close \"" + file_name
 						+ "\" settings file. Exception\'s stack trace:", exc);
@@ -224,17 +227,22 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.acquire();
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts.");
+			Thread.currentThread().interrupt();
 		}
 		
-		days_count = days_count_set;
-		common_semaphore.release();
-		serialize();
+		try
+		{
+			days_count = days_count_set;
+		}
+		finally
+		{
+			common_semaphore.release();
+		}
+		
+		serialize();  // TODO: Remove
 	}
 
 	
@@ -279,17 +287,22 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.acquire();
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts.");
+			Thread.currentThread().interrupt();
 		}
 		
-		time_display_style_setting = new_value;
-		common_semaphore.release();
-		serialize();
+		try
+		{
+			time_display_style_setting = new_value;
+		}
+		finally
+		{
+			common_semaphore.release();
+		}
+		
+		serialize();  // TODO: Remove
 	}
 
 	
@@ -333,17 +346,22 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.acquire();
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts.");
+			Thread.currentThread().interrupt();
 		}
 		
-		time_unit_layout_setting = time_unit_layout_set;
-		common_semaphore.release();
-		serialize();
+		try
+		{
+			time_unit_layout_setting = time_unit_layout_set;
+		}
+		finally
+		{
+			common_semaphore.release();
+		}
+		
+		serialize();  // TODO: Remove
 	}
 	
 
@@ -364,22 +382,22 @@ public final class Settings implements Serializable
 	{
 		try
 		{
-			time_value_edges_semaphore.acquire();
+			time_value_edges_lock.lockInterruptibly();
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts.");
+			Thread.currentThread().interrupt();
 		}
 		
-		// Безопасная копия массива для возврата из метода
-		final Time_unit_name[] to_return = time_value_edges.clone();
-		
-		time_value_edges_semaphore.release();
-		
-		return to_return;
+		try
+		{
+			return time_value_edges.clone();
+		}
+		finally
+		{
+			time_value_edges_lock.unlock();
+		}
 	}
 
 	
@@ -428,20 +446,25 @@ public final class Settings implements Serializable
 		
 		try
 		{
-			time_value_edges_semaphore.acquire();
+			time_value_edges_lock.lockInterruptibly();
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts.");
+			Thread.currentThread().interrupt();
 		}
 		
-		time_value_edges[0] = left_edge;
-		time_value_edges[1] = right_edge;
-		time_value_edges_semaphore.release();
-		serialize();
+		try
+		{
+			time_value_edges[0] = left_edge;
+			time_value_edges[1] = right_edge;
+		}
+		finally
+		{
+			time_value_edges_lock.unlock();
+		}
+		
+		serialize();  // TODO: Remove
 	}
 	
 	
@@ -457,39 +480,49 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.acquire(common_semaphore_permits);
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts");
+			Thread.currentThread().interrupt();
 		}
-		
-		days_count = Days_in_year.DIY_360;
-		time_display_style_setting = Time_display_style.TDS_increase_able;
-		time_unit_layout_setting = Time_unit_layout.TUL_value_sign;
 		
 		try
 		{
-			time_value_edges_semaphore.acquire();
+			days_count = Days_in_year.DIY_360;
+			time_display_style_setting = Time_display_style.TDS_increase_able;
+			time_unit_layout_setting = Time_unit_layout.TUL_value_sign;
+			
+			try
+			{
+				time_value_edges_lock.lockInterruptibly();
+			}
+			catch (final InterruptedException exc)
+			{
+				logger.log(Level.INFO, "Thread interrupts.");
+				Thread.currentThread().interrupt();
+			}
+			
+			try
+			{
+				// TODO: ? Why to assign new reference? Consider removing
+				time_value_edges = new Time_unit_name[2];
+				
+				time_value_edges[0] = Time_unit_name.TUN_hours;
+				time_value_edges[1] = Time_unit_name.TUN_seconds;
+			}
+			finally
+			{
+				time_value_edges_lock.unlock();
+			}
 		}
-		/* TODO: ? Потенциально опасный участок. Существует ли вероятность
-		 * возникновения данного исключения? */
-		// Данное исключение не ожидается
-		catch (InterruptedException exc)
+		finally
 		{
-			logger.log(Level.WARNING, "Thread received unexpected interrupted"
-					+ " flag while acquiring semaphore. At this point another"
-					+ " semaphore\'s permits are already obtained and haven\'t"
-					+ " yet been released by this thread. Exception\'s stack trace:", exc);
-//			common_semaphore.release(common_semaphore_permits);
+			common_semaphore.release(common_semaphore_permits);
 		}
 		
-		time_value_edges = new Time_unit_name[2];
-		time_value_edges[0] = Time_unit_name.TUN_hours;
-		time_value_edges[1] = Time_unit_name.TUN_seconds;
-		common_semaphore.release(common_semaphore_permits);
-		time_value_edges_semaphore.release();
+		/* There is a possible 'synchronization window' when outlier thread
+		 * changes some settings field(-s) before "serialize()" method obtain
+		 * mutexes and write settings to file. Consider it to be not a bug */
 		serialize();
 	}
 	
@@ -506,77 +539,98 @@ public final class Settings implements Serializable
 		try
 		{
 			common_semaphore.acquire(common_semaphore_permits);
-			time_value_edges_semaphore.acquire();
 		}
-		/* Данное исключение не ожидается. Даже в случае его возникновения метод
-		 * должен выполниться до конца */
-		catch (InterruptedException exc)
+		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread received unexpected interrupted flag"
-					+ " while acquiring semaphore. Exception\'s stack trace:", exc);
+			logger.log(Level.INFO, "Thread interrupts.");
+			Thread.currentThread().interrupt();
 		}
-		
-		FileOutputStream file_output = null;  // Исходящий файловый поток
-		// Исходящий буферизированный поток
-		BufferedOutputStream buffered_output = null;
-		ObjectOutputStream object_output = null;  // Исходящий поток объектов
 		
 		try
 		{
-			file_output = new FileOutputStream(file_name);
-			buffered_output = new BufferedOutputStream(file_output);
-			object_output = new ObjectOutputStream(buffered_output);
-			object_output.writeObject(this);
-		}
-		catch (FileNotFoundException exc)
-		{
-			logger.log(Level.WARNING, "Cannot find \"" + file_name
-					+ "\" settings file. Exception\'s stack trace:", exc);
-			Read_write_dialog.show_error_message(false, "Error occurred while"
-					+ " accessing settings file. Program settings cannot be"
-							+ " saved.");
-		}
-		// Ожидается от "object_output"
-		catch (IOException exc)
-		{
-			logger.log(Level.SEVERE, "Cannot write settings to \""
-					+ file_name + "\" file. Exception\'s stack trace:", exc);
-			Read_write_dialog.show_error_message(false, "Error occurred while"
-					+ " writing settings to file. Program settings cannot"
-					+ " be saved.");
+			try
+			{
+				time_value_edges_lock.lockInterruptibly();
+			}
+			catch (final InterruptedException exc)
+			{
+				logger.log(Level.INFO, "Thread interrupts.");
+				Thread.currentThread().interrupt();
+			}
+			
+			try
+			{
+				// Исходящий файловый поток
+				FileOutputStream file_output = null;
+				// Исходящий буферизированный поток
+				BufferedOutputStream buffered_output = null;
+				// Исходящий поток объектов
+				ObjectOutputStream object_output = null;
+				
+				try
+				{
+					file_output = new FileOutputStream(file_name);
+					buffered_output = new BufferedOutputStream(file_output);
+					object_output = new ObjectOutputStream(buffered_output);
+					object_output.writeObject(this);
+				}
+				catch (final FileNotFoundException exc)
+				{
+					logger.log(Level.WARNING, "Cannot find \"" + file_name
+							+ "\" settings file. Exception\'s stack trace:", exc);
+					Read_write_dialog.show_error_message(false, "Error occurred"
+							+ " while accessing settings file. Program settings"
+							+ " cannot be saved.");
+				}
+				// Ожидается от "object_output"
+				catch (final IOException exc)
+				{
+					logger.log(Level.SEVERE, "Cannot write settings to \""
+							+ file_name + "\" file. Exception\'s stack trace:", exc);
+					Read_write_dialog.show_error_message(false, "Error occurred"
+							+ " while writing settings to file. Program settings"
+							+ " cannot be saved.");
+				}
+				finally
+				{
+					try
+					{
+						///// Попытки закрытия потоков вниз по цепочке /////
+						// Если исходящий поток объектов был открыт
+						if (object_output != null)
+						{
+							object_output.close();
+						}
+						/* Если программа успела открыть буферизированный
+						 * исходящий поток */
+						else if (buffered_output != null)
+						{
+							buffered_output.close();
+						}
+						/* Если программа успела открыть только исходящий
+						 * файловый поток */
+						else if (file_output != null)
+						{
+							file_output.close();
+						}
+					}
+					/* В случае возникновения данного исключения никаких
+					 * действий не планируется */
+					catch (final IOException exc)
+					{
+						logger.log(Level.WARNING, "Cannot close \"" + file_name
+								+ "\" settings file. Exception\'s stack trace:", exc);
+					}
+				}
+			}
+			finally
+			{
+				time_value_edges_lock.unlock();
+			}
 		}
 		finally
 		{
 			common_semaphore.release(common_semaphore_permits);
-			time_value_edges_semaphore.release();
-			
-			try
-			{
-				///// Попытки закрытия потоков вниз по цепочке /////
-				// Если исходящий поток объектов был открыт
-				if (object_output != null)
-				{
-					object_output.close();
-				}
-				/* Если программа успела открыть буферизированный исходящий
-				 * поток */
-				else if (buffered_output != null)
-				{
-					buffered_output.close();
-				}
-				// Если программа успела открыть только исходящий файловый поток
-				else if (file_output != null)
-				{
-					file_output.close();
-				}
-			}
-			/* В случае возникновения данного исключения никаких действий
-			 * не планируется */
-			catch (IOException exc)
-			{
-				logger.log(Level.WARNING, "Cannot close \"" + file_name
-						+ "\" settings file. Exception\'s stack trace:", exc);
-			}
 		}
 	}
 	
