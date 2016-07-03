@@ -6,12 +6,18 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import time_obj.events.Numeric_overflow_event;
+import time_obj.events.Numeric_overflow_listener;
 
 
 /**
@@ -144,7 +150,6 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <i>Условие проверки:</i> <u>Не&nbsp;должен</u> быть {@code null}. */
 	private final Days_in_year days_count;
 
-	// TODO: Provide listener
 	/** {@code true}&nbsp;&#0151; time&nbsp;counting <u>was&nbsp;started</u>
 	 * after instance creation (or after restart while
 	 * the&nbsp;time&nbsp;counter was stopped); {@code false}&nbsp;&#0151
@@ -159,7 +164,6 @@ public class Solo_counter extends Time_counter implements Serializable
 	/** Периодически выполняет поток {@link #thread_counter}. */
 	private transient ScheduledExecutorService thread_counter_executor;
 	
-	// TODO: Provide listener
 	/** Флаг числового переполнения счетчика времени. {@code false}&nbsp;&#0151;
 	 * числового переполнения нет; счетчик времени работает в штатном режиме.
 	 * {@code true}&nbsp;&#0151; счетчик времени достиг максимально возможного
@@ -182,11 +186,25 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <li>{@link #duration_passed};</li>
 	 * <li>{@link #counting_has_started};</li>
 	 * <li>{@link Time_counter#time_unit_values};</li>
-	 * <li>{@link #numeric_overflow};</li>
+	 * <li>{@link #numeric_overflow} (except in
+	 * {@link #numeric_overflow_status()} method);</li>
 	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
 	 * <li>{@link Time_counter#is_positive_value()};</li>
 	 * <li>{@link #start()}.</li></ul> */
-	private transient ReentrantLock lock;
+	private transient ReentrantLock modify_lock;
+	/** Synchronizes relative to the&nbsp;listeners fields access.<br>
+	 * <i>Fields access to which is synchronized by this lock:</i>
+	 * <ul><li>{@link #numeric_overflow_listeners};</li>
+	 * <li>{@link #listeners_notifier}.</li></ul> */
+	private transient ReentrantLock event_lock;
+	
+	/** Contains listeners subscribed for numeric overflow event. */
+	private transient ArrayList<Numeric_overflow_listener> numeric_overflow_listeners;
+	
+	/** Notifies subscribed listeners contained in
+	 * {@link #numeric_overflow_listeners} using separate thread for each
+	 * notification to speed&nbsp;up perfomance. */
+	private transient ThreadPoolExecutor listeners_notifier;
 	
 	
 	// Нестатическая инициализация ========================================/////
@@ -195,7 +213,11 @@ public class Solo_counter extends Time_counter implements Serializable
 		set_time_counter_value_sign(true);
 		thread_counter_init();
 		numeric_overflow = false;
-		lock = new ReentrantLock();
+		modify_lock = new ReentrantLock();
+		event_lock = new ReentrantLock();
+		numeric_overflow_listeners = new ArrayList<>();
+		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
+				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}
 
 
@@ -374,7 +396,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	{
 		try
 		{
-			lock.lockInterruptibly();
+			modify_lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
@@ -397,12 +419,13 @@ public class Solo_counter extends Time_counter implements Serializable
 					Executors.newSingleThreadScheduledExecutor();
 			thread_counter_executor.scheduleAtFixedRate(
 					thread_counter, 1, 1, TimeUnit.SECONDS);
+			counting_has_started = true;
 			
 			return true;
 		}
 		finally
 		{
-			lock.unlock();
+			modify_lock.unlock();
 		}
 	}
 	
@@ -469,7 +492,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	{
 		try
 		{
-			lock.lockInterruptibly();
+			modify_lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
@@ -491,9 +514,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			// Если ход счетчика времени сейчас приостановлен
 			if (thread_counter_executor.isShutdown())
 			{
-				// TODO: Notify listeners
 				counting_has_started = false;
-				// TODO: ? Notify listeners if value has changed
 				numeric_overflow = false;
 			}
 
@@ -504,7 +525,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		}
 		finally
 		{
-			lock.unlock();
+			modify_lock.unlock();
 		}
 	}
 	
@@ -562,7 +583,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		try
 		{
-			lock.lockInterruptibly();
+			modify_lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
@@ -632,7 +653,6 @@ public class Solo_counter extends Time_counter implements Serializable
 					 * нулевая точка времени */
 					if (seconds_corrected < 0)
 					{
-						// TODO: ? Notify listeners if value has changed
 						set_time_counter_value_sign(false);
 						seconds_corrected = Math.abs(seconds_corrected);
 					}
@@ -665,7 +685,6 @@ public class Solo_counter extends Time_counter implements Serializable
 					else if (seconds_passed < 0 &&
 							instance_mode.equals(Mode.M_countdown))
 					{
-						// TODO: ? Notify listeners if value has changed
 						set_time_counter_value_sign(true);
 						seconds_corrected = Math.abs(seconds_corrected);
 					}
@@ -752,7 +771,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		}
 		finally
 		{
-			lock.unlock();
+			modify_lock.unlock();
 		}
 	}
 	
@@ -795,7 +814,10 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * When time&nbsp;counter reaches its maximum possible value it stops
 	 * counting and sets numeric overflow status to {@code true}. In this case
 	 * calling {@link #start()} <u>does&nbsp;nothing</u>. But time&nbsp;counter
-	 * can be restarted by calling {@link #restart()}.
+	 * can be restarted by calling {@link #restart()}.<br>
+	 * <i>Note.</i> Interested in numeric overflow event object can subscribe
+	 * for the&nbsp;event using
+	 * {@link #add_Numeric_overflow_listener(Numeric_overflow_listener)}.
 	 * 
 	 * @return {@code true}&nbsp;&#0151; numeric overflow occurred;
 	 * {@code false}&nbsp;&#0151; time&nbsp;counter is&nbsp;in&nbsp;normal state.
@@ -812,6 +834,111 @@ public class Solo_counter extends Time_counter implements Serializable
 	public Initial_time_values get_initial_time_values()
 	{
 		return new Initial_time_values(period_init, duration_init);
+	}
+	
+	
+	/* TODO: ? Is there possible resource leak if object has not unsubscribed
+	 * from this event notifying, but is not referred anymore else? If so - need
+	 * to mention this in javadoc */
+	/**
+	 * Adds specified {@code listener} to receive numeric overflow event. Same
+	 * {@code listener} <u>can</u> be&nbsp;added multiple times.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with (private methods <u>are&nbsp;not</u> listed):
+	 * <ul><li>{@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
+	 * 
+	 * @param listener Listener to be subscribed on event.
+	 * 
+	 * @exception NullPointerException {@code listener} argument is {@code null}.
+	 */
+	public void add_Numeric_overflow_listener(
+			final Numeric_overflow_listener listener)
+	{
+		// Argument cannot be null
+		if (listener == null)
+		{
+			throw new NullPointerException(
+					Numeric_overflow_listener.class.getName() + " argument is null");
+		}
+		
+		try
+		{
+			event_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			numeric_overflow_listeners.add(listener);
+			listeners_notifier.setCorePoolSize(
+					listeners_notifier.getCorePoolSize() + 1);
+		}
+		finally
+		{
+			event_lock.unlock();
+		}
+	}
+	
+	
+	/**
+	 * Remove <u>first occurrence</u> of specified {@code listener} argument
+	 * <u>if such present</u>.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with (private methods <u>are&nbsp;not</u> listed):
+	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
+	 * 
+	 * @param listener Listener to be unsubscribed from event.
+	 * 
+	 * @return {@code true}&nbsp;&#0151; <u>first occurrence</u> of
+	 * {@code listener} argument <u>successfully removed</u> (unsubscribed) from
+	 * event notifying. {@code false}&nbsp;&#0151; <u>there&nbsp;is no</u> such
+	 * {@code listener} (i.e.&nbsp;nothing to remove).
+	 * 
+	 * @exception NullPointerException {@code listener} argumetn is {@code null}.
+	 */
+	public boolean remove_Numeric_overflow_listener(
+			final Numeric_overflow_listener listener)
+	{
+		// Argument cannot be null
+		if (listener == null)
+		{
+			throw new NullPointerException(
+					Numeric_overflow_listener.class.getName() + " argument is null");
+		}
+		
+		try
+		{
+			event_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			// true - given "listener" is successfully removed; false - otherwise
+			final boolean is_removed =
+					numeric_overflow_listeners.remove(listener);
+			
+			// If given "listener" was unsubscribed from event notifying
+			if (is_removed)
+			{
+				listeners_notifier.setCorePoolSize(
+						listeners_notifier.getCorePoolSize() - 1);
+			}
+			
+			return is_removed;
+		}
+		finally
+		{
+			event_lock.unlock();
+		}
 	}
 	
 	
@@ -914,7 +1041,11 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		set_time_unit_values();
 		thread_counter_init();
-		lock = new ReentrantLock();
+		modify_lock = new ReentrantLock();
+		event_lock = new ReentrantLock();
+		numeric_overflow_listeners = new ArrayList<>();
+		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
+				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}
 	
 	
@@ -1114,7 +1245,7 @@ public class Solo_counter extends Time_counter implements Serializable
 				
 				try
 				{
-					lock.lockInterruptibly();
+					modify_lock.lockInterruptibly();
 				}
 				catch (final InterruptedException exc)
 				{
@@ -1124,9 +1255,6 @@ public class Solo_counter extends Time_counter implements Serializable
 				
 				try
 				{
-					// TODO: Notify listeners if value has changed
-					counting_has_started = true;
-					
 					/* Если экземпляр класса работает в режиме секундомера ИЛИ
 					 * это режим таймера, и нулевое время уже было достигнуто */
 					if (instance_mode.equals(Mode.M_stopwatch) || !is_positive_value())
@@ -1145,11 +1273,10 @@ public class Solo_counter extends Time_counter implements Serializable
 							}
 							catch(final ArithmeticException exc)
 							{
-								// TODO: Notify listeners
 								numeric_overflow = true;
 								build_time_string(numeric_overflow_message);
-								
 								pause();
+								numeric_overflow_listeners_notification();
 								
 								return;
 							}
@@ -1202,7 +1329,6 @@ public class Solo_counter extends Time_counter implements Serializable
 							else if (months_remain == 0 && years_remain == 0)
 							{
 								duration_passed = duration_passed.plusSeconds(2);
-								// TODO: ? Notify listeners if value has changed
 								set_time_counter_value_sign(false);
 							}
 						}
@@ -1214,9 +1340,55 @@ public class Solo_counter extends Time_counter implements Serializable
 				}
 				finally
 				{
-					lock.unlock();
+					modify_lock.unlock();
 				}
 			}
 		};
+	}
+	
+	
+	/**
+	 * Nofifies listeners subscribed via {@link Numeric_overflow_listener}
+	 * interface about numeric overflow occurred.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with:
+	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)};</li>
+	 * <li>{@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
+	 */
+	private void numeric_overflow_listeners_notification()
+	{
+		try
+		{
+			event_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			// This object's reference to be passed with event
+			final Solo_counter instance = this;
+			
+			// Listeners notification
+			for (final Numeric_overflow_listener i : numeric_overflow_listeners)
+			{
+				listeners_notifier.execute(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						i.numeric_overflow_occurred(
+								new Numeric_overflow_event(instance));
+					}
+				});
+			}
+		}
+		finally
+		{
+			event_lock.unlock();
+		}
 	}
 }
