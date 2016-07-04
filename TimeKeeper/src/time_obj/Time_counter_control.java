@@ -18,8 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,9 +28,12 @@ import time_obj.dialog.Read_write_dialog;
 
 
 /**
- * Создает и управляет объектами {@link Time_counter}. Обеспечивает синхронную
- * работу объектов класса {@link Instance_counter}. Реализован в&nbsp;виде
- * singleton'а.
+ * Stores all {@link Time_counter} objects. List of all objects can be obtained
+ * using {@link #get_time_counters()} method.<br>
+ * The&nbsp;main task of this class is to provide synchronous execution of all
+ * {@link Instance_counter} objects.<br>
+ * <i>Note.</i> This class <u>is implemented as singleton</u>. Its instance can
+ * be obtained usnig {@link #get_instance()} method.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -88,15 +91,78 @@ public class Time_counter_control
 	
 	/** Обеспечивает синхронизированный доступ к полям
 	 * {@link #instance_counters} и {@link #instance_counters_tasks}. */
-	private Semaphore instance_counters_semaphore;
+	private ReentrantLock lock;
 	
 	
 	///// Нестатическая инициализация =====================================/////
 	{
 		instance_counters_executor = Executors.newCachedThreadPool();
-		synchronous_task_init();
-		instance_counters_semaphore = new Semaphore(1);
-		file_name = "time counters.tkpr";
+		
+		synchronous_task = new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				try
+				{
+					lock.lockInterruptibly();
+				}
+				catch (final InterruptedException exc)
+				{
+					logger.log(Level.INFO,
+							"Thread interrupts. Exception stack trace:", exc);
+					Thread.currentThread().interrupt();
+				}
+				
+				try
+				{
+					/* Результаты выполнения синхронно выполняющихся методов,
+					 * использующиеся как флаг окончания работы каждого
+					 * синхронного метода */
+					List<Future<Void>> futures = null;
+					
+					try
+					{
+						futures = instance_counters_executor.invokeAll(
+								instance_counters_tasks);
+					}
+					catch (final InterruptedException exc)
+					{
+						instance_counters_barrier.reset();
+						logger.log(Level.INFO,
+								"Thread interrupts. Exception stack trace", exc);
+						Thread.currentThread().interrupt();
+					}
+					
+					// Флаг завершения всех синхронно выполняющихся потоков
+					boolean is_done = true;
+					
+					// Опрос синхронных потоков на предмет их завершения
+					do
+					{
+						for (Future<Void> i : futures)
+						{
+							is_done = i.isDone();
+							
+							// Если хотя бы один синхронный поток еще не завершен
+							if (!is_done)
+							{
+								break;
+							}
+						}
+					} while (!is_done);					
+					
+					instance_counters_barrier.reset();
+				}
+				finally
+				{
+					lock.unlock();
+				}
+			}
+		};
+		
+		lock = new ReentrantLock();
+		file_name = "time counters.tk";
 		time_counters = new Modified_ArrayList();
 		instance_counters = new ArrayList<>();
 		
@@ -162,14 +228,14 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Cannot find " + file_name + " file to load "
 					+ Time_counter.class.getName() + " objects from it."
-							+ " Excepton\'s stack trace:", exc);
+							+ " Excepton stack trace:", exc);
 			Read_write_dialog.show_error_message(true, file_name + " file not"
 					+ " found. Program cannot load time counters saved previously.");
 		}
 		catch (final IOException exc)
 		{
 			logger.log(Level.SEVERE, "Cannot read from " + file_name +
-					" file. Exception\'s stack trace:", exc);
+					" file. Exception stack trace:", exc);
 			Read_write_dialog.show_error_message(true, "Error occurred while"
 					+ " reading " + file_name + " file with saved time counters."
 							+ " Time counters cannot be loaded to program.");
@@ -238,7 +304,7 @@ public class Time_counter_control
 			catch (final IOException exc)
 			{
 				logger.log(Level.WARNING, "Cannot close " + file_name +
-						" file. Exception\'s stack trace:", exc);
+						" file. Exception stack trace:", exc);
 			}
 			finally
 			{
@@ -271,13 +337,11 @@ public class Time_counter_control
 	
 	///// Методы public экземпляра ========================================/////
 	/**
-	 * Возвращает контейнер, содержащий все созданные объекты типа
-	 * {@link Time_counter}. Каждый объект {@link Instance_counter} и
-	 * {@link Solo_counter} во&nbsp;время создания добавляет себя в этот
-	 * контейнер.
+	 * Returns container, with all created {@link Time_counter} objects. Each
+	 * {@link Instance_counter} and {@link Solo_counter} object, when created,
+	 * adds itself to this container.
 	 * 
-	 * @return Контейнер, содержащий все созданные объекты типа
-	 * {@link Time_counter}.
+	 * @return All created {@link Time_counter} objects.
 	 */
 	public Modified_ArrayList get_time_counters()
 	{
@@ -307,7 +371,7 @@ public class Time_counter_control
 	{
 		try
 		{
-			instance_counters_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		/* Данное исключение не ожидается. Даже в случае его возникновения метод
 		 * должен выполниться до конца */
@@ -315,49 +379,55 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Thread encountered unexpected "
 					+ InterruptedException.class.getName() + " while acquiring"
-					+ " semaphore\'s permit to continue executing. Therefore"
-					+ " thread must be executed entirely. Exception\'s stack trace:", exc);
+					+ " semaphore permit to continue executing. Therefore"
+					+ " thread must be executed entirely. Exception stack trace:", exc);
 		}
 		
-		// Кол-во элементов в контейнере "instance_counters"
-		final int instance_counters_size = instance_counters.size();
-		
-		// Если метод вызван не из контейнера "time_counters"
-		if (time_counters.get_instance_counters_quantity() -
-				instance_counters_size != 1)
+		try
 		{
-			throw new IllegalStateException(
-					"Method have been called in inappropriate way");
-		}
-		
-		assert !instance_counters.contains(instance_counter_obj) :
-			"Unexpected error occurred while adding Instance_counter element to"
-					+ " list. Additional object already exists";
-		
-		// Объявлен для assert'ов
-		boolean result = instance_counters.add(instance_counter_obj);
-		
-		assert result : "Unexpected error occurred while adding"
-				+ " Instance_counter element to list";
-		
-		result = instance_counters_tasks.add(new Callable<Void>()
-		{
-			@Override
-			public Void call() throws Exception
+			// Кол-во элементов в контейнере "instance_counters"
+			final int instance_counters_size = instance_counters.size();
+			
+			// Если метод вызван не из контейнера "time_counters"
+			if (time_counters.get_instance_counters_quantity() -
+					instance_counters_size != 1)
 			{
-				instance_counter_obj.difference_calculation();
-				
-				return null;
+				throw new IllegalStateException(
+						"Method have been called in inappropriate way");
 			}
-		});
-		
-		assert result :
-			"Unexpected error occurred while adding Callable object to list";
-		
-		instance_counters_barrier =
-				new CyclicBarrier(instance_counters_size + 1);
-		synchronous_task_executor_manager();
-		instance_counters_semaphore.release();
+			
+			assert !instance_counters.contains(instance_counter_obj) :
+				"Unexpected error occurred while adding Instance_counter element"
+				+ " to list. Additional object already exists";
+			
+			// Объявлен для assert'ов
+			boolean result = instance_counters.add(instance_counter_obj);
+			
+			assert result : "Unexpected error occurred while adding"
+			+ " Instance_counter element to list";
+			
+			result = instance_counters_tasks.add(new Callable<Void>()
+			{
+				@Override
+				public Void call() throws Exception
+				{
+					instance_counter_obj.difference_calculation();
+					
+					return null;
+				}
+			});
+			
+			assert result :
+				"Unexpected error occurred while adding Callable object to list";
+			
+			instance_counters_barrier =
+					new CyclicBarrier(instance_counters_size + 1);
+			synchronous_task_executor_manager();
+		}
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 
@@ -383,7 +453,7 @@ public class Time_counter_control
 	{
 		try
 		{
-			instance_counters_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		/* Данное исключение не ожидается. Даже в случае его возникновения метод
 		 * должен выполниться до конца */
@@ -391,55 +461,61 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Thread encountered unexpected "
 					+ InterruptedException.class.getName() + " while acquiring"
-					+ " semaphore\'s permit to continue executing. Therefore"
-					+ " thread must be executed entirely. Exception\'s stack trace:", exc);
+					+ " semaphore permit to continue executing. Therefore"
+					+ " thread must be executed entirely. Exception stack trace:", exc);
 		}
 		
-		// Кол-во элементов в контейнере "instance_counters"
-		final int instance_counters_size = instance_counters.size();
-		// Кол-во элементов в полученной коллекции
-		final int group_size = group.size();
-		
-		// Если метод вызван не из контейнера "time_counters"
-		if (time_counters.get_instance_counters_quantity() -
-				instance_counters_size != group_size)
+		try
 		{
-			throw new IllegalStateException(
-					"Method have been called in inappropriate way");
-		}
-		
-		// Объявлен для assert'ов
-		boolean result = instance_counters.addAll(group);
-		
-		assert result : "Unexpected error occurred while adding collection of"
-				+ " Instance_counter objects to list";
-		
-		// Добавление Callable'ов из элементов полученной коллекции
-		for (int i = 0; i < group_size; ++i)
-		{
-			/* Объект, метод которого необходимо поместить в
-			 * "instance_counters_tasks" */
-			final Instance_counter to_callable = group.get(i);
+			// Кол-во элементов в контейнере "instance_counters"
+			final int instance_counters_size = instance_counters.size();
+			// Кол-во элементов в полученной коллекции
+			final int group_size = group.size();
 			
-			result = instance_counters_tasks.add(new Callable<Void>()
+			// Если метод вызван не из контейнера "time_counters"
+			if (time_counters.get_instance_counters_quantity() -
+					instance_counters_size != group_size)
 			{
-				@Override
-				public Void call() throws Exception
-				{
-					to_callable.difference_calculation();
-					
-					return null;
-				}
-			});
+				throw new IllegalStateException(
+						"Method have been called in inappropriate way");
+			}
 			
-			assert result :
-				"Unexpected error occurred while adding Callable object to list";
+			// Объявлен для assert'ов
+			boolean result = instance_counters.addAll(group);
+			
+			assert result : "Unexpected error occurred while adding collection"
+					+ " of Instance_counter objects to list";
+			
+			// Добавление Callable'ов из элементов полученной коллекции
+			for (int i = 0; i < group_size; ++i)
+			{
+				/* Объект, метод которого необходимо поместить в
+				 * "instance_counters_tasks" */
+				final Instance_counter to_callable = group.get(i);
+				
+				result = instance_counters_tasks.add(new Callable<Void>()
+				{
+					@Override
+					public Void call() throws Exception
+					{
+						to_callable.difference_calculation();
+						
+						return null;
+					}
+				});
+				
+				assert result :
+					"Unexpected error occurred while adding Callable object to list";
+			}
+			
+			instance_counters_barrier =
+					new CyclicBarrier(instance_counters_size + group_size);
+			synchronous_task_executor_manager();			
 		}
-		
-		instance_counters_barrier =
-				new CyclicBarrier(instance_counters_size + group_size);
-		synchronous_task_executor_manager();
-		instance_counters_semaphore.release();
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -466,7 +542,7 @@ public class Time_counter_control
 		
 		try
 		{
-			instance_counters_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		/* Данное исключение не ожидается. Даже в случае его возникновения метод
 		 * должен выполниться до конца */
@@ -474,14 +550,20 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Thread encountered unexpected "
 					+ InterruptedException.class.getName() + " while acquiring"
-					+ " semaphore\'s permit to continue executing. Therefore"
-					+ " thread must be executed entirely. Exception\'s stack trace:", exc);
+					+ " semaphore permit to continue executing. Therefore"
+					+ " thread must be executed entirely. Exception stack trace:", exc);
 		}
 		
-		instance_counters_tasks.clear();
-		instance_counters.clear();
-		synchronous_task_executor_manager();
-		instance_counters_semaphore.release();
+		try
+		{
+			instance_counters_tasks.clear();
+			instance_counters.clear();
+			synchronous_task_executor_manager();
+		}
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -505,7 +587,7 @@ public class Time_counter_control
 	{
 		try
 		{
-			instance_counters_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		/* Данное исключение не ожидается. Даже в случае его возникновения метод
 		 * должен выполниться до конца */
@@ -513,29 +595,35 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Thread encountered unexpected "
 					+ InterruptedException.class.getName() + " while acquiring"
-					+ " semaphore\'s permit to continue executing. Therefore"
-					+ " thread must be executed entirely. Exception\'s stack trace:", exc);
+					+ " semaphore permit to continue executing. Therefore"
+					+ " thread must be executed entirely. Exception stack trace:", exc);
 		}
 		
-		// Если метод вызван не из контейнера "time_counters"
-		if (instance_counters.size() -
-				time_counters.get_instance_counters_quantity() != 1)
+		try
 		{
-			throw new IllegalStateException(
-					"Method have been called in inappropriate way");
+			// Если метод вызван не из контейнера "time_counters"
+			if (instance_counters.size() -
+					time_counters.get_instance_counters_quantity() != 1)
+			{
+				throw new IllegalStateException(
+						"Method have been called in inappropriate way");
+			}
+			
+			// Если указанного в параметре объекта не существует
+			if (!instance_counters.remove(to_remove))
+			{
+				throw new IllegalArgumentException(
+						"to_remove object doesen\'t exist in the list");
+			}
+			
+			reset_instance_counters_tasks();
+			instance_counters_barrier = new CyclicBarrier(instance_counters.size());
+			synchronous_task_executor_manager();
 		}
-		
-		// Если указанного в параметре объекта не существует
-		if (!instance_counters.remove(to_remove))
+		finally
 		{
-			throw new IllegalArgumentException(
-					"to_remove object doesen\'t exist in the list");
+			lock.unlock();
 		}
-		
-		reset_instance_counters_tasks();
-		instance_counters_barrier = new CyclicBarrier(instance_counters.size());
-		synchronous_task_executor_manager();
-		instance_counters_semaphore.release();
 	}
 	
 	
@@ -561,7 +649,7 @@ public class Time_counter_control
 	{
 		try
 		{
-			instance_counters_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		/* Данное исключение не ожидается. Даже в случае его возникновения метод
 		 * должен выполниться до конца */
@@ -569,28 +657,34 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Thread encountered unexpected "
 					+ InterruptedException.class.getName() + " while acquiring"
-					+ " semaphore\'s permit to continue executing. Therefore"
-					+ " thread must be executed entirely. Exception\'s stack trace:", exc);
+					+ " semaphore permit to continue executing. Therefore"
+					+ " thread must be executed entirely. Exception stack trace:", exc);
 		}
 		
-		// Если метод вызван не из контейнера "time_counters"
-		if (instance_counters.size() -
-				time_counters.get_instance_counters_quantity() != group.size())
+		try
 		{
-			throw new IllegalStateException(
-					"Method have been called in inappropriate way");
+			// Если метод вызван не из контейнера "time_counters"
+			if (instance_counters.size() -
+					time_counters.get_instance_counters_quantity() != group.size())
+			{
+				throw new IllegalStateException(
+						"Method have been called in inappropriate way");
+			}
+			
+			// Объявлен для assert'а
+			final boolean result = instance_counters.removeAll(group);
+			
+			assert result :
+				"Unexpected error occurred while removing elements from list";
+			
+			reset_instance_counters_tasks();
+			instance_counters_barrier = new CyclicBarrier(instance_counters.size());
+			synchronous_task_executor_manager();
 		}
-		
-		// Объявлен для assert'а
-		final boolean result = instance_counters.removeAll(group);
-		
-		assert result :
-			"Unexpected error occurred while removing elements from list";
-		
-		reset_instance_counters_tasks();
-		instance_counters_barrier = new CyclicBarrier(instance_counters.size());
-		synchronous_task_executor_manager();
-		instance_counters_semaphore.release();
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -617,7 +711,7 @@ public class Time_counter_control
 	{
 		try
 		{
-			instance_counters_semaphore.acquire();
+			lock.lockInterruptibly();
 		}
 		/* Данное исключение не ожидается. Даже в случае его возникновения метод
 		 * должен выполниться до конца */
@@ -625,29 +719,35 @@ public class Time_counter_control
 		{
 			logger.log(Level.WARNING, "Thread encountered unexpected "
 					+ InterruptedException.class.getName() + " while acquiring"
-					+ " semaphore\'s permit to continue executing. Therefore"
-					+ " thread must be executed entirely. Exception\'s stack trace:", exc);
+					+ " semaphore permit to continue executing. Therefore"
+					+ " thread must be executed entirely. Exception stack trace:", exc);
 		}
 		
-		// Если метод вызван не из контейнера "time_counters"
-		if (instance_counters.size() -
-				time_counters.get_instance_counters_quantity() != group.size())
+		try
 		{
-			throw new IllegalStateException(
-					"Method have been called in inappropriate way");
+			// Если метод вызван не из контейнера "time_counters"
+			if (instance_counters.size() -
+					time_counters.get_instance_counters_quantity() != group.size())
+			{
+				throw new IllegalStateException(
+						"Method have been called in inappropriate way");
+			}
+			
+			// Объявлен для assert'а
+			final boolean result = instance_counters.retainAll(group);
+			
+			assert result : "Unexpected exception occurred while calling"
+			+ " retain_instance_counter_group(ArrayList<Instance_counter>)."
+			+ " Method shouldn\'t return false";
+			
+			reset_instance_counters_tasks();
+			instance_counters_barrier = new CyclicBarrier(instance_counters.size());
+			synchronous_task_executor_manager();
 		}
-		
-		// Объявлен для assert'а
-		final boolean result = instance_counters.retainAll(group);
-		
-		assert result : "Unexpected exception occurred while calling"
-				+ " retain_instance_counter_group(ArrayList<Instance_counter>)."
-				+ " Method shouldn\'t return false";
-		
-		reset_instance_counters_tasks();
-		instance_counters_barrier = new CyclicBarrier(instance_counters.size());
-		synchronous_task_executor_manager();
-		instance_counters_semaphore.release();
+		finally
+		{
+			lock.unlock();
+		}
 	}
 	
 	
@@ -696,7 +796,7 @@ public class Time_counter_control
 		{
 			logger.log(Level.SEVERE, "Cannot obtain " + file_name
 					+ " file to write " + Time_counter.class.getName()
-					+ " objects. Exception\'s stack trace:", exc);
+					+ " objects. Exception stack trace:", exc);
 			Read_write_dialog.show_error_message(false, "Error occurred while"
 					+ " accessing " + file_name + " file. Current time counters"
 							+ " state cannot be saved.");
@@ -705,7 +805,7 @@ public class Time_counter_control
 		{
 			logger.log(Level.SEVERE, "Cannot perform writing "
 					+ Time_counter.class.getName() + " objects to " + file_name
-					+ " file. Exception\'s stack trace:", exc);
+					+ " file. Exception stack trace:", exc);
 			Read_write_dialog.show_error_message(false, "Error occurred while"
 					+ " saving time counters in file. Current time counters"
 							+ " state probably haven\'t been saved properly.");
@@ -737,7 +837,7 @@ public class Time_counter_control
 			catch (final IOException exc)
 			{
 				logger.log(Level.WARNING, "Cannot close " + file_name
-						+ " file after writing. Exception\'s stack trace:", exc);
+						+ " file after writing. Exception stack trace:", exc);
 			}
 		}
 	}
@@ -793,7 +893,7 @@ public class Time_counter_control
 				logger.log(Level.WARNING, "Thread encountered "
 						+ InterruptedException.class.getName()
 						+ " exception while waiting for thread termination. This"
-						+ " thread will continue to execute. Exception\'s stack trace:", exc);
+						+ " thread will continue to execute. Exception stack trace:", exc);
 			}
 			
 			if (!synchronous_task_executor.isTerminated())
@@ -801,73 +901,6 @@ public class Time_counter_control
 				synchronous_task_executor.shutdownNow();
 			}
 		}
-	}
-	
-	
-	/**
-	 * Инициализирует поле {@link #synchronous_task}.
-	 */
-	private void synchronous_task_init()
-	{
-		synchronous_task = new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				try
-				{
-					instance_counters_semaphore.acquire();
-				}
-				catch (final InterruptedException exc)
-				{
-					logger.log(Level.INFO, "Thread stops after encountering "
-							+ InterruptedException.class.getName()
-							+ " while acquiring semaphore\'s permit to continue executing.");
-					Thread.currentThread().interrupt();
-				}
-				
-				/* Результаты выполнения синхронно выполняющихся методов,
-				 * использующиеся как флаг окончания работы каждого синхронного
-				 * метода */
-				List<Future<Void>> futures = null;
-				
-				try
-				{
-					futures = instance_counters_executor.invokeAll(
-							instance_counters_tasks);
-				}
-				catch (final InterruptedException exc)
-				{
-					instance_counters_barrier.reset();
-					instance_counters_semaphore.release();
-					logger.log(Level.INFO, "Thread stops after encountering "
-							+ InterruptedException.class.getName()
-							+ " exception while waiting for subthreads to return Future objects");
-					Thread.currentThread().interrupt();
-				}
-				
-				// Флаг завершения всех синхронно выполняющихся потоков
-				boolean is_done = true;
-				
-				// Опрос синхронных потоков на предмет их завершения
-				do
-				{
-					for (Future<Void> i : futures)
-					{
-						is_done = i.isDone();
-						
-						// Если хотя бы один синхронный поток еще не завершен
-						if (!is_done)
-						{
-							break;
-						}
-					}
-				} while (!is_done);
-				
-				instance_counters_semaphore.release();
-				instance_counters_barrier.reset();
-			}
-		};
 	}
 	
 	
