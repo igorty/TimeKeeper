@@ -15,7 +15,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import time_obj.dialog.IO_error_type;
 import time_obj.dialog.Read_write_dialog;
+import time_obj.events.IO_error_event;
 
 
 /* TODO: Change description after removing "serialize()" method calling from
@@ -77,7 +79,7 @@ public final class Settings implements Serializable
 	static
 	{
 		logger = Logger.getLogger(Settings.class.getName());
-		file_name = "settings.tkpr";  // TODO: Указать правильную директорию
+		file_name = "settings.tk";  // TODO: Указать правильную директорию
 		common_semaphore_permits = 3;
 		instance = new Settings();
 	}
@@ -112,8 +114,9 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.WARNING, "Cannot find \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
-			Read_write_dialog.show_error_message(true, file_name +
-					" file not found. Program settings will be set to default.");
+			Read_write_dialog.notify_listener(new IO_error_event(this),
+					IO_error_type.IOET_read_error,
+					file_name + " file not found. Program settings will be set to default.");
 			set_defaults();
 		}
 		// Ожидается от "object_input"
@@ -121,18 +124,20 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.SEVERE, "Cannot read file \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
-			Read_write_dialog.show_error_message(true, "Error occurred"
-					+ " while reading settings file. Program settings will"
-					+ " be set to default.");
+			Read_write_dialog.notify_listener(new IO_error_event(this),
+					IO_error_type.IOET_read_error,
+					"Error occurred while reading settings file. Program"
+							+ " settings will be set to default.");
 			set_defaults();
 		}
 		catch (final ClassNotFoundException exc)
 		{
 			logger.log(Level.SEVERE, '\"' + file_name + "\" settings file"
 					+ " contains incompatible class type. Exception\'s stack trace:", exc);
-			Read_write_dialog.show_error_message(true, "Error occurred while"
-					+ " reading settings file. Program settings will be set to"
-							+ " default.");
+			Read_write_dialog.notify_listener(new IO_error_event(this),
+					IO_error_type.IOET_read_error,
+					"Error occurred while reading settings file. Program"
+							+ " settings will be set to default.");
 			set_defaults();
 		}
 		finally
@@ -229,7 +234,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -289,7 +294,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -348,7 +353,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -386,7 +391,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -450,7 +455,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -482,7 +487,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -498,13 +503,12 @@ public final class Settings implements Serializable
 			}
 			catch (final InterruptedException exc)
 			{
-				logger.log(Level.INFO, "Thread interrupts.");
+				logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 				Thread.currentThread().interrupt();
 			}
 			
 			try
 			{
-				// TODO: ? Why to assign new reference? Consider removing
 				time_value_edges = new Time_unit_name[2];
 				
 				time_value_edges[0] = Time_unit_name.TUN_hours;
@@ -542,7 +546,7 @@ public final class Settings implements Serializable
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -554,7 +558,7 @@ public final class Settings implements Serializable
 			}
 			catch (final InterruptedException exc)
 			{
-				logger.log(Level.INFO, "Thread interrupts.");
+				logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 				Thread.currentThread().interrupt();
 			}
 			
@@ -578,18 +582,20 @@ public final class Settings implements Serializable
 				{
 					logger.log(Level.WARNING, "Cannot find \"" + file_name
 							+ "\" settings file. Exception\'s stack trace:", exc);
-					Read_write_dialog.show_error_message(false, "Error occurred"
-							+ " while accessing settings file. Program settings"
-							+ " cannot be saved.");
+					Read_write_dialog.notify_listener(new IO_error_event(this),
+							IO_error_type.IOET_write_error,
+							"Error occurred while accessing settings file."
+									+ " Program settings cannot be saved.");
 				}
 				// Ожидается от "object_output"
 				catch (final IOException exc)
 				{
 					logger.log(Level.SEVERE, "Cannot write settings to \""
 							+ file_name + "\" file. Exception\'s stack trace:", exc);
-					Read_write_dialog.show_error_message(false, "Error occurred"
-							+ " while writing settings to file. Program settings"
-							+ " cannot be saved.");
+					Read_write_dialog.notify_listener(new IO_error_event(this),
+							IO_error_type.IOET_write_error,
+							"Error occurred while accessing settings file."
+									+ " Program settings cannot be saved.");
 				}
 				finally
 				{
@@ -642,7 +648,7 @@ public final class Settings implements Serializable
 	 * 
 	 * @throws IOException Ошибка ввода/вывода.
 	 */
-	private void writeObject(ObjectOutputStream object_output)
+	private void writeObject(final ObjectOutputStream object_output)
 			throws IOException
 	{
 		object_output.defaultWriteObject();
@@ -664,7 +670,7 @@ public final class Settings implements Serializable
 	 * @throws ClassNotFoundException Класс сериализованного объекта
 	 * не&nbsp;обнаружен.
 	 */
-	private void readObject(ObjectInputStream object_input)
+	private void readObject(final ObjectInputStream object_input)
 			throws IOException, ClassNotFoundException
 	{
 		object_input.defaultReadObject();
@@ -676,7 +682,8 @@ public final class Settings implements Serializable
 		
 		/* Временное значение массива "time_value_edges" перед безопасным
 		 * копированием */
-		Time_unit_name[] buffer = (Time_unit_name[])object_input.readObject();
+		final Time_unit_name[] buffer =
+				(Time_unit_name[])object_input.readObject();
 		
 		time_value_edges = buffer.clone();
 	}
