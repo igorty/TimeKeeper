@@ -24,9 +24,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import time_obj.containers.Modified_ArrayList;
-import time_obj.dialog.IO_error_type;
-import time_obj.dialog.Read_write_dialog;
-import time_obj.events.IO_error_event;
+import time_obj.dialog.User_notification_type;
+import time_obj.dialog.User_notification_dialog;
+import time_obj.events.User_notification_event;
 
 
 /**
@@ -231,16 +231,16 @@ public class Time_counter_control
 			logger.log(Level.WARNING, "Cannot find " + file_name + " file to load "
 					+ Time_counter.class.getName() + " objects from it."
 							+ " Excepton stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_read_error, file_name + " file not found."
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_read_error, file_name + " file not found."
 							+ " Program cannot load time counters saved previously.");
 		}
 		catch (final IOException exc)
 		{
 			logger.log(Level.SEVERE, "Cannot read from " + file_name +
 					" file. Exception stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_read_error, "Error occurred while reading "
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_read_error, "Error occurred while reading "
 							+ file_name + " file with saved time counters."
 							+ " Time counters cannot be loaded to program.");
 		}
@@ -276,13 +276,13 @@ public class Time_counter_control
 					message.append(" None time counters have been read.");
 				}
 				
-				Read_write_dialog.notify_listener(new IO_error_event(this),
-						IO_error_type.IOET_read_error, message.toString());
+				User_notification_dialog.notify_listener(new User_notification_event(this),
+						User_notification_type.IOET_read_error, message.toString());
 			}
 			else if (!deserialization_status)
 			{
-				Read_write_dialog.notify_listener(new IO_error_event(this),
-						IO_error_type.IOET_read_error,
+				User_notification_dialog.notify_listener(new User_notification_event(this),
+						User_notification_type.IOET_read_error,
 						"Some of read instances have noncritical errors (such"
 								+ " instances will function properly).");
 			}
@@ -803,8 +803,8 @@ public class Time_counter_control
 			logger.log(Level.SEVERE, "Cannot obtain " + file_name
 					+ " file to write " + Time_counter.class.getName()
 					+ " objects. Exception stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_write_error,
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_write_error,
 					"Error occurred while accessing " + file_name + " file."
 							+ " Current time counters state cannot be saved.");
 		}
@@ -813,8 +813,8 @@ public class Time_counter_control
 			logger.log(Level.SEVERE, "Cannot perform writing "
 					+ Time_counter.class.getName() + " objects to " + file_name
 					+ " file. Exception stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_write_error, "Error occurred while saving"
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_write_error, "Error occurred while saving"
 							+ " time counters in file. Current time counters"
 							+ " state probably haven\'t been saved properly.");
 		}

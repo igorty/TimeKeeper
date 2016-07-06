@@ -9,7 +9,7 @@ import java.util.EventObject;
 
 /**
  * Event object representing IO&nbsp;error event. {@link time_obj} classes use
- * it to notify listener, which implements {@link IO_error_listener}, about
+ * it to notify listener, which implements {@link User_notification_listener}, about
  * read/write error.<br>
  * <i>Note.</i> <u>Does&nbsp;not</u> support serialization.
  * 
@@ -17,7 +17,7 @@ import java.util.EventObject;
  * @author Igor Taranenko
  */
 @SuppressWarnings("serial")
-public class IO_error_event extends EventObject
+public class User_notification_event extends EventObject
 {
 	///// Constructors public =============================================/////
 	/**
@@ -25,7 +25,7 @@ public class IO_error_event extends EventObject
 	 * 
 	 * @exception NullPointerException {@code source} argument is {@code null}.
 	 */
-	public IO_error_event(final Object source)
+	public User_notification_event(final Object source)
 	{
 		super(source);
 	}
@@ -41,7 +41,7 @@ public class IO_error_event extends EventObject
 	private void writeObject(final ObjectOutputStream output_stream)
 			throws IOException
 	{
-		throw new NotSerializableException(IO_error_event.class.getName());
+		throw new NotSerializableException(User_notification_event.class.getName());
 	}
 	
 	
@@ -54,6 +54,6 @@ public class IO_error_event extends EventObject
 	private void readObject(final ObjectInputStream input_stream)
 			throws IOException, ClassNotFoundException
 	{
-		throw new NotSerializableException(IO_error_event.class.getName());
+		throw new NotSerializableException(User_notification_event.class.getName());
 	}
 }

@@ -4,8 +4,8 @@ import java.util.EventListener;
 
 import time_obj.Settings;
 import time_obj.Time_counter_control;
-import time_obj.dialog.IO_error_type;
-import time_obj.dialog.Read_write_dialog;
+import time_obj.dialog.User_notification_type;
+import time_obj.dialog.User_notification_dialog;
 
 
 /**
@@ -13,12 +13,12 @@ import time_obj.dialog.Read_write_dialog;
  * {@link time_obj} classes. The&nbsp;class that is interested in processing
  * the&nbsp;event implements this interface, and the&nbsp;object created whith
  * that class is subscribed for the&nbsp;event using
- * {@link Read_write_dialog#set_IO_error_listener(IO_error_listener)} method.
+ * {@link User_notification_dialog#set_IO_error_listener(IO_error_listener)} method.
  * 
  * @version 1.0
  * @author Igor Taranenko
  */
-public interface IO_error_listener extends EventListener
+public interface User_notification_listener extends EventListener
 {
 	/**
 	 * Invoked when IO&nbsp;error event occurs.
@@ -33,5 +33,5 @@ public interface IO_error_listener extends EventListener
 	 * @param error_message Text message for user to show.
 	 */
 	void io_error_occurred(
-			IO_error_event event, IO_error_type error_type, String error_message);
+			User_notification_event event, User_notification_type error_type, String error_message);
 }

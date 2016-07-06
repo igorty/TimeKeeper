@@ -15,9 +15,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.dialog.IO_error_type;
-import time_obj.dialog.Read_write_dialog;
-import time_obj.events.IO_error_event;
+import time_obj.dialog.User_notification_type;
+import time_obj.dialog.User_notification_dialog;
+import time_obj.events.User_notification_event;
 
 
 /* TODO: Change description after removing "serialize()" method calling from
@@ -114,8 +114,8 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.WARNING, "Cannot find \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_read_error,
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_read_error,
 					file_name + " file not found. Program settings will be set to default.");
 			set_defaults();
 		}
@@ -124,8 +124,8 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.SEVERE, "Cannot read file \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_read_error,
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_read_error,
 					"Error occurred while reading settings file. Program"
 							+ " settings will be set to default.");
 			set_defaults();
@@ -134,8 +134,8 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.SEVERE, '\"' + file_name + "\" settings file"
 					+ " contains incompatible class type. Exception\'s stack trace:", exc);
-			Read_write_dialog.notify_listener(new IO_error_event(this),
-					IO_error_type.IOET_read_error,
+			User_notification_dialog.notify_listener(new User_notification_event(this),
+					User_notification_type.IOET_read_error,
 					"Error occurred while reading settings file. Program"
 							+ " settings will be set to default.");
 			set_defaults();
@@ -582,8 +582,8 @@ public final class Settings implements Serializable
 				{
 					logger.log(Level.WARNING, "Cannot find \"" + file_name
 							+ "\" settings file. Exception\'s stack trace:", exc);
-					Read_write_dialog.notify_listener(new IO_error_event(this),
-							IO_error_type.IOET_write_error,
+					User_notification_dialog.notify_listener(new User_notification_event(this),
+							User_notification_type.IOET_write_error,
 							"Error occurred while accessing settings file."
 									+ " Program settings cannot be saved.");
 				}
@@ -592,8 +592,8 @@ public final class Settings implements Serializable
 				{
 					logger.log(Level.SEVERE, "Cannot write settings to \""
 							+ file_name + "\" file. Exception\'s stack trace:", exc);
-					Read_write_dialog.notify_listener(new IO_error_event(this),
-							IO_error_type.IOET_write_error,
+					User_notification_dialog.notify_listener(new User_notification_event(this),
+							User_notification_type.IOET_write_error,
 							"Error occurred while accessing settings file."
 									+ " Program settings cannot be saved.");
 				}
