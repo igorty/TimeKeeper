@@ -1,9 +1,11 @@
 ﻿package time_obj.dialog;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import time_obj.Instance_counter;
 import time_obj.Settings;
 import time_obj.Time_counter_control;
 import time_obj.events.User_notification_event;
@@ -11,8 +13,8 @@ import time_obj.events.User_notification_listener;
 
 
 /**
- * Stores object implementing {@link User_notification_listener} and notifies it about
- * IO&nbsp;error occurred.
+ * Stores object implementing {@link User_notification_listener} and notifies it
+ * about <i>user notification event</i> occurred.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -23,7 +25,8 @@ public class User_notification_dialog
 	/** Logs this class's events. */
 	private static final Logger logger;
 	
-	/** Listener to be notified about IO&nbsp;error if such occurs. */
+	/** Listener to be notified about <i>user notification event</i> if such
+	 * occurs. */
 	private static User_notification_listener listener;
 	
 	/** Synchronizes access to {@link #listener}. */
@@ -39,20 +42,27 @@ public class User_notification_dialog
 	
 	
 	///// Методы public статические =======================================/////
+	/* TODO: ? Is there possible resource leak if object has not unsubscribed
+	 * from this event notifying, but is not referred anymore else? If so - need
+	 * to mention this in javadoc */
 	/**
-	 * Sets specified {@code listener} to be notified about IO&nbsp;error events.<br>
+	 * Sets specified {@code listener} to be notified about <i>user notification
+	 * events</i>.<br>
 	 * <b>Important!</b> <u>Only one</u> {@link User_notification_listener} can be
-	 * subscribed to receive IO&nbsp;error event simultaneously. Calling this
-	 * method <u>when there&nbsp;is another listener already set</u> owerwrites
-	 * existing listener with new&nbsp;one.<br>
-	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
-	 * with {@link #notify_listener(User_notification_event, User_notification_type, String)}.
+	 * subscribed to receive <i>user notification event</i> simultaneously.
+	 * Calling this method <u>when there&nbsp;is another listener already set</u>
+	 * overwrites existing listener with new&nbsp;one.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized with:
+	 * <ul><li>{@link #notify_listener_and_wait(User_notification_event, User_notification_type, String)};</li>
+	 * <li>{@link #notify_listener_and_continue(User_notification_event, User_notification_type, String)}.</li></ul>
 	 * 
-	 * @param listener Listener to be subscribed to IO&nbsp;error events
-	 * notifying. <u>Can</u> be {@code null}. In this case existing listener (if
-	 * such present) is unsubscribed from receiving the&nbsp;events (removed).
+	 * @param listener Listener to be subscribed to <i>user&nbsp;notification
+	 * events</i> notifying. <u>Can</u> be {@code null}. In this case existing
+	 * listener (if such present) is unsubscribed from receiving the&nbsp;events
+	 * (i.e.&nbsp;removed).
 	 */
-	public static void set_IO_error_listener(final User_notification_listener listener)
+	public static void set_User_notification_listener(
+			final User_notification_listener listener)
 	{
 		try
 		{
@@ -78,37 +88,41 @@ public class User_notification_dialog
 	/* TODO: ? Is it better to move this class in "time_obj" package and change
 	 * this methods's access modifier to default? */
 	/**
-	 * Notifies listener (if such present) about IO&nbsp;error event occurred.<br>
+	 * Notifies listener (if such present) about <i>user notification event</i>
+	 * occurred.<br>
 	 * <b>Important!</b> Notification is performed in <u>a&nbsp;single</u>
-	 * thread. This means that {@code event} object's method, in which
-	 * error&nbsp;event has&nbsp;occurred, waits receiving listener to complete
-	 * notification processing. It is expected receiving listener to implement
-	 * UI&nbsp;dialog&nbsp;window to inform user about the&nbsp;event.<br>
+	 * thread. This means that {@code event} object's method, in which <i>user
+	 * notification event</i> has&nbsp;occurred, waits receiving listener to
+	 * complete notification processing. It is expected receiving listener to
+	 * implement UI&nbsp;dialog&nbsp;window to inform user about the&nbsp;event.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
-	 * with {@link #set_IO_error_listener(User_notification_listener)}.
+	 * with:
+	 * <ul><li>{@link #set_User_notification_listener(User_notification_listener)};</li>
+	 * <li>{@link #notify_listener_and_continue(User_notification_event, User_notification_type, String)}.</li></ul>
 	 * 
 	 * @param event Object which has generated the&nbsp;event.<br>
 	 * {@link User_notification_event#getSource()} <u>must</u> return one of these
 	 * objects:
 	 * <ul><li>{@link Settings};</li>
-	 * <li>{@link Time_counter_control}.</li></ul>
+	 * <li>{@link Time_counter_control};</li>
+	 * <li>{@link Instance_counter}.</li></ul>
 	 * 
-	 * @param error_type IO&nbsp;error type.
+	 * @param user_notification_type User notification type.
 	 * 
-	 * @param error_message Text message for user to show.
+	 * @param message Text message for user to show.
 	 * 
 	 * @exception NullPointerException At least one passed argument
 	 * is&nbsp;{@code null}.
 	 * 
 	 * @exception IllegalArgumentException Passed {@code event}&nbsp;object's
-	 * method {@link User_notification_event#getSource()} is not one of the&nbsp;listed
-	 * possible types.
+	 * method {@link User_notification_event#getSource()} returns <u>other
+	 * instead</u> of the&nbsp;listed possible types.
 	 */
-	public static void notify_listener(final User_notification_event event,
-			final User_notification_type error_type, final String error_message)
+	public static void notify_listener_and_wait(final User_notification_event event,
+			final User_notification_type user_notification_type, final String message)
 	{
 		// Method argumetns cannot be null
-		if (event == null || error_type == null || error_message == null)
+		if (event == null || user_notification_type == null || message == null)
 		{
 			throw new NullPointerException(
 					"At least one of passed argumetns is null");
@@ -118,10 +132,12 @@ public class User_notification_dialog
 		final Object source = event.getSource();
 		
 		// If "source" is not one of the listed possible types
-		if (!(source instanceof Settings) && !(source instanceof Time_counter_control))
+		if (!(source instanceof Settings) &&
+				!(source instanceof Time_counter_control) &&
+				!(source instanceof Instance_counter))
 		{
-			throw new IllegalArgumentException(
-					"source argument has incorrect " + source.getClass().getName() + " type");
+			throw new IllegalArgumentException("event.getSource() returns incorrect "
+					+ source.getClass().getName() + " type");
 		}
 		
 		try
@@ -139,8 +155,91 @@ public class User_notification_dialog
 			// If there is listener subscribed to notifications
 			if (listener != null)
 			{
-				listener.io_error_occurred(event, error_type, error_message);
+				listener.user_notification_occurred(
+						event, user_notification_type, message);
 			}
+		}
+		finally
+		{
+			lock.unlock();
+		}
+	}
+	
+	
+	/* TODO: ? Is it better to move this class in "time_obj" package and change
+	 * this methods's access modifier to default? */
+	/**
+	 * Notifies listener (if such present) about <i>user notification event</i>
+	 * occurred.<br>
+	 * <i>Note.</i> Notification is performed in <u>separate</u> thread, so
+	 * calling method <u>does&nbsp;not</u> need to wait receiving listener to
+	 * complete notification processing.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with:
+	 * <ul><li>{@link #set_User_notification_listener(User_notification_listener)};</li>
+	 * <li>{@link #notify_listener_and_wait(User_notification_event, User_notification_type, String)}.</li></ul>
+	 * 
+	 * @param event Object which has generated the&nbsp;event.<br>
+	 * {@link User_notification_event#getSource()} <u>must</u> return
+	 * {@link Instance_counter} object.
+	 * 
+	 * @param user_notification_type User notification type.
+	 * 
+	 * @param message Text message for user to show.
+	 * 
+	 * @exception NullPointerException At least one passed argument
+	 * is&nbsp;{@code null}.
+	 * 
+	 * @exception IllegalArgumentException Passed {@code event}&nbsp;object's
+	 * method {@link User_notification_event#getSource()} returns <u>other
+	 * than</u> {@link Instance_counter} object.
+	 */
+	public static void notify_listener_and_continue(
+			final User_notification_event event,
+			final User_notification_type user_notification_type, final String message)
+	{
+		// Method arguments cannot be null
+		if (event == null || user_notification_type == null || message == null)
+		{
+			throw new NullPointerException(
+					"At least one of passed arguments is null");
+		}
+		
+		
+		// "event.getSource()" must return only "Instance_counter" object
+		if (!(event.getSource() instanceof Instance_counter))
+		{
+			throw new IllegalArgumentException("event.getSource() returns incorrect "
+					+ event.getSource().getClass().getName() + " type");
+		}
+		
+		try
+		{
+			lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			// If there is NO listener subscribed to notification
+			if (listener == null)
+			{
+				return;
+			}
+			
+			Executors.newSingleThreadExecutor().execute(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					listener.user_notification_occurred(
+							event, user_notification_type, message);
+				}
+			});
 		}
 		finally
 		{

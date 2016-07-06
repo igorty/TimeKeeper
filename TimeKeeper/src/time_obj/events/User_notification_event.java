@@ -8,9 +8,10 @@ import java.util.EventObject;
 
 
 /**
- * Event object representing IO&nbsp;error event. {@link time_obj} classes use
- * it to notify listener, which implements {@link User_notification_listener}, about
- * read/write error.<br>
+ * Event object representing notification event. {@link time_obj} classes use
+ * it to notify listener, which implements {@link User_notification_listener},
+ * about event occurred. This event class is provided with a&nbsp;view to
+ * implement user informing about important program events via GUI.<br>
  * <i>Note.</i> <u>Does&nbsp;not</u> support serialization.
  * 
  * @version 1.0
@@ -21,7 +22,8 @@ public class User_notification_event extends EventObject
 {
 	///// Constructors public =============================================/////
 	/**
-	 * @param source The&nbsp;object on which IO&nbsp;error initially occurred.
+	 * @param source The&nbsp;object on which <i>user notification event</i>
+	 * initially occurred.
 	 * 
 	 * @exception NullPointerException {@code source} argument is {@code null}.
 	 */

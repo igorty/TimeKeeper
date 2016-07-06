@@ -114,8 +114,8 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.WARNING, "Cannot find \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
-			User_notification_dialog.notify_listener(new User_notification_event(this),
-					User_notification_type.IOET_read_error,
+			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
 					file_name + " file not found. Program settings will be set to default.");
 			set_defaults();
 		}
@@ -124,8 +124,8 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.SEVERE, "Cannot read file \"" + file_name
 					+ "\" settings file. Exception\'s stack trace:", exc);
-			User_notification_dialog.notify_listener(new User_notification_event(this),
-					User_notification_type.IOET_read_error,
+			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
 					"Error occurred while reading settings file. Program"
 							+ " settings will be set to default.");
 			set_defaults();
@@ -134,8 +134,8 @@ public final class Settings implements Serializable
 		{
 			logger.log(Level.SEVERE, '\"' + file_name + "\" settings file"
 					+ " contains incompatible class type. Exception\'s stack trace:", exc);
-			User_notification_dialog.notify_listener(new User_notification_event(this),
-					User_notification_type.IOET_read_error,
+			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
 					"Error occurred while reading settings file. Program"
 							+ " settings will be set to default.");
 			set_defaults();
@@ -582,8 +582,8 @@ public final class Settings implements Serializable
 				{
 					logger.log(Level.WARNING, "Cannot find \"" + file_name
 							+ "\" settings file. Exception\'s stack trace:", exc);
-					User_notification_dialog.notify_listener(new User_notification_event(this),
-							User_notification_type.IOET_write_error,
+					User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+							User_notification_type.UNT_IO_error,
 							"Error occurred while accessing settings file."
 									+ " Program settings cannot be saved.");
 				}
@@ -592,8 +592,8 @@ public final class Settings implements Serializable
 				{
 					logger.log(Level.SEVERE, "Cannot write settings to \""
 							+ file_name + "\" file. Exception\'s stack trace:", exc);
-					User_notification_dialog.notify_listener(new User_notification_event(this),
-							User_notification_type.IOET_write_error,
+					User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+							User_notification_type.UNT_IO_error,
 							"Error occurred while accessing settings file."
 									+ " Program settings cannot be saved.");
 				}
