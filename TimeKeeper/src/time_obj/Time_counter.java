@@ -344,9 +344,6 @@ public abstract class Time_counter implements Serializable
 		description_text = null;
 		time_unit_values = new EnumMap<>(Time_unit_name.class);
 		deserialization_status = true;
-		time_display_style = settings.get_time_display_style_setting();
-		time_value_edges = settings.get_time_value_edges();
-		time_unit_layout = settings.get_time_unit_layout_setting();
 		semaphore = new Semaphore(semaphore_permits);
 		time_value_edges_lock = new ReentrantLock();
 		event_lock = new ReentrantLock();
@@ -359,14 +356,121 @@ public abstract class Time_counter implements Serializable
 	
 	///// Конструкторы protected ==========================================/////
 	/**
-	 * Данному конструктору делегируется инициализация полей с общей для
-	 * наследуемых классов информацией.
+	 * This constructor takes time&nbsp;counter layout parameters from
+	 * {@link Settings}&nbsp;object.
 	 * 
-	 * @param instance_mode_set Режим работы счетчика времени экземпляра класса.
+	 * @param mode Mode in which this time&nbsp;counter runs.
+	 * 
+	 * @exception NullPointerException {@code mode} argument is
+	 * {@code null}.
 	 */
-	protected Time_counter(final Mode instance_mode_set)
+	protected Time_counter(final Mode mode)
 	{
-		instance_mode = instance_mode_set;
+		// Argument cannot be null
+		if (mode == null)
+		{
+			throw new NullPointerException(
+					Mode.class.getName() + " argument is null");
+		}
+		
+		this.instance_mode = mode;
+		time_display_style = settings.get_time_display_style_setting();
+		time_value_edges = settings.get_time_value_edges();
+		time_unit_layout = settings.get_time_unit_layout_setting();
+	}
+	
+	
+	/**
+	 * This constructor takes time&nbsp;counter layout settings from its
+	 * parameters.<br>
+	 * {@code leftmost_displayed_time_unit} and
+	 * {@code rightmost_displayed_time_unit} arguments <u>can</u> be {@code null}
+	 * <u>if {@link Time_display_style#TDS_if_reaches} or
+	 * {@link Time_display_style#TDS_show_all} is passed as
+	 * {@code time_display_style} argument</u>. In this case time&nbsp;unit
+	 * display range is taken from {@link Settings} object.
+	 * 
+	 * @param mode Mode in which this time&nbsp;counter runs.
+	 * 
+	 * @param time_display_style Time&nbsp;counter display style.
+	 * 
+	 * @param leftmost_displayed_time_unit The&nbsp;leftmost time&nbsp;unit
+	 * which will be displayed.
+	 * 
+	 * @param rightmost_displayed_time_unit The&nbsp;rightmost time&nbsp;unit
+	 * which will be displayed.
+	 * 
+	 * @param time_unit_layout The&nbsp;way in which time&nbsp;units names will
+	 * be displayed.
+	 * 
+	 * @exception NullPointerException If any passed argument (<u>except case
+	 * described for {@code leftmost_displayed_time_unit} and
+	 * {@code rightmost_displayed_time_unit}</u>) is {@code null}.
+	 * 
+	 * @exception IllegalArgumentException {@code leftmost_displayed_time_unit}
+	 * argument <u>must contain greater</u> time&nbsp;unit than
+	 * {@code rightmost_displayed_time_unit} argument, or be <u>equal</u> to it.<br>
+	 * <i>Examples:</i>
+	 * <ul><li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_months} value and
+	 * {@code rightmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_hours}&nbsp;<u>is&nbsp;right</u>;</li>
+	 * <li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_days} value and
+	 * {@code rightmost_displayed_time_unit} with <u>the&nbsp;same</u>
+	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
+	 * <li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_days} value and
+	 * {@code rightmost_displayed_time_unit} contatining
+	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
+	 * will be thrown).</li><ul>
+	 */
+	protected Time_counter(final Mode mode,
+			final Time_display_style time_display_style,
+			final Time_unit_name leftmost_displayed_time_unit,
+			final Time_unit_name rightmost_displayed_time_unit,
+			final Time_unit_layout time_unit_layout)
+	{
+		// This arguments cannot be null anyway
+		if (mode == null || time_display_style == null || time_unit_layout == null)
+		{
+			throw new NullPointerException(
+					"At least one of important arguments is null");
+		}
+		
+		// If at least one of edge values is null
+		if (leftmost_displayed_time_unit == null || rightmost_displayed_time_unit == null)
+		{
+			/* If time counter display style requires displayed time units range
+			 * to be set while it is not */
+			if (!time_display_style.equals(Time_display_style.TDS_if_reaches) &&
+				!time_display_style.equals(Time_display_style.TDS_show_all))
+			{
+				throw new IllegalArgumentException(Time_unit_name.class.getName()
+						+ " arguments cannot be null in this case");
+			}
+			
+			time_value_edges = settings.get_time_value_edges();
+		}
+		else
+		{
+			/* If new displayed time unit range is incorrect as noted in this
+			 * constructor's "IllegalArgumentException" description */
+			if (leftmost_displayed_time_unit.compareTo(rightmost_displayed_time_unit) > 0)
+			{
+				throw new IllegalArgumentException("leftmost_displayed_time_unit"
+						+ " argument enum value is grater than"
+						+ " rightmost_displayed_time_unit argument enum value");
+			}
+			
+			time_value_edges = new Time_unit_name[2];
+			time_value_edges[0] = leftmost_displayed_time_unit;
+			time_value_edges[1] = rightmost_displayed_time_unit;
+		}
+		
+		this.instance_mode = mode;
+		this.time_display_style = time_display_style;
+		this.time_unit_layout = time_unit_layout;
 	}
 
 	
@@ -459,12 +563,12 @@ public abstract class Time_counter implements Serializable
 	public void set_time_value_edges(
 			final Time_unit_name left_edge, final Time_unit_name right_edge)
 	{
-		/* Если значение устанавливаемой крайней левой единицы времени
-		 * оказалось больше правой */
+		/* If new displayed time unit range is incorrect as noted in this
+		 * method's "IllegalArgumentException" description */
 		if (left_edge.compareTo(right_edge) > 0)
 		{
-			throw new IllegalArgumentException("left_edge argument value is"
-					+ " grater than right_edge argument value");
+			throw new IllegalArgumentException("left_edge argument enum value is"
+					+ " grater than right_edge argument enum value");
 		}
 		
 		try
@@ -1163,7 +1267,7 @@ public abstract class Time_counter implements Serializable
 	 * @throws ClassNotFoundException Класс сериализованного объекта
 	 * не&nbsp;определен.
 	 */
-	private void readObject(ObjectInputStream input_stream)
+	private void readObject(final ObjectInputStream input_stream)
 			throws IOException, ClassNotFoundException
 	{
 		input_stream.defaultReadObject();

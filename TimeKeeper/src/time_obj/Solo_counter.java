@@ -223,60 +223,50 @@ public class Solo_counter extends Time_counter implements Serializable
 
 	///// Конструкторы public =============================================/////
 	/**
-	 * @param mode_set Режим работы счетчика времени согласно перечислению
-	 * {@link time_obj.Mode}.<br>
-	 * <b>Важно!</b> Т.к.&nbsp;данный класс реализует <u>исключительно</u>
-	 * режим секундомера и режим таймера обратного отсчета без привязки к
-	 * будущей дате, конструктор этого класса принимает <u>только</u>
-	 * {@link time_obj.Mode#M_stopwatch} или {@link time_obj.Mode#M_countdown} в
-	 * качестве параметра.
+	 * This constructor takes time&nbsp;counter layout parameters from
+	 * {@link Settings}&nbsp;object.
 	 * 
-	 * @param period_set Начальные значения лет, месяцев и дней.<br>
-	 * Если в качестве режима работы указывается секундомер, данный параметр
-	 * будет начальным значением в годах, месяцах и днях. Передача {@code null}
-	 * обозначает нулевые значения указанных временных отрезков.<br>
-	 * Если в качестве режима работы указывается таймер, данные значения будут
-	 * точкой обратного отсчета в годах, месяцах и днях. Передача {@code null}
-	 * обозначает нулевые значения указанных временных отрезков.<br>
+	 * @param mode Mode in which this time&nbsp;counter runs.<br>
+	 * <b>Important!</b> Since this class implements <i>stopwatch</i> and
+	 * <i>timer</i> modes, this argument can be {@link Mode#M_stopwatch} or
+	 * {@link Mode#M_countdown} <u>only</u>.
 	 * 
-	 * @param duration_set Начальные значения часов, минут, секунд.<br>
-	 * Если в качестве режима работы указывается секундомер, данный параметр
-	 * будет начальным значением в часах, минутах и секундах. Передача
-	 * {@code null} обозначает нулевые значения указанных временных
-	 * отрезков.<br>
-	 * Если в качестве режима работы указывается таймер, данные значения будут
-	 * точкой обратного отсчета в часах, минутах и секундах. Передача
-	 * {@code null} обозначает нулевые значения указанных временных
-	 * отрезков.<br>
+	 * @param initial_period Initial years, months and days values. Passing
+	 * {@code null} means these time&nbsp;values are set to&nbsp;{@code 0}.
 	 * 
-	 * @param days_count Режим подсчета времени создаваемого экземпляра класса.
+	 * @param initial_duration Initial hours, minutes and seconds values.
+	 * Passing {@code null} means these time&nbsp;values are set
+	 * to&nbsp;{@code 0}.
 	 * 
-	 * @throws ArithmeticException Если во время нормализации объекта типа
-	 * {@link Period} произошел выход числа за пределы содержащего его
-	 * примитивного типа.
+	 * @param days_count Days&#8209;in&#8209;year/days&#8209;in&#8209;month
+	 * counting type.
 	 * 
-	 * @exception IllegalArgumentException Если:
-	 * <ul><li>передан неподходящий аргумент для {@code mode_set};</li>
-	 * <li>время для установки таймера меньше секунды или передан {@code null}
-	 * для обоих аргументов {@code period_set} и {@code duration_set} сразу
-	 * (касается установки значения для режима таймера);</li>
-	 * <li>{@code period_set} содержит отрицательное значение в своих полях
-	 * (метод {@link Period#isNegative()} возвращает {@code true}).</li></ul>
+	 * @throws ArithmeticException Numeric overflow occurred while
+	 * {@link Period} object normalization.
 	 * 
-	 * @exception NullPointerException Если в качестве аргумента для
-	 * {@code mode_set} либо {@code days_count} передан {@code null}.
+	 * @exception IllegalArgumentException If:
+	 * <ul><li>inappropriate argument passed for {@code mode};</li>
+	 * <li>in case of <u>timer mode</u> {@code null} is passed for
+	 * {@code initial_period} and {@code initial_duration} at&nbsp;once, or
+	 * initial timer time&nbsp;value <u>is&nbsp;less</u> than one&nbsp;second;</li>
+	 * <li>{@code initial_period} contains negative time&nbsp;value
+	 * (i.e.&nbsp;{@link Period#isNegative()} for this argument returns
+	 * {@code true}).</li></ul>
 	 * 
-	 * @exception RuntimeException Возникла логическая ошибка в работе
-	 * конструктора. Данное исключение не&nbsp;ожидается при нормальной работе.
+	 * @exception NullPointerException At least one of {@code mode} or
+	 * {@code days_count} arguments is {@code null}.
+	 * 
+	 * @exception RuntimeException Logic error occurred in constructor behaviour.
+	 * Such exception <u>is&nbsp;not expected</u> during normal operation.
 	 */
-	public Solo_counter(final Mode mode_set, final Period period_set,
-			final LocalTime duration_set, final Days_in_year days_count)
+	public Solo_counter(final Mode mode, final Period initial_period,
+			final LocalTime initial_duration, final Days_in_year days_count)
 			throws ArithmeticException
 	{
-		super(mode_set);
+		super(mode);
 		
-		period_init = period_set;
-		duration_init = duration_set;
+		period_init = initial_period;
+		duration_init = initial_duration;
 		this.days_count = days_count;
 		
 		try
@@ -298,6 +288,99 @@ public class Solo_counter extends Time_counter implements Serializable
 		duration_passed = duration_init;
 		set_time_unit_values();
 		build_time_string();
+		Time_counter_control.get_instance().get_time_counters().add(this);
+	}
+	
+	
+	/**
+	 * This constructor takes time&nbsp;counter layout settings from its
+	 * parameters.<br>
+	 * {@code leftmost_displayed_time_unit} and
+	 * {@code rightmost_displayed_time_unit} arguments <u>can</u> be {@code null}
+	 * <u>if {@link Time_display_style#TDS_if_reaches} or
+	 * {@link Time_display_style#TDS_show_all} is passed as
+	 * {@code time_display_style} argument</u>. In this case time&nbsp;unit
+	 * display range is taken from {@link Settings} object.
+	 * 
+	 * @param mode Mode in which this time&nbsp;counter runs.
+	 * 
+	 * @param initial_period Initial years, months and days values. Passing
+	 * {@code null} means these time&nbsp;values are set to&nbsp;{@code 0}.
+	 * 
+	 * @param initial_duration Initial hours, minutes and seconds values.
+	 * Passing {@code null} means these time&nbsp;values are set
+	 * to&nbsp;{@code 0}.
+	 * 
+	 * @param days_count Days&#8209;in&#8209;year/days&#8209;in&#8209;month
+	 * counting type.
+	 * 
+	 * @param time_display_style Time&nbsp;counter display style.
+	 * 
+	 * @param leftmost_displayed_time_unit The&nbsp;leftmost time&nbsp;unit
+	 * which will be displayed.
+	 * 
+	 * @param rightmost_displayed_time_unit The&nbsp;rightmost time&nbsp;unit
+	 * which will be displayed.
+	 * 
+	 * @param time_unit_layout The&nbsp;way in which time&nbsp;units names will
+	 * be displayed.
+	 * 
+	 * @exception NullPointerException If any passed argument (<u>except case
+	 * described for {@code leftmost_displayed_time_unit} and
+	 * {@code rightmost_displayed_time_unit}</u>) is {@code null}.
+	 * 
+	 * @exception IllegalArgumentException {@code leftmost_displayed_time_unit}
+	 * argument <u>must contain greater</u> time&nbsp;unit than
+	 * {@code rightmost_displayed_time_unit} argument, or be <u>equal</u> to it.<br>
+	 * <i>Examples:</i>
+	 * <ul><li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_months} value and
+	 * {@code rightmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_hours}&nbsp;<u>is&nbsp;right</u>;</li>
+	 * <li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_days} value and
+	 * {@code rightmost_displayed_time_unit} with <u>the&nbsp;same</u>
+	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
+	 * <li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_days} value and
+	 * {@code rightmost_displayed_time_unit} contatining
+	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
+	 * will be thrown).</li><ul>
+	 */
+	public Solo_counter(final Mode mode, final Period initial_period,
+			final LocalTime initial_duration, final Days_in_year days_count,
+			final Time_display_style time_display_style,
+			final Time_unit_name leftmost_displayed_time_unit,
+			final Time_unit_name rightmost_displayed_time_unit,
+			final Time_unit_layout time_unit_layout)
+	{
+		super(mode, time_display_style, leftmost_displayed_time_unit,
+				rightmost_displayed_time_unit, time_unit_layout);
+		
+		period_init = initial_period;
+		duration_init = initial_duration;
+		this.days_count = days_count;
+		
+		try
+		{
+			parameters_verifying(true);
+		}
+		/* This exception is not expected in case of calling
+		 * "parameters_verifying(boolean)" method with true argument */
+		catch (final InvalidObjectException exc)
+		{
+			logger.log(Level.SEVERE, "Fatal error.\nReason: Incorrect method"
+					+ " behaviour when calling from class constructor."
+					+ " Exception stack trace:", exc);
+			throw new RuntimeException("Incorrect method behaviour when calling from "
+					+ Solo_counter.class.getName() + " class\'s constructor");
+		}
+		
+		period_passed = period_init;
+		duration_passed = duration_init;
+		set_time_unit_values();
+		build_time_string();
+		Time_counter_control.get_instance().get_time_counters().add(this);
 	}
 	
 	
@@ -981,7 +1064,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * @exception InvalidObjectException Поле десериализованного объекта
 	 * не&nbsp;прошло валидацию.
 	 */
-	private void readObject(ObjectInputStream input_stream)
+	private void readObject(final ObjectInputStream input_stream)
 			throws IOException, ClassNotFoundException
 	{
 		input_stream.defaultReadObject();

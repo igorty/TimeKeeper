@@ -17,6 +17,10 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import time_obj.dialog.User_notification_dialog;
+import time_obj.dialog.User_notification_type;
+import time_obj.events.User_notification_event;
+
 
 /**
  * Реализует режимы подсчета прошедшего времени с заданного момента и таймера
@@ -54,7 +58,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	private static ZonedDateTime time_current;
 	
 	/** Часовой пояс с локальными настройками сезонного перевода времени. */
-	private static ZoneId zone_rules;
+	private static ZoneId zone_id;
 	
 	
 	static
@@ -63,13 +67,13 @@ public class Instance_counter extends Time_counter implements Serializable
 		
 		try
 		{
-			zone_rules = ZoneId.systemDefault();
+			zone_id = ZoneId.systemDefault();
 		}
 		catch(final DateTimeException exc)
 		{
 			logger.log(Level.WARNING,
 					"Cannot obtain system ZoneId. Exception stack trace:", exc);
-			zone_rules = null;
+			zone_id = null;
 		}
 	}
 	
@@ -93,70 +97,120 @@ public class Instance_counter extends Time_counter implements Serializable
 	
 	///// Constructors public =============================================/////
 	/**
-	 * @param mode_set Режим работы счетчика времени согласно перечислению
-	 * {@link time_obj.Mode}.<br>
-	 * <b>Важно!</b> Т.к.&nbsp;данный класс реализует <u>исключительно</u>
-	 * режим подсчета прошедшего времени с заданного момента и режим таймера
-	 * обратного отсчета с привязкой к будущей дате, конструктор этого класса
-	 * принимает <u>только</u> {@link time_obj.Mode#M_elapsed_from} или
-	 * {@link time_obj.Mode#M_countdown_till} в качестве параметра.
+	 * This constructor takes time&nbsp;counter layout parameters from
+	 * {@link Settings}&nbsp;object.
 	 * 
-	 * @param time_instance_init Значение даты и времени, относительно которого
-	 * будет вестись подсчет прошедшего/оставшегося времени.<br>
-	 * <b>Важно!</b> В качестве аргумента <u>не&nbsp;может</u> передаваться
-	 * {@code null}.
+	 * @param mode Mode in which this time&nbsp;counter runs.<br>
+	 * <b>Important!</b> Since this class implements <i>counting time elapsed
+	 * from specified instant</i> and <i>counting time remaining to specified
+	 * instant</i> modes, this argument can be {@link Mode#M_elapsed_from} or
+	 * {@link Mode#M_countdown_till} <u>only</u>.
 	 * 
-	 * @exception IllegalArgumentException В случае передачи неподходящего
-	 * параметра для {@code mode_set}.
+	 * @param time_instance Date and time values relatively to which
+	 * elapsed/remaining time will be counted. <u>Cannot</u> be {@code null}.<br>
+	 * <i>Note.</i> The&nbsp;argument's {@link ZoneId} is compared with
+	 * {@code Instance_counter}'s stored value (can be obtained using
+	 * {@link #get_time_counter_text_value()}). <u>If values do&nbsp;not
+	 * match</u>, {@code Instance_counter} object will try to ensure system
+	 * zone&nbsp;rules are same as its own stored value (using
+	 * {@link ZoneId#systemDefault()} method). <u>If such checking fails</u>,
+	 * the&nbsp;argument's zone&nbsp;rules will be set as default. <u>If
+	 * mentioned checking succeed</u>, {@code Instance_counter}'s stored
+	 * zone&nbsp;rules will be updated from obtained value.
 	 * 
-	 * @exception NullPointerException Если в качестве одного из аргументов
-	 * конструктора передан {@code null}.
+	 * @exception IllegalArgumentException Inappropriate {@code mode} argument
+	 * passed.
+	 * 
+	 * @exception NullPointerException At least one of passed arguments
+	 * is&nbsp;{@code null}.
 	 */
 	public Instance_counter(
-			final Mode mode_set, final ZonedDateTime time_instance_init)
+			final Mode mode, final ZonedDateTime time_instance)
 	{
-		super(mode_set);
+		super(mode);
 		
-		// Если передан неподходящий параметр для "mode_set"
-		if (!mode_set.equals(Mode.M_elapsed_from) &&
-				!mode_set.equals(Mode.M_countdown_till))
-		{
-			throw new IllegalArgumentException("Incompatible "
-					+ Mode.class.getName() + " value passed to constructor");
-		}
-		
-		// Если передан null для "time_instance_init"
-		if (time_instance_init == null)
-		{
-			throw new NullPointerException(ZonedDateTime.class.getName()
-					+ " object passed to constructor is null");
-		}
-
-		time_instance = time_instance_init;
-		time_instance_offset = time_instance.getOffset().getTotalSeconds();
-		
-		/* Если не удалось получить часовой пояс с локальными настройками
-		 * сезонного перевода времени во время статической инициализации */
-		if (zone_rules == null)
-		{
-			zone_rules = time_instance_init.getZone();
-		}
-		else
-		{
-			/* Если статическое поле часового пояса не совпадает с новым
-			 * значением даты и времени, относительно которого будет вестись
-			 * подсчет прошедшего/оставшегося времени */
-			if (!zone_rules.equals(time_instance_init.getZone()));
-			{
-				// TODO
-			}
-		}
-		
+		common_constructors_method(mode, time_instance);
+		this.time_instance = time_instance;
 		difference_calculation();
+		Time_counter_control.get_instance().get_time_counters().add(this);
+	}
+	
+	
+	/**
+	 * This constructor takes time&nbsp;counter layout settings from its
+	 * parameters.<br>
+	 * {@code leftmost_displayed_time_unit} and
+	 * {@code rightmost_displayed_time_unit} arguments <u>can</u> be {@code null}
+	 * <u>if {@link Time_display_style#TDS_if_reaches} or
+	 * {@link Time_display_style#TDS_show_all} is passed as
+	 * {@code time_display_style} argument</u>. In this case time&nbsp;unit
+	 * display range is taken from {@link Settings} object.
+	 * 
+	 * @param mode Mode in which this time&nbsp;counter runs.
+	 * 
+	 * @param time_instance Date and time values relatively to which
+	 * elapsed/remaining time will be counted. <u>Cannot</u> be {@code null}.<br>
+	 * <i>Note.</i> The&nbsp;argument's {@link ZoneId} is compared with
+	 * {@code Instance_counter}'s stored value (can be obtained using
+	 * {@link #get_time_counter_text_value()}). <u>If values do&nbsp;not
+	 * match</u>, {@code Instance_counter} object will try to ensure system
+	 * zone&nbsp;rules are same as its own stored value (using
+	 * {@link ZoneId#systemDefault()} method). <u>If such checking fails</u>,
+	 * the&nbsp;argument's zone&nbsp;rules will be set as default. <u>If
+	 * mentioned checking succeed</u>, {@code Instance_counter}'s stored
+	 * zone&nbsp;rules will be updated from obtained value.
+	 * 
+	 * @param time_display_style Time&nbsp;counter display style.
+	 * 
+	 * @param leftmost_displayed_time_unit The&nbsp;leftmost time&nbsp;unit
+	 * which will be displayed.
+	 * 
+	 * @param rightmost_displayed_time_unit The&nbsp;rightmost time&nbsp;unit
+	 * which will be displayed.
+	 * 
+	 * @param time_unit_layout The&nbsp;way in which time&nbsp;units names will
+	 * be displayed.
+	 * 
+	 * @exception NullPointerException If any passed argument (<u>except case
+	 * described for {@code leftmost_displayed_time_unit} and
+	 * {@code rightmost_displayed_time_unit}</u>) is {@code null}.
+	 * 
+	 * @exception IllegalArgumentException {@code leftmost_displayed_time_unit}
+	 * argument <u>must contain greater</u> time&nbsp;unit than
+	 * {@code rightmost_displayed_time_unit} argument, or be <u>equal</u> to it.<br>
+	 * <i>Examples:</i>
+	 * <ul><li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_months} value and
+	 * {@code rightmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_hours}&nbsp;<u>is&nbsp;right</u>;</li>
+	 * <li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_days} value and
+	 * {@code rightmost_displayed_time_unit} with <u>the&nbsp;same</u>
+	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
+	 * <li>{@code leftmost_displayed_time_unit} containing
+	 * {@code Time_unit_name.TUN_days} value and
+	 * {@code rightmost_displayed_time_unit} contatining
+	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
+	 * will be thrown).</li><ul>
+	 */
+	public Instance_counter(final Mode mode, final ZonedDateTime time_instance,
+			final Time_display_style time_display_style,
+			final Time_unit_name leftmost_displayed_time_unit,
+			final Time_unit_name rightmost_displayed_time_unit,
+			final Time_unit_layout time_unit_layout)
+	{
+		super(mode, time_display_style, leftmost_displayed_time_unit,
+				rightmost_displayed_time_unit, time_unit_layout);
+		
+		common_constructors_method(mode, time_instance);
+		this.time_instance = time_instance;
+		difference_calculation();
+		Time_counter_control.get_instance().get_time_counters().add(this);
 	}
 	
 
 	///// Методы public статические =======================================/////
+	// TODO: Remove
 	/**
 	 * Для экземпляров данного класса существует общее статическое значение
 	 * {@link ZoneId}, переодически сверяемое с системными настройками. Также
@@ -179,12 +233,8 @@ public class Instance_counter extends Time_counter implements Serializable
 	 */
 	public static ZoneId get_Instance_counter_zone_rules()
 	{
-		return zone_rules;
+		return zone_id;
 	}
-	
-	
-	/* TODO: Метод, обновляющий локальные настройки временной зоны "ZoneId".
-	 * Синхронизировать с "difference_calculation()" */
 	
 	
 	///// Methods default-access of-instance ==============================/////
@@ -194,11 +244,11 @@ public class Instance_counter extends Time_counter implements Serializable
 	 */
 	final void difference_calculation()
 	{
-		time_current = ZonedDateTime.now(zone_rules);
+		time_current = ZonedDateTime.now(zone_id);
 		
 		/* Разница в смещениях относительно гринвичского времени между текущим
 		 * и целевым временем в секундах */
-		int offset_difference =
+		final int offset_difference =
 				time_current.getOffset().getTotalSeconds() - time_instance_offset;
 
 		// Если часовые пояса текущего и целевого времени совпадают
@@ -252,6 +302,9 @@ public class Instance_counter extends Time_counter implements Serializable
 		
 		time_counter_text_listeners_notification();
 	}
+	
+	
+	// TODO: Метод, обновляющий локальные настройки временной зоны "ZoneId"
 	
 	
 	///// Methods private of-instance =====================================/////
@@ -500,7 +553,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * @exception InvalidObjectException Если хотя&#8209;бы один инвариант
 	 * десериализованного объекта не&nbsp;прошел валидацию.
 	 */
-	private void readObject(ObjectInputStream input_stream)
+	private void readObject(final ObjectInputStream input_stream)
 			throws IOException, ClassNotFoundException
 	{
 		input_stream.defaultReadObject();
@@ -509,16 +562,9 @@ public class Instance_counter extends Time_counter implements Serializable
 		{
 			/* Если не удалось получить часовой пояс с локальными настройками
 			 * сезонного перевода времени во время статической инициализации */
-			if (zone_rules == null)
+			if (zone_id == null)
 			{
-				zone_rules = time_instance.getZone();
-			}
-			/* Если статическое поле часового пояса не совпадает с целевым
-			 * значением даты и времени, относительно которого будет вестись
-			 * подсчет прошедшего/оставшегося времени */
-			else if (!zone_rules.equals(time_instance.getZone()))
-			{
-				// TODO
+				zone_id = time_instance.getZone();
 			}
 			
 			/* Если режим работы экземпляра счетчика времени является
@@ -541,5 +587,90 @@ public class Instance_counter extends Time_counter implements Serializable
 		
 		time_instance_offset = time_instance.getOffset().getTotalSeconds();
 		difference_calculation();
+	}
+	
+	
+	/**
+	 * This method consists of common procedures for both constructors
+	 * {@link #Instance_counter(Mode, ZonedDateTime)} and
+	 * {@link #Instance_counter(Mode, ZonedDateTime, Time_display_style, Time_unit_name, Time_unit_name, Time_unit_layout)}.
+	 * 
+	 * @param mode_init Mode in which this time&nbsp;counter runs.
+	 * {@link Mode#M_elapsed_from} and {@link Mode#M_countdown_till} <u>are
+	 * only</u> permitted.
+	 * 
+	 * @param time_instance_init Initial date and time values relatively to
+	 * which elapsed/remaining time will be counted.
+	 * 
+	 * @exception IllegalArgumentException Inappropriate {@code mode_init}
+	 * argument passed.
+	 * 
+	 * @exception NullPointerException At least one of passed arguments
+	 * is&nbsp;{@code null}.
+	 */
+	private void common_constructors_method(final Mode mode_init,
+			final ZonedDateTime time_instance_init)
+	{
+		// If time counter mode is inappropriate for this class
+		if (!mode_init.equals(Mode.M_elapsed_from) &&
+				!mode_init.equals(Mode.M_countdown_till))
+		{
+			throw new IllegalArgumentException("Incompatible "
+					+ Mode.class.getName() + " value passed to constructor");
+		}
+		
+		time_instance_offset = time_instance_init.getOffset().getTotalSeconds();
+		
+		// If failed to obtain zone rules while static initialization
+		if (zone_id == null)
+		{
+			zone_id = time_instance_init.getZone();
+		}
+		/* If saved zone rules doesn't match with "time_instance_init"
+		 * zone rules */
+		else if (!zone_id.equals(time_instance_init.getZone()))
+		{
+			// System zone rules to compare with rules stored in class
+			final ZoneId system_zone_id;
+			
+			try
+			{
+				system_zone_id = ZoneId.systemDefault();
+			}
+			catch(final DateTimeException exc)
+			{
+				// New time zone id to set
+				final ZoneId new_zone_id = time_instance_init.getZone();
+				
+				User_notification_dialog.notify_listener_and_continue(
+						new User_notification_event(this),
+						User_notification_type.UNT_time_zone_error,
+						"New time counter time zone rules doesn't match with"
+								+ " already stored. Program have tried to check"
+								+ " system time zone rules but failed. Program"
+								+ " time zone rules are changed from "
+								+ zone_id.getRules().toString() + " to "
+								+ new_zone_id.getRules().toString());
+				/* TODO: Consider synchronizing with "difference_calculation()"
+				 * method execution */
+				zone_id = new_zone_id;
+				
+				return;
+			}
+			
+			// If system zone id doesn't match with one stored in class
+			if (!system_zone_id.equals(zone_id))
+			{
+				User_notification_dialog.notify_listener_and_continue(
+						new User_notification_event(this),
+						User_notification_type.UNT_informing,
+						"Program time zone rules updated with system value. Was "
+								+ zone_id.getRules().toString() + " became "
+								+ system_zone_id.getRules().toString() + '.');
+				/* TODO: Consider synchronizing with "difference_calculation()"
+				 * method execution */
+				zone_id = system_zone_id;
+			}
+		}
 	}
 }
