@@ -343,24 +343,18 @@ public class Init_Instance_counter_controller
 		{
 			logger.log(Level.WARNING, "Cannot obtain system default ZoneId."
 					+ " Exception\'s stack trace:", exc);
-			zone_id = Instance_counter.get_Instance_counter_zone_rules();
+			zone_id = ZoneId.ofOffset("UTC", ZoneOffset.UTC);
 			
-			// Если в классе "Instance_counter" нет установленной временной зоны
-			if (zone_id == null)
-			{
-				zone_id = ZoneId.ofOffset("UTC", ZoneOffset.UTC);
-				
-				// Диалоговое окно с сообщением об ошибке
-				final Alert error = new Alert(AlertType.ERROR);
-				
-				error.setTitle(null);
-				error.setContentText("Cannot obtain system time zone. Time zone"
-						+ " is set to \"UTC\" for this time counter. The correct"
-						+ " time zone will be set automaticaly as soon as"
-						+ " program could obtain it. You will be notified of"
-						+ " that with dialog window.");
-				error.showAndWait();
-			}
+			// Диалоговое окно с сообщением об ошибке
+			final Alert error = new Alert(AlertType.ERROR);
+			
+			error.setTitle(null);
+			error.setContentText("Cannot obtain system time zone. Time zone"
+					+ " is set to \"UTC\" for this time counter. The correct"
+					+ " time zone will be set automaticaly as soon as"
+					+ " program could obtain it. You will be notified of"
+					+ " that with dialog window.");
+			error.showAndWait();
 		}
 		
 		// Список валидных временных зон для устанавливаемых даты и времени
