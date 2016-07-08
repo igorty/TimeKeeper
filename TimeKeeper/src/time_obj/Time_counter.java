@@ -79,22 +79,21 @@ public abstract class Time_counter implements Serializable
 	}
 	
 	
-	///// Поля pulic статические ==========================================/////
-	/** Шаблонные названия единиц времени (символьные, сокращенные, полные и
-	 * пустые), распределенные по группам, сокласно именованным константам
+	///// Поля public статические =========================================/////
+	/** Time&nbsp;units template names (symbolic, short, full and empty),
+	 * distributed to groups according to named&nbsp;constants
 	 * {@link Time_unit_layout#TUL_value_sign},
 	 * {@link Time_unit_layout#TUL_short_name},
-	 * {@link Time_unit_layout#TUL_full_name} и
-	 * {@link Time_unit_layout#TUL_digits_only} из перечисления
-	 * {@link Time_unit_layout}.<br>
-	 * Метод {@link EnumMap#get(Object)} возвращает контейнер
-	 * {@code Map<}{@link Time_unit_name}{@code , }{@link String}{@code >},
-	 * содержащий строки с названиями единиц времени для конкретной группы.<br>
-	 * <b>Важно!</b> Как <u>данный контейнер</u>, так <u>и все вложенные</u> в
-	 * него контейнеры
+	 * {@link Time_unit_layout#TUL_full_name} and
+	 * {@link Time_unit_layout#TUL_digits_only} from
+	 * {@link Time_unit_layout} enumeration.<br>
+	 * {@link EnumMap#get(Object)} method returns
+	 * {@code Map<}{@link Time_unit_name}{@code , }{@link String}{@code >}
+	 * container containing time&nbsp;units names for specified group.<br>
+	 * <b>Important!</b> <u>This container</u> and all <u>nested</u> in it
 	 * {@code Map<}{@link Time_unit_name}{@code ,}{@link String}{@code >}
-	 * являются <u>неизменяемыми (immutable)</u>. Попытка изменить содержимое
-	 * данных контейнеров приведет к ошибке времени выполнения. */
+	 * containers are <u>immutable</u>. An&nbsp;attempt to change containers
+	 * content results in runtime exception. */
 	public static final Map<Time_unit_layout, Map<Time_unit_name, String>>
 			time_unit_texts;
 	
@@ -421,7 +420,7 @@ public abstract class Time_counter implements Serializable
 	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
 	 * <li>{@code leftmost_displayed_time_unit} containing
 	 * {@code Time_unit_name.TUN_days} value and
-	 * {@code rightmost_displayed_time_unit} contatining
+	 * {@code rightmost_displayed_time_unit} containing
 	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
 	 * will be thrown).</li><ul>
 	 */
@@ -532,7 +531,7 @@ public abstract class Time_counter implements Serializable
 	
 	/**
 	 * Sets new time&nbsp;units displaying range for time&nbsp;counter.<br>
-	 * <i>Perfomance note.</i> Contains synchronized sections. Synchronized with:
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized with:
 	 * <ul><li>{@link #build_time_string()};</li>
 	 * <li>{@link #set_time_value_edges(Time_unit_name, Time_unit_name)}.</li></ul>
 	 * 
@@ -553,7 +552,7 @@ public abstract class Time_counter implements Serializable
 	 * and {@code right_edge} with <u>the&nbsp;same</u>
 	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
 	 * <li>{@code left_edge} containing {@code Time_unit_name.TUN_days} value
-	 * and {@code right_edge} contatining
+	 * and {@code right_edge} containing
 	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
 	 * will be thrown).</li><ul>
 	 * 
@@ -594,7 +593,7 @@ public abstract class Time_counter implements Serializable
 	
 	
 	/**
-	 * <i>Perfomance note.</i> Method contains synchronized sections.
+	 * <i>Performance note.</i> Method contains synchronized sections.
 	 * Synchronized with:
 	 * <ul><li>{@link #build_time_string()};</li>
 	 * <li>{@link #set_time_value_edges(Time_unit_name, Time_unit_name)}.</li></ul>
@@ -700,7 +699,7 @@ public abstract class Time_counter implements Serializable
 	
 	
 	/**
-	 * <i>Perfomance note.</i> Contains synchronized sections. Synchronized
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #build_time_string()};</li>
 	 * <li>{@link #build_time_string(String)};</li>
@@ -845,7 +844,7 @@ public abstract class Time_counter implements Serializable
 	/**
 	 * Formats text&nbsp;string with time&nbsp;counter value (can be obtained
 	 * via {@link #get_time_counter_text_value()}).<br>
-	 * <i>Perfomance note.</i> Contains synchronized code sections. Synchronized
+	 * <i>Performance note.</i> Contains synchronized code sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #get_time_value_edges()};</li>
 	 * <li>{@link #set_time_value_edges(Time_unit_name, Time_unit_name)};</li>
@@ -893,7 +892,7 @@ public abstract class Time_counter implements Serializable
 				// Если значение отрицательное - в начале ставится знак "минус"
 				if (!is_positive)
 				{
-					formatter.format("\u0150");
+					formatter.format("\u2012");
 				}
 				
 				/* Если в настройках установлено отображение единиц времени,
@@ -913,12 +912,12 @@ public abstract class Time_counter implements Serializable
 					 * отображаемые единицы времени */
 					for (final Time_unit_name i : Time_unit_name.values())
 					{
-						/* Если значащая единица времени уже достигнута в
-						 * предыдущих итерациях ИЛИ достигнута в этой итарации ... */
+						/* If meaningful time value is already reached in
+						 * previous iterations OR it's reached in this
+						 * iteration OR ... */
 						if (value_reached || time_unit_values.get(i) != 0 ||
-								/* ... ИЛИ это секунды (должны отображаться в
-								 * любом случае) как наименьшая отображаемая
-								 * единица времени */
+								/* this is seconds time unit (must be shown
+								 * anyway as the smallest time unit) */
 								i.equals(Time_unit_name.TUN_seconds))
 						{
 							value_reached = true;
@@ -1109,7 +1108,7 @@ public abstract class Time_counter implements Serializable
 	
 	
 	/**
-	 * Sets time&nbsp;counter value sign (positive or negative). Extenging
+	 * Sets time&nbsp;counter value sign (positive or negative). Extending
 	 * classes must use value sign setting according to {@link Mode} in which
 	 * they are running.
 	 * <ul><li><i>{@link Mode#M_stopwatch}.</i> Time&nbsp;values <u>cannot be
@@ -1133,7 +1132,7 @@ public abstract class Time_counter implements Serializable
 	 * when current time&nbsp;value <u>is&nbsp;after</u> designated
 	 * time&nbsp;point (i.e.&nbsp;time&nbsp;value <u>is&nbsp;negative</u>
 	 * because designated time&nbsp;point <u>is&nbsp;passed</u>).</li></ul>
-	 * <i>Perfomance note.</i> Contains synchronized sections. Synchronized
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #build_time_string()};</li>
 	 * <li>{@link #build_time_string(String)};</li>
@@ -1209,15 +1208,11 @@ public abstract class Time_counter implements Serializable
 	
 	///// Методы private экземпляра =======================================/////
 	/**
-	 * Вспомогательный метод для {@link #build_time_string()}. Форматирует
-	 * участок строки, отвечающий за отображение, единицы времени, переданной
-	 * в&nbsp;качестве аргумента, и конкантенирует полученную строку с
-	 * {@link #formatter}.<br>
-	 * <b>Важно!</b> Данный метод <u>не&nbsp;создает</u> и
-	 * <u>не&nbsp;закрывает</u> поле типа {@link Formatter} экземпляра класса.
+	 * Auxiliary for {@link #build_time_string()} method. Formats string
+	 * according to passed {@code time_unit} argument and appends it to
+	 * {@link #formatter}.
 	 * 
-	 * @param time_unit Единица времени согласно перечислению
-	 * {@link Time_unit_name}, которую необходимо отобразить.
+	 * @param time_unit Time&nbsp;unit which has to be displayed.
 	 */
 	private void format(final Time_unit_name time_unit)
 	{

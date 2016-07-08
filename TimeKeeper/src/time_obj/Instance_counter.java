@@ -45,7 +45,7 @@ public class Instance_counter extends Time_counter implements Serializable
 {
 	///// Fields default-access static ====================================/////
 	/** Барьер всех экземпляров данного класса для синхронного выполнения
-	 * метода {@link #difference_calculation()}. Устанавливается из
+	 * метода {@link #difference_calculation(boolean)}. Устанавливается из
 	 * {@link Time_counter_control}. */
 	static CyclicBarrier difference_calculation_barrier;
 	
@@ -131,7 +131,7 @@ public class Instance_counter extends Time_counter implements Serializable
 		
 		common_constructors_method(mode, time_instance);
 		this.time_instance = time_instance;
-		difference_calculation();
+		difference_calculation(false);
 		Time_counter_control.get_instance().get_time_counters().add(this);
 	}
 	
@@ -189,7 +189,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
 	 * <li>{@code leftmost_displayed_time_unit} containing
 	 * {@code Time_unit_name.TUN_days} value and
-	 * {@code rightmost_displayed_time_unit} contatining
+	 * {@code rightmost_displayed_time_unit} containing
 	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
 	 * will be thrown).</li><ul>
 	 */
@@ -204,7 +204,7 @@ public class Instance_counter extends Time_counter implements Serializable
 		
 		common_constructors_method(mode, time_instance);
 		this.time_instance = time_instance;
-		difference_calculation();
+		difference_calculation(false);
 		Time_counter_control.get_instance().get_time_counters().add(this);
 	}
 	
@@ -213,8 +213,13 @@ public class Instance_counter extends Time_counter implements Serializable
 	/**
 	 * Вычисляет разницу во времени между текущей датой и целевой датой
 	 * {@link #time_instance}.
+	 * @param is_synchronous {@code true}&nbsp;&#0151; all instances of
+	 * {@code Instance_counter} class are executed synchronously using
+	 * {@link #difference_calculation_barrier}; {@code false}&nbsp;&#0151;
+	 * the&nbsp;method need to be executed singly (commonly when instance
+	 * initialization).
 	 */
-	final void difference_calculation()
+	final void difference_calculation(boolean is_synchronous)
 	{
 		time_current = ZonedDateTime.now(zone_id);
 		
@@ -253,23 +258,29 @@ public class Instance_counter extends Time_counter implements Serializable
 		
 		build_time_string();
 		
-		try
+		// If method is executing synchronously with same class instances
+		if (is_synchronous)
 		{
-			difference_calculation_barrier.await();
-		}
-		catch (final InterruptedException exc)
-		{
-			logger.log(Level.INFO, "Thread interrupts after encountering "
-					+ InterruptedException.class.getName() + " while waiting for"
-					+ " all same threads to reach this point. Exception stack trace:", exc);
-			Thread.currentThread().interrupt();
-		}
-		// При возникновении данного исключения поток доведет выполнение до конца
-		catch (final BrokenBarrierException exc)
-		{
-			logger.log(Level.INFO, "Thread encountered broken common barrier"
-					+ " while waiting for all same threads to reach this point."
-					+ " It will continue executing. Exception stack trace:", exc);
+			try
+			{
+				difference_calculation_barrier.await();
+			}
+			catch (final InterruptedException exc)
+			{
+				logger.log(Level.INFO, "Thread interrupts after encountering "
+						+ InterruptedException.class.getName() + " while waiting"
+								+ " for all same threads to reach this point."
+								+ " Exception stack trace:", exc);
+				Thread.currentThread().interrupt();
+			}
+			// При возникновении данного исключения поток доведет выполнение до конца
+			catch (final BrokenBarrierException exc)
+			{
+				logger.log(Level.INFO, "Thread encountered broken common barrier"
+						+ " while waiting for all same threads to reach this"
+								+ " point. It will continue executing. Exception"
+								+ " stack trace:", exc);
+			}
 		}
 		
 		time_counter_text_listeners_notification();
@@ -281,7 +292,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	
 	///// Methods private of-instance =====================================/////
 	/**
-	 * Auxiliary method for {@link #difference_calculation()}.
+	 * Auxiliary method for {@link #difference_calculation(boolean)}.
 	 * Is&nbsp;in&nbsp;charge for converting time&nbsp;units, obtained from
 	 * {@link Temporal#until(Temporal, java.time.temporal.TemporalUnit)}, into
 	 * values for {@link Time_counter#time_unit_values}.
@@ -333,7 +344,7 @@ public class Instance_counter extends Time_counter implements Serializable
 			/* В режиме "Mode.M_elapsed_from" отрицательное кол-во секунд
 			 * означает положительные значения времени, прошедшего с
 			 * определенного времени */
-			set_time_counter_value_sign(seconds < 0 ? true : false);
+			set_time_counter_value_sign(seconds <= 0 ? true : false);
 		}
 		
 		/* Если разница во времени между текущей и целевой датами насчитывает
@@ -411,8 +422,8 @@ public class Instance_counter extends Time_counter implements Serializable
 				}
 				else
 				{
-					/* Месяц целевой ИЛИ текущей даты (в зависимсоти от
-					 * дополнительных условий) */
+					/* Target time OR current time month (depends on additional
+					 * conditions) */
 					final int current_month;
 					/* Месяц, идущий перед целевым/текущим (в зависимости от
 					 * месяца "current_month") */
@@ -434,9 +445,9 @@ public class Instance_counter extends Time_counter implements Serializable
 						month_before =
 								(current_month > 1 ? current_month - 1 : 12);
 
-						// Если предпоследним месяцем является февраль И ...
+						// If penultimate month is February AND ...
 						if (month_before == 2 &&
-								// ... это высокосный год
+								// ... this is a leap year
 								time_instance.toLocalDate().isLeapYear())
 						{
 							days_in_month_before =
@@ -457,8 +468,8 @@ public class Instance_counter extends Time_counter implements Serializable
 						month_before =
 								(current_month > 1 ? current_month - 1 : 12);
 						
-						/* Если предпоследним месяцем является февраль И это
-						 * высокосный год */
+						/* If penultimate month is February AND this is a leap
+						 * year */
 						if (month_before == 2 && date_now.isLeapYear())
 						{
 							days_in_month_before =
@@ -558,7 +569,7 @@ public class Instance_counter extends Time_counter implements Serializable
 		}
 		
 		time_instance_offset = time_instance.getOffset().getTotalSeconds();
-		difference_calculation();
+		difference_calculation(false);
 	}
 	
 	

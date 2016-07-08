@@ -203,7 +203,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	/** Notifies subscribed listeners contained in
 	 * {@link #numeric_overflow_listeners} using separate thread for each
-	 * notification to speed&nbsp;up perfomance. */
+	 * notification to speed&nbsp;up performance. */
 	private transient ThreadPoolExecutor listeners_notifier;
 	
 	
@@ -256,7 +256,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * @exception NullPointerException At least one of {@code mode} or
 	 * {@code days_count} arguments is {@code null}.
 	 * 
-	 * @exception RuntimeException Logic error occurred in constructor behaviour.
+	 * @exception RuntimeException Logic error occurred in constructor behavior.
 	 * Such exception <u>is&nbsp;not expected</u> during normal operation.
 	 */
 	public Solo_counter(final Mode mode, final Period initial_period,
@@ -343,7 +343,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
 	 * <li>{@code leftmost_displayed_time_unit} containing
 	 * {@code Time_unit_name.TUN_days} value and
-	 * {@code rightmost_displayed_time_unit} contatining
+	 * {@code rightmost_displayed_time_unit} containing
 	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u> (exception
 	 * will be thrown).</li><ul>
 	 */
@@ -564,12 +564,12 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * counting if time&nbsp;counter was&nbsp;paused (whether by calling
 	 * {@link #pause()} or due&nbsp;to numeric overflow).<br>
 	 * <i>Notes.</i>
-	 * <ul><li>If time&nbsp;counter is already (or yet) in its intital state,
+	 * <ul><li>If time&nbsp;counter is already (or yet) in its initial state,
 	 * this method <u>does&nbsp;nothing.</u></li>
 	 * <li>Subsequent time correction
 	 * (using {@link #time_values_correction(long, boolean)}) after instance
 	 * creation <u>does&nbsp;not</u> affect to its initial time&nbsp;set.</li></ul>
-	 * <i>Perfomance note.</i> Contains synchronized sections.
+	 * <i>Performance note.</i> Contains synchronized sections.
 	 */
 	public void restart()
 	{
@@ -1386,33 +1386,34 @@ public class Solo_counter extends Time_counter implements Serializable
 							 * обратного отсчета */
 							final int years_remain = period_passed.getYears();
 							
-							/* Если в результате декремента дня кол-во дней
-							 * стало отрицательным И ... */
-							if (period_passed.getDays() == -1 &&
-									/* ... (кол-во месяцев ИЛИ лет все еще
-									 * положительное) */
-									(months_remain > 0 || years_remain > 0))
+							/* If days quantity became negative in the result of
+							 * decrement */
+							if (period_passed.getDays() == -1)
 							{
-								/* Если подсчет даты основывается на 360-и днях
-								 * в году */
-								if (days_count.equals(Days_in_year.DIY_360))
+								// If months OR years quantity is still positive
+								if (months_remain > 0 || years_remain > 0)
 								{
-									period_passed = period_passed.plusDays(31);
+									/* Если подсчет даты основывается на 360-и днях
+									 * в году */
+									if (days_count.equals(Days_in_year.DIY_360))
+									{
+										period_passed = period_passed.plusDays(31);
+									}
+									else
+									{
+										period_passed = period_passed.plusDays(
+												month_sizes.get(months_remain - 1) + 1);
+									}
+									
+									period_passed = period_passed.minusMonths(1);
+									period_passed = period_passed.normalized();
 								}
 								else
 								{
-									period_passed = period_passed.plusDays(
-											month_sizes.get(months_remain - 1) + 1);
+									duration_passed = duration_passed.plusSeconds(2);
+									period_passed = period_passed.plusDays(1);
+									set_time_counter_value_sign(false);
 								}
-								
-								period_passed = period_passed.minusMonths(1);
-								period_passed = period_passed.normalized();
-							}
-							// Если кол-во оставшихся месяцев И лет равно нулю
-							else if (months_remain == 0 && years_remain == 0)
-							{
-								duration_passed = duration_passed.plusSeconds(2);
-								set_time_counter_value_sign(false);
 							}
 						}
 					}
@@ -1431,7 +1432,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	
 	/**
-	 * Nofifies listeners subscribed via {@link Numeric_overflow_listener}
+	 * Notifies listeners subscribed via {@link Numeric_overflow_listener}
 	 * interface about numeric overflow occurred.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:

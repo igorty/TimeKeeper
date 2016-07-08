@@ -32,6 +32,7 @@ import time_obj.Time_counter_control;
  * @version 1.0. Модифицированная версия {@link ArrayList}&nbsp;&#0151;&nbsp;1.8
  * @author Igor Taranenko
  */
+@SuppressWarnings("serial")
 public class Modified_ArrayList extends ArrayList<Time_counter>
 {
 	///// Перечисления private ===========================================/////
@@ -41,14 +42,14 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	 */
 	private enum Transfer_collection_mode
 	{
-		/** Добавить указанные элементы в список синхронно выполняемых объектов
-		 * {@link #counter_control}. */
+		/** Add specified elements to the&nbsp;list of synchronously executed
+		 * objects in {@link Time_counter_control}. */
 		TCM_add,
-		/** Удалить указанные элементы из списка синхронно выполняемых объектов
-		 * {@link #counter_control}. */
+		/** Remove specified elements from the&nbsp;list of synchronously
+		 * executed objects in {@link Time_counter_control}. */
 		TCM_remove,
-		/** Оставить указанные элементы в списке синхронно выполняемых объектов
-		 * {@link #counter_control}. */
+		/** Retain specified elements in the&nbsp;list of synchronously executed
+		 * objects in {@link Time_counter_control}. */
 		TCM_retain,
 	}
 	
@@ -65,10 +66,6 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	
 	
 	///// Поля private экземпляра ========================================/////
-	/** Экземпляр синглтона, которому отдельно будут передаваться объекты типа
-	 * {@link Instance_counter} для их синхронной работы. */
-	private Time_counter_control counter_control;
-	
 	/** Синхронизирует работу всех переопределяемых методов базового класса. */
 	private final ReentrantLock modification_lock;
 	
@@ -79,7 +76,6 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	
 	///// Нестатическая инициализация ====================================/////
 	{
-		counter_control = Time_counter_control.get_instance();
 		modification_lock = new ReentrantLock();
 		instance_counters_quantity = 0;
 	}
@@ -195,7 +191,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			if (element instanceof Instance_counter)
 			{
 				++instance_counters_quantity;
-				counter_control.add_instance_counter((Instance_counter)element);
+				Time_counter_control.get_instance().add_instance_counter(
+						(Instance_counter)element);
 			}
 			
 			return to_return;
@@ -271,7 +268,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			if (element instanceof Instance_counter)
 			{
 				++instance_counters_quantity;
-				counter_control.add_instance_counter((Instance_counter)element);
+				Time_counter_control.get_instance().add_instance_counter(
+						(Instance_counter)element);
 			}
 		}
 		finally
@@ -467,7 +465,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			super.clear();
 			
 			instance_counters_quantity = 0;
-			counter_control.clear_instance_counters_list();
+			Time_counter_control.get_instance().clear_instance_counters_list();
 		}
 		finally
 		{
@@ -525,7 +523,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			if (removed_element instanceof Instance_counter)
 			{
 				--instance_counters_quantity;
-				counter_control.remove_instance_counter(
+				Time_counter_control.get_instance().remove_instance_counter(
 						(Instance_counter)removed_element);
 			}
 			
@@ -582,7 +580,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			}
 			
 			--instance_counters_quantity;
-			counter_control.remove_instance_counter((Instance_counter)to_remove);
+			Time_counter_control.get_instance().remove_instance_counter(
+					(Instance_counter)to_remove);
 			
 			return true;			
 		}
@@ -892,7 +891,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			if (to_replace instanceof Instance_counter)
 			{
 				--instance_counters_quantity;
-				counter_control.remove_instance_counter(
+				Time_counter_control.get_instance().remove_instance_counter(
 						(Instance_counter)to_replace);
 			}
 			
@@ -901,7 +900,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			if (element instanceof Instance_counter)
 			{
 				++instance_counters_quantity;
-				counter_control.add_instance_counter((Instance_counter)element);
+				Time_counter_control.get_instance().add_instance_counter(
+						(Instance_counter)element);
 			}
 			
 			return null;			
@@ -967,17 +967,16 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	
 	///// Методы private экземпляра ======================================/////
 	/**
-	 * Ищет в полученном контейнере экземпляры {@link Instance_counter} и
-	 * передает их синглтону {@link #counter_control} для синхронного
-	 * выполнения.<br>
-	 * <i>Примечание по&nbsp;производительности.</i> Вызывает синхронизированные
-	 * методы.
+	 * Searches for {@link Instance_counter} instances in the&nbsp;given
+	 * {@code collection} argument and passes them to
+	 * {@link Time_counter_control} singleton for their synchronous execution.<br>
+	 * <i>Performance note.</i> Calls synchronized methods.
 	 * 
-	 * @param collection Контейнер, в котором будет производиться поиск
-	 * экземпляров {@link Instance_counter}.
+	 * @param collection Container in which {@link Instance_counter} instances
+	 * searching will be performed.
 	 * 
-	 * @param action Необходимое действие над списком синхронно выполняющихся
-	 * объектов, содержащихся в {@link #counter_control}.
+	 * @param action Action to be performed on the&nbsp;list of synchronously
+	 * executed objects in {@link Time_counter_control}.
 	 */
 	private void transfer_collection_to_counter_control(
 			final Collection<? extends Time_counter> collection,
@@ -1021,15 +1020,15 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		switch (action)
 		{
 		case TCM_add:
-			counter_control.add_instance_counters_group(buffer);
+			Time_counter_control.get_instance().add_instance_counters_group(buffer);
 			break;
 			
 		case TCM_remove:
-			counter_control.remove_instance_counter_group(buffer);
+			Time_counter_control.get_instance().remove_instance_counter_group(buffer);
 			break;
 			
 		case TCM_retain:
-			counter_control.retain_instance_counter_group(buffer);
+			Time_counter_control.get_instance().retain_instance_counter_group(buffer);
 			break;
 		}
 	}
@@ -1040,6 +1039,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	 * 
 	 * @exception NotSerializableException При вызове данного метода.
 	 */
+	@SuppressWarnings("javadoc")
 	private void writeObject(ObjectOutputStream out_stream)
 			throws IOException
 	{
@@ -1053,6 +1053,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	 * 
 	 * @exception NotSerializableException При вызове данного метода.
 	 */
+	@SuppressWarnings("javadoc")
 	private void readObject(ObjectInputStream in_stream)
 			throws IOException, ClassNotFoundException
 	{

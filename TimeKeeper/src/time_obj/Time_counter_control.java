@@ -35,7 +35,7 @@ import time_obj.events.User_notification_event;
  * The&nbsp;main task of this class is to provide synchronous execution of all
  * {@link Instance_counter} objects.<br>
  * <i>Note.</i> This class <u>is implemented as singleton</u>. Its instance can
- * be obtained usnig {@link #get_instance()} method.
+ * be obtained using {@link #get_instance()} method.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -69,7 +69,7 @@ public class Time_counter_control
 	private Modified_ArrayList time_counters;
 	
 	/** Потоки, вызывающие метод
-	 * {@link Instance_counter#difference_calculation()} каждого
+	 * {@link Instance_counter#difference_calculation(boolean)} каждого
 	 * экземпляра класса {@link Instance_counter}.<br>
 	 * <b>Важно!</b> Доступ к полю должен синхронизироваться. */
 	private ArrayList<Callable<Void>> instance_counters_tasks;
@@ -81,7 +81,7 @@ public class Time_counter_control
 	 * {@link Instance_counter}. */
 	private Runnable synchronous_task;
 	
-	/** Executor, переодически запускающий {@link #synchronous_task}. */
+	/** Periodically executes {@link #synchronous_task}. */
 	private ScheduledExecutorService synchronous_task_executor;
 	
 	/** Присваивается статическому полю
@@ -417,7 +417,7 @@ public class Time_counter_control
 				@Override
 				public Void call() throws Exception
 				{
-					instance_counter_obj.difference_calculation();
+					instance_counter_obj.difference_calculation(true);
 					
 					return null;
 				}
@@ -504,7 +504,7 @@ public class Time_counter_control
 					@Override
 					public Void call() throws Exception
 					{
-						to_callable.difference_calculation();
+						to_callable.difference_calculation(true);
 						
 						return null;
 					}
@@ -778,7 +778,7 @@ public class Time_counter_control
 		FileOutputStream file_output = null;  // Исходящий файловый поток
 		// Буферизированный исходящий поток
 		BufferedOutputStream buffered_output = null;
-		ObjectOutputStream object_output = null;  // Искходящий поток объектов
+		ObjectOutputStream object_output = null;
 		
 		try
 		{
@@ -932,7 +932,7 @@ public class Time_counter_control
 				@Override
 				public Void call() throws Exception
 				{
-					to_callable.difference_calculation();
+					to_callable.difference_calculation(true);
 					
 					return null;
 				}
