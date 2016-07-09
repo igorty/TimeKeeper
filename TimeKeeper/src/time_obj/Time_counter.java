@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 import time_obj.events.Time_counter_event;
 import time_obj.events.Time_counter_text_listener;
+import time_obj.events.Time_elapsed_listener;
 
 
 // TODO: ? Объявить абстрактные методы
@@ -137,10 +138,9 @@ public abstract class Time_counter implements Serializable
 		logger = Logger.getLogger(Time_counter.class.getName());
 		strict_display_mode_text = "CUT  ";
 		
-		// TODO: Заполнить нулями пустующие места в минутах и секундах 
 		// Строки для инициализации контейнера "format_conversions"
 		final String[] format_conversion_text = { "%,10d", "%2d", "%3d", "%2d",
-				"%2d", "%2d" };
+				"%02d", "%02d" };
 		// Все элементы перечисления "Time_unit_name"
 		final Time_unit_name[] time_unit_name_values = Time_unit_name.values();
 		
@@ -310,8 +310,10 @@ public abstract class Time_counter implements Serializable
 	/** Synchronizes access to {@link #time_value_edges} field. */
 	private transient ReentrantLock time_value_edges_lock;
 	/** Synchronizes access to {@link #time_value_listeners} and
-	 * {@link #listeners_notifier}. */
-	private transient ReentrantLock event_lock;
+	 * {@link #listeners_notifier} in addition. */
+	private transient ReentrantLock time_value_listeners_lock;
+	/** Synchronizes access to {@link #time_elapsed_listeners}. */
+	private transient ReentrantLock time_elapsed_listeners_lock;
 	
 	/** Contains text&nbsp;string representing time&nbsp;counter value. */
 	private transient String time_counter_text;
@@ -332,9 +334,11 @@ public abstract class Time_counter implements Serializable
 	/** Contains listeners subscribed for {@link #time_counter_text} changing
 	 * event. */
 	private transient ArrayList<Time_counter_text_listener> time_value_listeners;
+	/** Contains listeners subscribed for <i>time elapsed event</i>. */
+	private transient ArrayList<Time_elapsed_listener> time_elapsed_listeners;
 	
 	/** Notifies subscribed listeners contained in {@link #time_value_listeners}
-	 * using separate thread for each notification to speed&nbsp;up perfomance. */
+	 * using separate thread for each notification to speed&nbsp;up performance. */
 	private transient ThreadPoolExecutor listeners_notifier;
 	
 
@@ -345,9 +349,11 @@ public abstract class Time_counter implements Serializable
 		deserialization_status = true;
 		semaphore = new Semaphore(semaphore_permits);
 		time_value_edges_lock = new ReentrantLock();
-		event_lock = new ReentrantLock();
+		time_value_listeners_lock = new ReentrantLock();
+		time_elapsed_listeners_lock = new ReentrantLock();
 		is_positive = true;
 		time_value_listeners = new ArrayList<>();
+		time_elapsed_listeners = new ArrayList<>();
 		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
 				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}
@@ -483,7 +489,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #get_time_counter_text_value()};</li>
 	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
 	 * <li>{@link #set_time_unit_layout(Time_unit_layout)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
 	 * @param new_value New time&nbsp;counter display style.
 	 * 
@@ -636,7 +642,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #build_time_string(String)};</li>
 	 * <li>{@link #get_time_counter_text_value()};</li>
 	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
 	 * @param layout_set New time&nbsp;units layout style.
 	 * 
@@ -706,7 +712,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
 	 * <li>{@link #set_time_display_style(Time_display_style)};</li>
 	 * <li>{@link #set_time_unit_layout(Time_unit_layout)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
 	 * @return Object representing time&nbsp;counter text&nbsp;value and its
 	 * sign (positive or negative).
@@ -739,12 +745,12 @@ public abstract class Time_counter implements Serializable
 	 * to mention this in javadoc */
 	/**
 	 * Adds specified {@code listener} to receive time&nbsp;counter's
-	 * time&nbsp;value text change event. Same {@code listener} <u>can</u>
+	 * time&nbsp;value <i>text change event</i>. Same {@code listener} <u>can</u>
 	 * be&nbsp;added multiple times.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #remove_Time_counter_text_listener(Time_counter_text_listener)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
 	 * @param listener Listener to be subscribed on event.
 	 * 
@@ -762,11 +768,12 @@ public abstract class Time_counter implements Serializable
 		
 		try
 		{
-			event_lock.lockInterruptibly();
+			time_value_listeners_lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
 			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
 		}
 		
 		try
@@ -777,20 +784,20 @@ public abstract class Time_counter implements Serializable
 		}
 		finally
 		{
-			event_lock.unlock();
+			time_value_listeners_lock.unlock();
 		}
 	}
 	
 	
 	/**
-	 * Remove <u>first occurrence</u> of specified {@code listener} argument
+	 * Removes <u>first occurrence</u> of specified {@code listener} argument
 	 * <u>if such present</u>.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #add_Time_counter_text_listener(Time_counter_text_listener)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
-	 * @param listener Listener to be unsubscribed from event.
+	 * @param listener Listener to be unsubscribed from event notifying.
 	 * 
 	 * @return {@code true}&nbsp;&#0151; <u>first occurrence</u> of
 	 * {@code listener} argument <u>successfully removed</u> (unsubscribed) from
@@ -811,7 +818,7 @@ public abstract class Time_counter implements Serializable
 		
 		try
 		{
-			event_lock.lockInterruptibly();
+			time_value_listeners_lock.lockInterruptibly();
 		}
 		catch (final InterruptedException exc)
 		{
@@ -835,10 +842,102 @@ public abstract class Time_counter implements Serializable
 		}
 		finally
 		{
-			event_lock.unlock();
+			time_value_listeners_lock.unlock();
 		}
 	}
 	
+	
+	/* TODO: ? Is there possible resource leak if object has not unsubscribed
+	 * from this event notifying, but is not referred anymore else? If so - need
+	 * to mention this in javadoc */
+	/**
+	 * Adds specified {@code listener} to receive <i>time elapsed event</i>.
+	 * Same {@code listener} <u>can</u> be&nbsp;added multiple times.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with:
+	 * <ul><li>{@link #remove_Time_elapsed_listener(Time_elapsed_listener)};</li>
+	 * <li>{@link #notify_time_elapsed_listeners()}.</li></ul>
+	 * 
+	 * @param listener Listener to be subscribed on event.
+	 * 
+	 * @exception NullPointerException {@code listener} argument is {@code null}.
+	 */
+	public void add_Time_elapsed_listener(final Time_elapsed_listener listener)
+	{
+		// The argument cannot be null
+		if (listener == null)
+		{
+			throw new NullPointerException(
+					Time_elapsed_listener.class.getName() + " argument is null");
+		}
+		
+		try
+		{
+			time_elapsed_listeners_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stach trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			time_elapsed_listeners.add(listener);
+		}
+		finally
+		{
+			time_elapsed_listeners_lock.unlock();
+		}
+	}
+	
+	
+	/**
+	 * Removes <u>first occurrence</u> of specified {@code listener} argument
+	 * <u>if such present</u>.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with:
+	 * <ul><li>{@link #add_Time_elapsed_listener(Time_elapsed_listener)};</li>
+	 * <li>{@link #notify_time_elapsed_listeners()}.</li></ul>
+	 * 
+	 * @param listener Listener to be unsubscribed from event notifying.
+	 * 
+	 * @return {@code true}&nbsp;&#0151; <u>first occurrence</u> of
+	 * {@code listener} argument <u>successfully removed</u> (unsubscribed) from
+	 * event notifying. {@code false}&nbsp;&#0151; <u>there&nbsp;is no</u> such
+	 * {@code listener} (i.e.&nbsp;nothing to remove).
+	 * 
+	 * @exception NullPointerException {@code listener} argument is {@code null}.
+	 */
+	public boolean remove_Time_elapsed_listener(final Time_elapsed_listener listener)
+	{
+		// The argument cannot be null
+		if (listener == null)
+		{
+			throw new NullPointerException(
+					Time_elapsed_listener.class.getName() + " argument is null");
+		}
+		
+		try
+		{
+			time_elapsed_listeners_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			return time_elapsed_listeners.remove(listener);
+		}
+		finally
+		{
+			time_elapsed_listeners_lock.unlock();
+		}
+	}
+
 	
 	///// Методы protected экземпляра =====================================/////
 	/**
@@ -853,7 +952,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
 	 * <li>{@link #set_time_display_style(Time_display_style)};</li>
 	 * <li>{@link #set_time_unit_layout(Time_unit_layout)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 */
 	protected final void build_time_string()
 	{
@@ -1008,7 +1107,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #set_time_counter_value_sign(boolean)};</li>
 	 * <li>{@link #set_time_display_style(Time_display_style)};</li>
 	 * <li>{@link #set_time_unit_layout(Time_unit_layout)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
 	 * @param message Text to set instead of time&nbsp;counter value.
 	 */
@@ -1036,7 +1135,7 @@ public abstract class Time_counter implements Serializable
 	
 	
 	/**
-	 * Notifies listeners subscribed via {@link Time_counter_text_listener}
+	 * Notifies listeners which implement {@link Time_counter_text_listener}
 	 * interface about {@link #time_counter_text} value changed.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
@@ -1049,7 +1148,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #add_Time_counter_text_listener(Time_counter_text_listener)};</li>
 	 * <li>{@link #remove_Time_counter_text_listener(Time_counter_text_listener)}.</li></ul>
 	 */
-	protected final void time_counter_text_listeners_notification()
+	protected final void notify_time_counter_text_listeners()
 	{
 		try
 		{
@@ -1065,7 +1164,7 @@ public abstract class Time_counter implements Serializable
 		{
 			try
 			{
-				event_lock.lockInterruptibly();
+				time_value_listeners_lock.lockInterruptibly();
 			}
 			catch (final InterruptedException exc)
 			{
@@ -1097,7 +1196,7 @@ public abstract class Time_counter implements Serializable
 			}
 			finally
 			{
-				event_lock.unlock();
+				time_value_listeners_lock.unlock();
 			}
 		}
 		finally
@@ -1139,13 +1238,16 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #get_time_counter_text_value()};</li>
 	 * <li>{@link #set_time_display_style(Time_display_style)};</li>
 	 * <li>{@link #set_time_unit_layout(Time_unit_layout)};</li>
-	 * <li>{@link #time_counter_text_listeners_notification()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * 
 	 * @param is_positive {@code true}&nbsp;&#0151; time&nbsp;value
 	 * <u>is&nbsp;positive</u>; {@code false}&nbsp;&#0151;
 	 * <u>is&nbsp;negative</u>.
+	 * 
+	 * @return Previous time&nbsp;counter value sign: {@code true}&nbsp;&#0151;
+	 * <u>positive</u>; {@code false}&nbsp;&#0151; <u>negative</u>.
 	 */
-	protected final void set_time_counter_value_sign(
+	protected final boolean set_time_counter_value_sign(
 			final boolean is_positive)
 	{
 		try
@@ -1160,7 +1262,12 @@ public abstract class Time_counter implements Serializable
 		
 		try
 		{
+			// Previous time value sign to return
+			final boolean previous_value = this.is_positive;
+			
 			this.is_positive = is_positive;
+			
+			return previous_value;
 		}
 		finally
 		{
@@ -1203,6 +1310,60 @@ public abstract class Time_counter implements Serializable
 	protected final boolean is_positive_value()
 	{
 		return is_positive;
+	}
+	
+	
+	/**
+	 * Notifies listeners which implement {@link Time_elapsed_listener}
+	 * interface about <i>time elapsed event</i>.<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with:
+	 * <ul><li>{@link #add_Time_elapsed_listener(Time_elapsed_listener)};</li>
+	 * <li>{@link #remove_Time_elapsed_listener(Time_elapsed_listener)}.</li></ul>
+	 */
+	protected void notify_time_elapsed_listeners()
+	{
+		try
+		{
+			time_elapsed_listeners_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			final int time_elapsed_listeners_quantity =
+					time_elapsed_listeners.size();
+			/* Time elapsed listeners notifier to notify each listener in
+			 * a separate thread */
+			final ThreadPoolExecutor notifier = new ThreadPoolExecutor(
+					time_elapsed_listeners_quantity,
+					time_elapsed_listeners_quantity, 0, TimeUnit.NANOSECONDS,
+					new LinkedTransferQueue<>());
+			// Reference to THIS object to send as event object
+			final Time_counter instance = this;
+			
+			// Time elapsed listeners notifying (each in separate thread)
+			for (final Time_elapsed_listener i : time_elapsed_listeners)
+			{
+				notifier.execute(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						i.time_counter_reached_zero(
+								new Time_counter_event<Time_counter>(instance));
+					}
+				});
+			}
+		}
+		finally
+		{
+			time_elapsed_listeners_lock.unlock();
+		}
 	}
 	
 	
@@ -1312,9 +1473,11 @@ public abstract class Time_counter implements Serializable
 		
 		semaphore = new Semaphore(semaphore_permits);
 		time_value_edges_lock = new ReentrantLock();
-		event_lock = new ReentrantLock();
+		time_value_listeners_lock = new ReentrantLock();
+		time_elapsed_listeners_lock = new ReentrantLock();
 		time_unit_values = new EnumMap<>(Time_unit_name.class);
 		time_value_listeners = new ArrayList<>();
+		time_elapsed_listeners = new ArrayList<>();
 		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
 				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}

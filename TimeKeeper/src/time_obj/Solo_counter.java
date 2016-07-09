@@ -604,7 +604,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			set_time_counter_value_sign(true);
 			set_time_unit_values();
 			build_time_string();
-			time_counter_text_listeners_notification();
+			notify_time_counter_text_listeners();
 		}
 		finally
 		{
@@ -759,7 +759,7 @@ public class Solo_counter extends Time_counter implements Serializable
 						duration_passed = LocalTime.of(0, 0, 0);
 						set_time_unit_values();
 						build_time_string();
-						time_counter_text_listeners_notification();
+						notify_time_counter_text_listeners();
 						
 						return true;
 					}
@@ -834,7 +834,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			int day_seconds = (int)(seconds_corrected % seconds_in_day);
 			// Секунд в одном часе
 			final int seconds_in_hour = (int)TimeUnit.HOURS.toSeconds(1);
-			// Сокрректированное кол-во часов
+			// Adjusted hours quantity
 			final int hours = day_seconds / seconds_in_hour;
 			
 			day_seconds %= seconds_in_hour;
@@ -848,7 +848,7 @@ public class Solo_counter extends Time_counter implements Serializable
 					LocalTime.of(hours, minutes, day_seconds % minutes_in_hour);
 			set_time_unit_values();
 			build_time_string();
-			time_counter_text_listeners_notification();
+			notify_time_counter_text_listeners();
 			
 			return true;
 		}
@@ -1359,7 +1359,7 @@ public class Solo_counter extends Time_counter implements Serializable
 								numeric_overflow = true;
 								build_time_string(numeric_overflow_message);
 								pause();
-								numeric_overflow_listeners_notification();
+								notify_numeric_overflow_listeners();
 								
 								return;
 							}
@@ -1413,6 +1413,7 @@ public class Solo_counter extends Time_counter implements Serializable
 									duration_passed = duration_passed.plusSeconds(2);
 									period_passed = period_passed.plusDays(1);
 									set_time_counter_value_sign(false);
+									notify_time_elapsed_listeners();
 								}
 							}
 						}
@@ -1420,7 +1421,7 @@ public class Solo_counter extends Time_counter implements Serializable
 					
 					set_time_unit_values();
 					build_time_string();
-					time_counter_text_listeners_notification();
+					notify_time_counter_text_listeners();
 				}
 				finally
 				{
@@ -1439,7 +1440,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)};</li>
 	 * <li>{@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
 	 */
-	private void numeric_overflow_listeners_notification()
+	private void notify_numeric_overflow_listeners()
 	{
 		try
 		{

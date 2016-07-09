@@ -10,8 +10,7 @@ import time_obj.Time_counter;
 
 
 /**
- * Event object representing {@link Time_counter} time&nbsp;value text change
- * event.<br>
+ * Event object representing {@link Time_counter} event.<br>
  * <i>Note.</i> <u>Does&nbsp;not</u> support serialization.
  * 
  * @param <Type1> {@link Time_counter} extending type.
@@ -42,7 +41,7 @@ public class Time_counter_event<Type1 extends Time_counter> extends EventObject
 	 * @exception NotSerializableException When this method called.
 	 */
 	@SuppressWarnings("javadoc")
-	private void writeObject(ObjectOutputStream output_stream)
+	private void writeObject(final ObjectOutputStream output_stream)
 			throws IOException
 	{
 		throw new NotSerializableException(Time_counter_event.class.getName());
@@ -55,7 +54,7 @@ public class Time_counter_event<Type1 extends Time_counter> extends EventObject
 	 * @exception NotSerializableException When this method called.
 	 */
 	@SuppressWarnings("javadoc")
-	private void readObject(ObjectInputStream input_stream)
+	private void readObject(final ObjectInputStream input_stream)
 			throws IOException, ClassNotFoundException
 	{
 		throw new NotSerializableException(Time_counter_event.class.getName());

@@ -283,7 +283,7 @@ public class Instance_counter extends Time_counter implements Serializable
 			}
 		}
 		
-		time_counter_text_listeners_notification();
+		notify_time_counter_text_listeners();
 	}
 	
 	
@@ -330,6 +330,10 @@ public class Instance_counter extends Time_counter implements Serializable
 		long days = date_time_now.until(time_instance, ChronoUnit.DAYS);
 		// Кол-во полных секунд между текущей и целевой датой и временем
 		long seconds = date_time_now.until(time_instance, ChronoUnit.SECONDS);
+		// Current time value sign to compare with previous one
+		final boolean current_value_sign;
+		// Previous time value sign to compare with current one
+		final boolean previous_value_sign;
 		
 		/* Если экземпляр работает в режиме таймера обратного отсчета до
 		 * определенной временной точки */
@@ -337,14 +341,22 @@ public class Instance_counter extends Time_counter implements Serializable
 		{
 			/* В режиме "Mode.M_countdown_till" положительное кол-во секунд
 			 * означает положительные значения таймера обратного отсчета */
-			set_time_counter_value_sign(seconds >= 0 ? true : false);
+			current_value_sign = seconds >= 0 ? true : false;
+			previous_value_sign = set_time_counter_value_sign(current_value_sign);
 		}
 		else
 		{
 			/* В режиме "Mode.M_elapsed_from" отрицательное кол-во секунд
 			 * означает положительные значения времени, прошедшего с
 			 * определенного времени */
-			set_time_counter_value_sign(seconds <= 0 ? true : false);
+			current_value_sign = seconds <= 0 ? true : false;
+			previous_value_sign = set_time_counter_value_sign(current_value_sign);
+		}
+
+		// If time value reached zero
+		if (current_value_sign != previous_value_sign)
+		{
+			notify_time_elapsed_listeners();
 		}
 		
 		/* Если разница во времени между текущей и целевой датами насчитывает
