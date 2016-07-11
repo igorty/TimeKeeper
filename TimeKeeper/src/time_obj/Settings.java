@@ -20,12 +20,9 @@ import time_obj.dialog.User_notification_dialog;
 import time_obj.events.User_notification_event;
 
 
-/* TODO: Change description after removing "serialize()" method calling from
- * some instance methods */
 /**
- * Содержит настройки программы. После каждого успешного обращения к методам,
- * устанавливающим настройки, поля класса перезаписываются в файл.<br>
- * <i>Примечание.</i> Реализован в&nbsp;виде singleton'а.
+ * Contains program settings.<br>
+ * <i>Note.</i> This class is <u>singleton</u>.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -246,8 +243,6 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.release();
 		}
-		
-		serialize();  // TODO: Remove
 	}
 
 	
@@ -306,8 +301,6 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.release();
 		}
-		
-		serialize();  // TODO: Remove
 	}
 
 	
@@ -365,8 +358,6 @@ public final class Settings implements Serializable
 		{
 			common_semaphore.release();
 		}
-		
-		serialize();  // TODO: Remove
 	}
 	
 
@@ -468,8 +459,6 @@ public final class Settings implements Serializable
 		{
 			time_value_edges_lock.unlock();
 		}
-		
-		serialize();  // TODO: Remove
 	}
 	
 	
@@ -534,11 +523,10 @@ public final class Settings implements Serializable
 	// TODO: Метод возобновления показа всех предупреждающих всплывающих окон
 	
 	
-	///// Методы private экземпляра ======================================/////
 	/**
 	 * Сериализует поля класса и сохряняет в файл {@link #file_name}.
 	 */
-	private void serialize()
+	public void serialize()
 	{
 		try
 		{
@@ -641,6 +629,7 @@ public final class Settings implements Serializable
 	}
 	
 	
+	///// Методы private экземпляра ======================================/////
 	/**
 	 * Метод сериализации для {@link ObjectOutputStream}.
 	 * 
@@ -675,17 +664,72 @@ public final class Settings implements Serializable
 	{
 		object_input.defaultReadObject();
 		object_input.skipBytes(4);  // Пропуск версии класса
+		
+		/* true - all deserialized fields are correct; false - at least on field
+		 * is incorrect */
+		boolean deserialization_status = true;
+		
 		days_count = (Days_in_year)object_input.readObject();
+		
+		// If value stored in the file is null
+		if (days_count == null)
+		{
+			deserialization_status = false;
+			days_count = Days_in_year.DIY_360;
+		}
+		
 		time_display_style_setting =
 				(Time_display_style)object_input.readObject();
+		
+		// If value stored in the file is null
+		if (time_display_style_setting == null)
+		{
+			deserialization_status = false;
+			time_display_style_setting = Time_display_style.TDS_increase_able;
+		}
+		
 		time_unit_layout_setting = (Time_unit_layout)object_input.readObject();
+		
+		// If value stored in the file is null
+		if (time_unit_layout_setting == null)
+		{
+			deserialization_status = false;
+			time_unit_layout_setting = Time_unit_layout.TUL_value_sign;
+		}
 		
 		/* Временное значение массива "time_value_edges" перед безопасным
 		 * копированием */
 		final Time_unit_name[] buffer =
 				(Time_unit_name[])object_input.readObject();
 		
-		time_value_edges = buffer.clone();
+		try
+		{
+			time_value_edges = buffer.clone();
+			
+			// If displayed time units range stored in file is incorrect
+			if (time_value_edges[0].compareTo(time_value_edges[1]) > 0)
+			{
+				deserialization_status = false;
+				time_value_edges[0] = Time_unit_name.TUN_hours;
+				time_value_edges[1] = Time_unit_name.TUN_seconds;
+			}
+		}
+		catch (final NullPointerException exc)
+		{
+			deserialization_status = false;
+			time_value_edges = new Time_unit_name[2];
+			
+			time_value_edges[0] = Time_unit_name.TUN_hours;
+			time_value_edges[1] = Time_unit_name.TUN_seconds;
+		}
+		
+		// If at least one deserialized field is incorrect
+		if (!deserialization_status)
+		{
+			logger.log(Level.WARNING, "At least one deserialized "
+					+ Settings.class.getName() + " class field is incorrect");
+			// TODO: Notify notification listeners
+		}
 	}
 	
 	
