@@ -175,7 +175,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -247,7 +247,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -325,7 +325,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -412,7 +412,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 
@@ -471,7 +471,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -518,7 +518,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -589,7 +589,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -665,7 +665,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -723,7 +723,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -823,7 +823,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -899,7 +899,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 		catch (final InterruptedException exc)
 		{
-			logger.log(Level.INFO, "Thread interrupts.");
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
 			Thread.currentThread().interrupt();
 		}
 		
@@ -955,28 +955,58 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	
 	
 	/**
-	 * Данный метод не&nbsp;поддерживается и генерирует исключение.
-	 * 
-	 * @exception UnsupportedOperationException Генерируется при вызове метода.
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with <u>all</u> public methods.
 	 */
 	@Override
 	public Object[] toArray()
 	{
-		throw new UnsupportedOperationException(
-				"Method is unsupported by this implementation");
+		try
+		{
+			modification_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			return super.toArray();
+		}
+		finally
+		{
+			modification_lock.unlock();
+		}
 	}
 	
 	
 	/**
-	 * Данный метод не&nbsp;поддерживается и генерирует исключение.
-	 * 
-	 * @exception UnsupportedOperationException Генерируется при вызове метода.
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with <u>all</u> public methods.
 	 */
 	@Override
 	public <Type1> Type1[] toArray(Type1[] arr)
 	{
-		throw new UnsupportedOperationException(
-				"Method is unsupported by this implementation");
+		try
+		{
+			modification_lock.lockInterruptibly();
+		}
+		catch (final InterruptedException exc)
+		{
+			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
+			Thread.currentThread().interrupt();
+		}
+		
+		try
+		{
+			return super.toArray(arr);
+		}
+		finally
+		{
+			modification_lock.unlock();
+		}
 	}
 	
 	
@@ -1082,11 +1112,10 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	 * @exception NotSerializableException При вызове данного метода.
 	 */
 	@SuppressWarnings("javadoc")
-	private void writeObject(ObjectOutputStream out_stream)
+	private void writeObject(final ObjectOutputStream out_stream)
 			throws IOException
 	{
-		throw new NotSerializableException(Modified_ArrayList.class.getName() +
-				" class doesn\'t support serialization");
+		throw new NotSerializableException(Modified_ArrayList.class.getName());
 	}
 	
 	
@@ -1096,10 +1125,9 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	 * @exception NotSerializableException При вызове данного метода.
 	 */
 	@SuppressWarnings("javadoc")
-	private void readObject(ObjectInputStream in_stream)
+	private void readObject(final ObjectInputStream in_stream)
 			throws IOException, ClassNotFoundException
 	{
-		throw new NotSerializableException(Modified_ArrayList.class.getName() +
-				" class doesn\'t support deserialization");
+		throw new NotSerializableException(Modified_ArrayList.class.getName());
 	}
 }

@@ -80,9 +80,6 @@ public class Solo_counter extends Time_counter implements Serializable
 	/** Логирует события в данном классе. */
 	private static final Logger logger;
 	
-	/** Сообщение, отображаемое вместо счетчика времени в случае переполнения. */
-	private static final String numeric_overflow_message;
-	
 	/* TODO: static final int time_counter_frequency = 100 (means time in
 	 * milliseconds in which "thread_counter" is invoked) */
 	
@@ -90,7 +87,6 @@ public class Solo_counter extends Time_counter implements Serializable
 	static
 	{
 		logger = Logger.getLogger(Solo_counter.class.getName());
-		numeric_overflow_message = "numeric overflow";
 	}
 	
 	
@@ -1123,7 +1119,8 @@ public class Solo_counter extends Time_counter implements Serializable
 						+ " overflow flag and time counter value");
 			}
 			
-			build_time_string(numeric_overflow_message);
+			build_time_string(
+					time_counter_resources.getString("numeric_overflow_mark"));
 		}
 		
 		/* В режиме секундомера значение счетчика времени может быть только
@@ -1366,7 +1363,9 @@ public class Solo_counter extends Time_counter implements Serializable
 							catch(final ArithmeticException exc)
 							{
 								numeric_overflow = true;
-								build_time_string(numeric_overflow_message);
+								build_time_string(
+										time_counter_resources.getString(
+												"numeric_overflow_mark"));
 								pause();
 								notify_numeric_overflow_listeners();
 								

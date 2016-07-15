@@ -9,14 +9,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.TextStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import time_obj.Settings.Locale_setting;
 import time_obj.dialog.User_notification_dialog;
 import time_obj.dialog.User_notification_type;
 import time_obj.events.User_notification_event;
@@ -49,6 +53,10 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * {@link Time_counter_control}. */
 	static CyclicBarrier difference_calculation_barrier;
 	
+	/** Resource bundle representing <i>.properties</i> file which contains
+	 * dialog messages according to the&nbsp;program locale. */
+	static ResourceBundle message_resources;
+
 	
 	///// Fields private static ===========================================/////
 	/** Отвечает за логирование событий. */
@@ -75,6 +83,8 @@ public class Instance_counter extends Time_counter implements Serializable
 					"Cannot obtain system ZoneId. Exception stack trace:", exc);
 			zone_id = null;
 		}
+		
+		message_resources = settings.get_message_resources();
 	}
 	
 	
@@ -216,10 +226,10 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * @param is_synchronous {@code true}&nbsp;&#0151; all instances of
 	 * {@code Instance_counter} class are executed synchronously using
 	 * {@link #difference_calculation_barrier}; {@code false}&nbsp;&#0151;
-	 * the&nbsp;method need to be executed singly (commonly when instance
+	 * the&nbsp;method need to be executed singly (commonly at instance
 	 * initialization).
 	 */
-	final void difference_calculation(boolean is_synchronous)
+	final void difference_calculation(final boolean is_synchronous)
 	{
 		time_current = ZonedDateTime.now(zone_id);
 		
@@ -636,16 +646,21 @@ public class Instance_counter extends Time_counter implements Serializable
 			{
 				// New time zone id to set
 				final ZoneId new_zone_id = time_instance_init.getZone();
+				// Program locale
+				final Locale_setting program_locale = settings.get_locale_setting();
+				// Locale to obtain ZoneId display name
+				final Locale locale_obj = new Locale(
+						program_locale.language_code,
+						program_locale.country_code, program_locale.variant_code);
 				
 				User_notification_dialog.notify_listener_and_continue(
 						new User_notification_event(this),
 						User_notification_type.UNT_time_zone_error,
-						"New time counter time zone rules doesn't match with"
-								+ " already stored. Program have tried to check"
-								+ " system time zone rules but failed. Program"
-								+ " time zone rules are changed from "
-								+ zone_id.getRules().toString() + " to "
-								+ new_zone_id.getRules().toString());
+						message_resources.getString("zone_id_error.1")
+								+ zone_id.getDisplayName(TextStyle.FULL, locale_obj)
+								+ message_resources.getString("zone_id_error.2")
+								+ new_zone_id.getDisplayName(TextStyle.FULL, locale_obj)
+								+ message_resources.getString("zone_id_error.3"));
 				/* TODO: Consider synchronizing with "difference_calculation()"
 				 * method execution */
 				zone_id = new_zone_id;
@@ -656,12 +671,21 @@ public class Instance_counter extends Time_counter implements Serializable
 			// If system zone id doesn't match with one stored in class
 			if (!system_zone_id.equals(zone_id))
 			{
+				// Program locale
+				final Locale_setting program_locale = settings.get_locale_setting();
+				// Locale to obtain ZoneId display name
+				final Locale locale_obj = new Locale(
+						program_locale.language_code,
+						program_locale.country_code, program_locale.variant_code);
+				
 				User_notification_dialog.notify_listener_and_continue(
 						new User_notification_event(this),
 						User_notification_type.UNT_informing,
-						"Program time zone rules updated with system value. Was "
-								+ zone_id.getRules().toString() + " became "
-								+ system_zone_id.getRules().toString() + '.');
+						message_resources.getString("zone_id_change.1")
+								+ zone_id.getDisplayName(TextStyle.FULL, locale_obj)
+								+ message_resources.getString("zone_id_change.2")
+								+ system_zone_id.getDisplayName(TextStyle.FULL, locale_obj)
+								+ message_resources.getString("zone_id_change.3"));
 				/* TODO: Consider synchronizing with "difference_calculation()"
 				 * method execution */
 				zone_id = system_zone_id;

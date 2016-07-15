@@ -3,6 +3,7 @@
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,7 +30,6 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import time_obj.Settings;
-import time_obj.Time_counter;
 import time_obj.Time_display_style;
 import time_obj.Time_unit_layout;
 import time_obj.Time_unit_name;
@@ -290,6 +290,28 @@ public class Init_settings_controller
 	@FXML
 	private Button time_units_displayed_range_hint_button;
 	
+	/** Resource bundle representing <i>.properties</i> file which contains
+	 * resources for time&nbsp;unit names. */
+	private final ResourceBundle time_unit_name_resources;
+	
+	/** Time&nbsp;unit template names (symbolic, short, full and empty),
+	 * distributed to groups according to enumeration constants
+	 * {@link Time_unit_layout#TUL_value_sign},
+	 * {@link Time_unit_layout#TUL_short_name},
+	 * {@link Time_unit_layout#TUL_full_name} and
+	 * {@link Time_unit_layout#TUL_digits_only} from
+	 * {@link Time_unit_layout} enumeration.<br>
+	 * {@link EnumMap#get(Object)} method returns
+	 * {@code Map<}{@link Time_unit_name}{@code , }{@link String}{@code >}
+	 * container containing time&nbsp;units keys for
+	 * <i>time_obj.resources.time_counter_resources.properties</i> file
+	 * according to specified group.<br>
+	 * <b>Important!</b> <u>This container</u> and all <u>nested</u> in it
+	 * {@code Map<}{@link Time_unit_name}{@code ,}{@link String}{@code >}
+	 * containers are <u>immutable</u>. An&nbsp;attempt to change containers
+	 * content results in <u>runtime exception</u>. */
+	private final Map<Time_unit_layout, Map<Time_unit_name, String>> time_unit_names;
+	
 	/** Обновляет текст примера отображения счетчика времени в
 	 * {@link #disabled_label} и {@link #enabled_label}. */
 	private final Runnable example_text_modifier;
@@ -310,6 +332,87 @@ public class Init_settings_controller
 		left_chosen_displayed_edge = display_edges[0];
 		right_chosen_displayed_edge = display_edges[1];
 		
+		time_unit_name_resources = settings.get_time_counter_resources();
+		
+		// Time unit names to be stored in "time_unit_name_resources" container
+		final String[][] time_unit_names_values = {
+				{ time_unit_name_resources.getString("TUL_value_sign.years"),
+					time_unit_name_resources.getString("TUL_value_sign.months"),
+					time_unit_name_resources.getString("TUL_value_sign.days"),
+					time_unit_name_resources.getString("TUL_value_sign.hours"),
+					time_unit_name_resources.getString("TUL_value_sign.minutes"),
+					time_unit_name_resources.getString("TUL_value_sign.seconds") },
+				{ time_unit_name_resources.getString("TUL_short_name.years"),
+					time_unit_name_resources.getString("TUL_short_name.months"),
+					time_unit_name_resources.getString("TUL_short_name.days"),
+					time_unit_name_resources.getString("TUL_short_name.hours"),
+					time_unit_name_resources.getString("TUL_short_name.minutes"),
+					time_unit_name_resources.getString("TUL_short_name.seconds") },
+				/* TODO! These full time unit names are all match with value 10
+				 * in all currently existing locales (English, Russian and
+				 * Ukrainian). Some new locale may not fit the code provided for
+				 * "example_text_modifier" Runnable. In this case the code need
+				 * to be edited */
+				{ time_unit_name_resources.getString("TUL_full_name.years.5"),
+					time_unit_name_resources.getString("TUL_full_name.months.5"),
+					time_unit_name_resources.getString("TUL_full_name.days.5"),
+					time_unit_name_resources.getString("TUL_full_name.hours.5"),
+					time_unit_name_resources.getString("TUL_full_name.minutes.5"),
+					time_unit_name_resources.getString("TUL_full_name.seconds.5") },
+				{ time_unit_name_resources.getString("TUL_digits_only.years"),
+					time_unit_name_resources.getString("TUL_digits_only.months"),
+					time_unit_name_resources.getString("TUL_digits_only.days"),
+					time_unit_name_resources.getString("TUL_digits_only.hours"),
+					time_unit_name_resources.getString("TUL_digits_only.minutes"),
+					time_unit_name_resources.getString("TUL_digits_only.seconds") } };
+		
+		// All "Time_unit_name" enumeration constants
+		final Time_unit_name[] time_unit_name_constants = Time_unit_name.values();
+		
+		assert time_unit_names_values[0].length == time_unit_name_constants.length &&
+				time_unit_names_values[1].length == time_unit_name_constants.length &&
+				time_unit_names_values[2].length == time_unit_name_constants.length &&
+				time_unit_names_values[3].length == time_unit_name_constants.length :
+					" Some subarrays\'s length doesn\'t match with "
+						+ Time_unit_name.class.getName() + " enumeration constants quantity";
+		
+		// Four "time_unit_names_init" container initializers
+		final Map<Time_unit_name, String> time_unit_names_init0 =
+				new EnumMap<>(Time_unit_name.class),
+				time_unit_names_init1 = new EnumMap<>(Time_unit_name.class),
+				time_unit_names_init2 = new EnumMap<>(Time_unit_name.class),
+				time_unit_names_init3 = new EnumMap<>(Time_unit_name.class);
+		
+		/* "time_unit_names_init" container initializers values assignment */
+		for (final Time_unit_name i : time_unit_name_constants)
+		{
+			// Current enumeration constant ordinal value
+			final int ordinal = i.ordinal();
+			
+			time_unit_names_init0.put(i,
+					time_unit_names_values[Time_unit_layout.TUL_value_sign.ordinal()][ordinal]);
+			time_unit_names_init1.put(i,
+					time_unit_names_values[Time_unit_layout.TUL_short_name.ordinal()][ordinal]);
+			time_unit_names_init2.put(i,
+					time_unit_names_values[Time_unit_layout.TUL_full_name.ordinal()][ordinal]);
+			time_unit_names_init3.put(i,
+					time_unit_names_values[Time_unit_layout.TUL_digits_only.ordinal()][ordinal]);
+		}
+		
+		// "time_unit_names" container initializer
+		final Map<Time_unit_layout, Map<Time_unit_name, String>> time_unit_names_init =
+				new EnumMap<>(Time_unit_layout.class);
+		
+		time_unit_names_init.put(Time_unit_layout.TUL_value_sign,
+				Collections.unmodifiableMap(time_unit_names_init0));
+		time_unit_names_init.put(Time_unit_layout.TUL_short_name,
+				Collections.unmodifiableMap(time_unit_names_init1));
+		time_unit_names_init.put(Time_unit_layout.TUL_full_name,
+				Collections.unmodifiableMap(time_unit_names_init2));
+		time_unit_names_init.put(Time_unit_layout.TUL_digits_only,
+				Collections.unmodifiableMap(time_unit_names_init3));
+		time_unit_names = Collections.unmodifiableMap(time_unit_names_init);
+		
 		example_text_modifier = new Runnable()
 		{
 			@Override
@@ -323,141 +426,70 @@ public class Init_settings_controller
 				switch (chosen_time_display_style)
 				{
 				case TDS_if_reaches:
-					// Если необходимо вывести пример с полными именами единиц времени
-					if (chosen_time_unit_layout.equals(Time_unit_layout.TUL_full_name))
-					{
-						disabled_text.ensureCapacity(27);
-						disabled_text.append('0');
-						disabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_years));
-						disabled_text.append("s  0");
-						disabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_months));
-						disabled_text.append("s  0");
-						disabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_days));
-						disabled_text.append("s  ");
-						enabled_text.ensureCapacity(31);
-						enabled_text.append('3');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_hours));
-						enabled_text.append("s  00");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_minutes));
-						enabled_text.append("s  03");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_seconds));
-						enabled_text.append('s');
-					}
-					// Вывод примера с остальными именами единиц времени
-					else
-					{
-						disabled_text.ensureCapacity(10);
-						disabled_text.append('0');
-						disabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_years));
-						disabled_text.append('0');
-						disabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_months));
-						disabled_text.append('0');
-						disabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_days));
-						enabled_text.ensureCapacity(9);
-						enabled_text.append('3');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_hours));
-						enabled_text.append("00");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_minutes));
-						enabled_text.append("03");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_seconds));
-					}
+					disabled_text.append('0');
+					disabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_years));
+					disabled_text.append('0');
+					disabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_months));
+					disabled_text.append('0');
+					disabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_days));
+					
+					enabled_text.append("10");
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_hours));
+					enabled_text.append("00");
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_minutes));
+					enabled_text.append("10");
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_seconds));
 					
 					break;
 					
 					
 				case TDS_show_all:
-					// Если необходимо вывести пример с полными именами единиц времени
-					if (chosen_time_unit_layout.equals(Time_unit_layout.TUL_full_name))
-					{
-						enabled_text.ensureCapacity(58);
-						enabled_text.append('0');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_years));
-						enabled_text.append("s  0");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_months));
-						enabled_text.append("s  0");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_days));
-						enabled_text.append("s  3");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_hours));
-						enabled_text.append("s  00");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_minutes));
-						enabled_text.append("s  03");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(Time_unit_layout.TUL_full_name).
-								get(Time_unit_name.TUN_seconds));
-						enabled_text.append('s');
-					}
-					// Вывод примера с остальными именами единиц времени
-					else
-					{
-						enabled_text.ensureCapacity(19);
-						enabled_text.append('0');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_years));
-						enabled_text.append('0');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_months));
-						enabled_text.append('0');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_days));
-						enabled_text.append('3');
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_hours));
-						enabled_text.append("00");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_minutes));
-						enabled_text.append("03");
-						enabled_text.append(Time_counter.time_unit_texts.
-								get(chosen_time_unit_layout).
-								get(Time_unit_name.TUN_seconds));
-					}
+					enabled_text.append('0');
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_years));
+					enabled_text.append('0');
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_months));
+					enabled_text.append('0');
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_days));
+					enabled_text.append("10");
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_hours));
+					enabled_text.append("00");
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_minutes));
+					enabled_text.append("10");
+					enabled_text.append(
+							time_unit_names.get(chosen_time_unit_layout).
+									get(Time_unit_name.TUN_seconds));
 					
 					break;
 					
 					
 				case TDS_custom_strict:
-					enabled_text.append(Time_counter.strict_display_mode_text);
+					enabled_text.append(time_unit_name_resources.getString(
+							"strict_display_mode_mark"));
 					
 					// Построение строк с примерами
-					for (final Time_unit_name i : Time_unit_name.values())
+					for (final Time_unit_name i : time_unit_name_constants)
 					{
 						/* Если данная единица времени вообще не может
 						 * отображаться (находится за крайней правой
@@ -470,14 +502,8 @@ public class Init_settings_controller
 						// Если данная единица времени не должна отображаться
 						if (i.compareTo(left_chosen_displayed_edge) < 0)
 						{
-							disabled_text.append("10" + Time_counter.time_unit_texts.
-									get(chosen_time_unit_layout).get(i));
-							
-							// Если выводятся полные имена единиц времени
-							if (chosen_time_unit_layout.equals(Time_unit_layout.TUL_full_name))
-							{
-								disabled_text.append("s  ");
-							}
+							disabled_text.append("10"
+									+ time_unit_names.get(chosen_time_unit_layout).get(i));
 						}
 						// Данная единица времени должна отображаться
 						else
@@ -494,14 +520,8 @@ public class Init_settings_controller
 								enabled_text.append('0');
 							}
 							
-							enabled_text.append(Time_counter.time_unit_texts.
-									get(chosen_time_unit_layout).get(i));
-							
-							// Если выводятся полные имена единиц времени
-							if (chosen_time_unit_layout.equals(Time_unit_layout.TUL_full_name))
-							{
-								enabled_text.append("s  ");
-							}
+							enabled_text.append(
+									time_unit_names.get(chosen_time_unit_layout).get(i));
 						}
 					}
 					
@@ -510,7 +530,7 @@ public class Init_settings_controller
 					
 				case TDS_increase_able:
 					// Построение строк с примерами
-					for (final Time_unit_name i : Time_unit_name.values())
+					for (final Time_unit_name i : time_unit_name_constants)
 					{
 						/* Если данная единица времени вообще не может
 						 * отображаться (находится за крайней правой
@@ -541,14 +561,8 @@ public class Init_settings_controller
 								disabled_text.append('0');
 							}
 							
-							disabled_text.append(Time_counter.time_unit_texts.
-									get(chosen_time_unit_layout).get(i));
-							
-							// Если выводятся полные имена единиц времени
-							if (chosen_time_unit_layout.equals(Time_unit_layout.TUL_full_name))
-							{
-								disabled_text.append("s  ");
-							}
+							disabled_text.append(
+									time_unit_names.get(chosen_time_unit_layout).get(i));
 						}
 						// Данная единица времени должна отображаться
 						else
@@ -560,7 +574,7 @@ public class Init_settings_controller
 								/* Условие тернарного оператора: Первая
 								 * отображаемая единица времени должна быть 0 */
 								enabled_text.append(
-										compare_to_left_edge == 0 ? "00" : "03");
+										compare_to_left_edge == 0 ? "00" : "10");
 							}
 							// Выводятся все остальные единицы времени
 							else
@@ -568,19 +582,20 @@ public class Init_settings_controller
 								/* Условие тернарного оператора: Первая
 								 * отображаемая единица времени должна быть 0 */
 								enabled_text.append(
-										compare_to_left_edge == 0 ? '0' : '3');
+										compare_to_left_edge == 0 ? "0" : "10");
 							}
 							
-							enabled_text.append(Time_counter.time_unit_texts.
-									get(chosen_time_unit_layout).get(i));
-							
-							// Если выводятся полные имена единиц времени
-							if (chosen_time_unit_layout.equals(Time_unit_layout.TUL_full_name))
-							{
-								enabled_text.append("s  ");
-							}
+							enabled_text.append(
+									time_unit_names.get(chosen_time_unit_layout).get(i));
 						}
 					}
+					
+					break;
+					
+					
+				default:
+					throw new EnumConstantNotPresentException(
+							Time_display_style.class, chosen_time_display_style.name());
 				}
 				
 				// Строка, которую нужно вывести в "disabled_label"
@@ -946,7 +961,8 @@ public class Init_settings_controller
 				+ " values won\'t be shown even in case of bigger than chosen"
 				+ " range time value.\n\tNote: in this mode time value is marked with \"");
 		// Кол-во добавляемых символов - 5
-		explanation_text_builder.append(Time_counter.strict_display_mode_text);
+		explanation_text_builder.append(
+				time_unit_name_resources.getString("strict_display_mode_mark"));
 		// Кол-во добавляемых символов - 10
 		explanation_text_builder.append("\" label.\n\"");
 		// Кол-во добавляемых символов - 13

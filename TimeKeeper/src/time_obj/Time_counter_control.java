@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +43,12 @@ import time_obj.events.User_notification_event;
  */
 public class Time_counter_control
 {
+	///// Fields default-access static ====================================/////
+	/** Resource bundle <i>.properties</i> file containing dialog messages
+	 * according to program locale. */
+	static ResourceBundle message_resources;
+	
+	
 	///// Поля статические private ========================================/////
 	/** Логирует события, происходящие в этом классе. */
 	private static final Logger logger;
@@ -53,6 +60,7 @@ public class Time_counter_control
 	static
 	{
 		logger = Logger.getLogger(Time_counter_control.class.getName());
+		message_resources = Settings.get_instance().get_message_resources();
 		instance = new Time_counter_control();
 	}
 	
@@ -200,7 +208,7 @@ public class Time_counter_control
 				{
 					temp = (Time_counter)object_input.readObject();
 				}
-				catch (ClassNotFoundException | InvalidObjectException exc)
+				catch (final ClassNotFoundException | InvalidObjectException exc)
 				{
 					--objects_read;
 					
@@ -229,18 +237,21 @@ public class Time_counter_control
 			logger.log(Level.WARNING, "Cannot find " + file_name + " file to load "
 					+ Time_counter.class.getName() + " objects from it."
 							+ " Excepton stack trace:", exc);
-			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-					User_notification_type.UNT_IO_error, file_name + " file not found."
-							+ " Program cannot load time counters saved previously.");
+			User_notification_dialog.notify_listener_and_wait(
+					new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
+					file_name + message_resources.getString("time_counters_file_not_found"));
 		}
 		catch (final IOException exc)
 		{
 			logger.log(Level.SEVERE, "Cannot read from " + file_name +
 					" file. Exception stack trace:", exc);
-			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-					User_notification_type.UNT_IO_error, "Error occurred while reading "
-							+ file_name + " file with saved time counters."
-							+ " Time counters cannot be loaded to program.");
+			User_notification_dialog.notify_listener_and_wait(
+					new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
+					message_resources.getString("time_counters_file_read_error.1")
+							+ file_name
+							+ message_resources.getString("time_counters_file_read_error.2"));
 		}
 		finally
 		{
@@ -249,40 +260,45 @@ public class Time_counter_control
 			if (objects_quantity != -1 && objects_read != objects_quantity)
 			{
 				// Строка для сообщения об ошибке
-				final StringBuilder message = new StringBuilder(
-						"Error occurred while reading saved time counters from the file.");
+				final StringBuilder message =
+						new StringBuilder(message_resources.getString(
+								"incorrect_time_counters_file_content.1.1"));
 				
 				// Если частично удалось прочитать объекты "Time_counter" из файла
 				if (objects_read != 0)
 				{
-					message.append(" Not all instances have been read. Quantity of files read is ");
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.2.1.1"));
 					message.append(objects_read);
-					message.append(" of ");
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.2.1.2"));
 					message.append(objects_quantity);
-					message.append(" available.");
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.2.1.3"));
 					
 					/* Если десериализированные объекты содержат некритические
 					 * ошибки */
 					if (!deserialization_status)
 					{
-						message.append("\nSome of read instances have noncritical"
-								+ " errors (such instances will function properly).");
+						message.append(message_resources.getString(
+								"incorrect_time_counters_file_content.1.2.2"));
 					}
 				}
 				else
 				{
-					message.append(" None time counters have been read.");
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.3"));
 				}
 				
 				User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-						User_notification_type.UNT_IO_error, message.toString());
+						User_notification_type.UNT_file_error, message.toString());
 			}
 			else if (!deserialization_status)
 			{
 				User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-						User_notification_type.UNT_IO_error,
-						"Some of read instances have noncritical errors (such"
-								+ " instances will function properly).");
+						User_notification_type.UNT_file_error,
+						message_resources.getString(
+								"incorrect_time_counters_file_content.2"));
 			}
 			
 			try
@@ -401,14 +417,14 @@ public class Time_counter_control
 			}
 			
 			assert !instance_counters.contains(instance_counter_obj) :
-				"Unexpected error occurred while adding Instance_counter element"
-				+ " to list. Additional object already exists";
+					"Unexpected error occurred while adding Instance_counter element"
+						+ " to list. Additional object already exists";
 			
 			// Объявлен для assert'ов
 			boolean result = instance_counters.add(instance_counter_obj);
 			
 			assert result : "Unexpected error occurred while adding"
-			+ " Instance_counter element to list";
+					+ " Instance_counter element to list";
 			
 			result = instance_counters_tasks.add(new Callable<Void>()
 			{
@@ -422,7 +438,7 @@ public class Time_counter_control
 			});
 			
 			assert result :
-				"Unexpected error occurred while adding Callable object to list";
+					"Unexpected error occurred while adding Callable object to list";
 			
 			instance_counters_barrier =
 					new CyclicBarrier(instance_counters_size + 1);
@@ -509,7 +525,7 @@ public class Time_counter_control
 				});
 				
 				assert result :
-					"Unexpected error occurred while adding Callable object to list";
+						"Unexpected error occurred while adding Callable object to list";
 			}
 			
 			instance_counters_barrier =
@@ -679,7 +695,7 @@ public class Time_counter_control
 			final boolean result = instance_counters.removeAll(group);
 			
 			assert result :
-				"Unexpected error occurred while removing elements from list";
+					"Unexpected error occurred while removing elements from list";
 			
 			reset_instance_counters_tasks();
 			instance_counters_barrier = new CyclicBarrier(instance_counters.size());
@@ -740,8 +756,8 @@ public class Time_counter_control
 			final boolean result = instance_counters.retainAll(group);
 			
 			assert result : "Unexpected exception occurred while calling"
-			+ " retain_instance_counter_group(ArrayList<Instance_counter>)."
-			+ " Method shouldn\'t return false";
+					+ " retain_instance_counter_group(ArrayList<Instance_counter>)."
+					+ " Method shouldn\'t return false";
 			
 			reset_instance_counters_tasks();
 			instance_counters_barrier = new CyclicBarrier(instance_counters.size());
@@ -800,20 +816,22 @@ public class Time_counter_control
 			logger.log(Level.SEVERE, "Cannot obtain " + file_name
 					+ " file to write " + Time_counter.class.getName()
 					+ " objects. Exception stack trace:", exc);
-			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+			User_notification_dialog.notify_listener_and_wait(
+					new User_notification_event(this),
 					User_notification_type.UNT_IO_error,
-					"Error occurred while accessing " + file_name + " file."
-							+ " Current time counters state cannot be saved.");
+					message_resources.getString("time_counters_file_write_error1.1")
+							+ file_name
+							+ message_resources.getString("time_counters_file_write_error1.2"));
 		}
 		catch (final IOException exc)
 		{
 			logger.log(Level.SEVERE, "Cannot perform writing "
 					+ Time_counter.class.getName() + " objects to " + file_name
 					+ " file. Exception stack trace:", exc);
-			User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-					User_notification_type.UNT_IO_error, "Error occurred while saving"
-							+ " time counters in file. Current time counters"
-							+ " state probably haven\'t been saved properly.");
+			User_notification_dialog.notify_listener_and_wait(
+					new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
+					message_resources.getString("time_counters_file_write_error2"));
 		}
 		finally
 		{
@@ -952,7 +970,7 @@ public class Time_counter_control
 			});
 			
 			assert result :
-				"Unexpected error occurred while adding Callable object to list";
+					"Unexpected error occurred while adding Callable object to list";
 		}
 	}
 }

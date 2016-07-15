@@ -11,6 +11,7 @@ import java.util.EnumMap;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.Semaphore;
@@ -82,30 +83,6 @@ public abstract class Time_counter implements Serializable
 	}
 	
 	
-	///// Поля public статические =========================================/////
-	/** Time&nbsp;units template names (symbolic, short, full and empty),
-	 * distributed to groups according to named&nbsp;constants
-	 * {@link Time_unit_layout#TUL_value_sign},
-	 * {@link Time_unit_layout#TUL_short_name},
-	 * {@link Time_unit_layout#TUL_full_name} and
-	 * {@link Time_unit_layout#TUL_digits_only} from
-	 * {@link Time_unit_layout} enumeration.<br>
-	 * {@link EnumMap#get(Object)} method returns
-	 * {@code Map<}{@link Time_unit_name}{@code , }{@link String}{@code >}
-	 * container containing time&nbsp;units names for specified group.<br>
-	 * <b>Important!</b> <u>This container</u> and all <u>nested</u> in it
-	 * {@code Map<}{@link Time_unit_name}{@code ,}{@link String}{@code >}
-	 * containers are <u>immutable</u>. An&nbsp;attempt to change containers
-	 * content results in runtime exception. */
-	public static final Map<Time_unit_layout, Map<Time_unit_name, String>>
-			time_unit_texts;
-	
-	/** Шаблонный текст режима отображения
-	 * {@link Time_display_style#TDS_custom_strict}, указываемый перед счетчиком
-	 * времени. */
-	public static final String strict_display_mode_text;
-	
-	
 	///// Поля protected статические ======================================/////
 	/** Кол-во дней в каждом из 12&#8209;ти месяцев.<br>
 	 * <i>Примечания.</i>
@@ -119,6 +96,12 @@ public abstract class Time_counter implements Serializable
 	/** Настройки программы. */
 	protected static final Settings settings;
 	
+	
+	///// Fields default-access static ====================================/////
+	/** Resource bundle representing <i>.properties</i> file which contains
+	 * resources for time&nbsp;counters. */
+	static ResourceBundle time_counter_resources;
+	
 
 	///// Поля private статические ========================================/////
 	/** Логирует события данного класса. */
@@ -131,6 +114,22 @@ public abstract class Time_counter implements Serializable
 	 * выполнения. */
 	private static final Map<Time_unit_name, String> format_conversions;
 	
+	/** Represents <i>time_obj.resources.time_counter_resources.properties</i>
+	 * file's <i>"TUL_value_sign"</i>&nbsp;key&nbsp;group.<br>
+	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
+	 * to change its content results in runtime exception. */
+	private static final Map<Time_unit_name, String> time_unit_signs;
+	/** Represents <i>time_obj.resources.time_counter_resources.properties</i>
+	 * file's <i>"TUL_short_name"</i>&nbsp;key&nbsp;group.<br>
+	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
+	 * to change its content results in runtime exception. */
+	private static final Map<Time_unit_name, String> time_unit_short_names;
+	/** Represents <i>time_obj.resources.time_counter_resources.properties</i>
+	 * file's <i>"TUL_digits_only"</i>&nbsp;key&nbsp;group.<br>
+	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
+	 * to change its content results in runtime exception. */
+	private static final Map<Time_unit_name, String> time_unit_digits_only;
+	
 	/** Кол&#8209;во разрешений для семафора {@link #semaphore}. */
 	private static final int semaphore_permits;
 	
@@ -138,85 +137,83 @@ public abstract class Time_counter implements Serializable
 	static
 	{
 		logger = Logger.getLogger(Time_counter.class.getName());
-		strict_display_mode_text = "CUT  ";
+		settings = Settings.get_instance();
+		time_counter_resources = settings.get_time_counter_resources();
 		
 		// Строки для инициализации контейнера "format_conversions"
 		final String[] format_conversion_text = { "%,10d", "%2d", "%3d", "%2d",
 				"%02d", "%02d" };
+		/* Keys from "time_obj.resources.time_counter_resources.properties" file
+		 * for "time_unit_signs" container */ 
+		final String[] time_unit_sings_keys = { "TUL_value_sign.years",
+				"TUL_value_sign.months", "TUL_value_sign.days",
+				"TUL_value_sign.hours", "TUL_value_sign.minutes",
+				"TUL_value_sign.seconds" };
+		/* Keys from "time_obj.resources.time_counter_resources.properties" file
+		 * for "time_unit_short_names" container */
+		final String[] time_unit_short_names_keys = { "TUL_short_name.years",
+				"TUL_short_name.months", "TUL_short_name.days",
+				"TUL_short_name.hours", "TUL_short_name.minutes",
+				"TUL_short_name.seconds" };
+		/* Keys from "time_obj.resources.time_counter_resources.properties" file
+		 * for "time_unit_digits_only" container */
+		final String[] time_unit_digits_only_keys = { "TUL_digits_only.years",
+				"TUL_digits_only.months", "TUL_digits_only.days",
+				"TUL_digits_only.hours", "TUL_digits_only.minutes",
+				"TUL_digits_only.seconds" };
+		
 		// Все элементы перечисления "Time_unit_name"
 		final Time_unit_name[] time_unit_name_values = Time_unit_name.values();
 		
 		assert format_conversion_text.length == time_unit_name_values.length :
 			"Array size with values doesn\'t match with "
-				+ Time_unit_name.class.getName() + " elements quantity";
+				+ Time_unit_name.class.getName() + " enumeration constants quantity";
+		assert time_unit_name_values.length == time_unit_sings_keys.length :
+			"Array size with values doesn\'t match with "
+				+ Time_unit_name.class.getName() + " enumeration constants quantity";
+		assert time_unit_name_values.length == time_unit_short_names_keys.length :
+			"Array size with values doesn\'t match with "
+				+ Time_unit_name.class.getName() + " enumeration constants quantity";
+		assert time_unit_name_values.length == time_unit_digits_only_keys.length :
+			"Array size with values doesn\'t match with "
+				+ Time_unit_name.class.getName() + " enumeration constants quantity";
 		
 		// Инициализатор "format_conversions"
 		final Map<Time_unit_name, String> format_conversion_init =
 				new EnumMap<>(Time_unit_name.class);
+		// "time_unit_signs" container initializer
+		final Map<Time_unit_name, String> time_unit_signs_init =
+				new EnumMap<>(Time_unit_name.class);
+		// "time_unit_short_names" container initializer
+		final Map<Time_unit_name, String> time_unit_short_names_init =
+				new EnumMap<>(Time_unit_name.class);
+		// "time_unit_digits_only" container initializer
+		final Map<Time_unit_name, String> time_unit_digits_only_init =
+				new EnumMap<>(Time_unit_name.class);
 		
-		/* Инициализация контейнера "format_conversion_init" форматирующими
-		 * последовательностями для поля типа Formatter */
+		// Map containers initialization
 		for (final Time_unit_name i : time_unit_name_values)
 		{
-			format_conversion_init.put(i, format_conversion_text[i.ordinal()]);
+			// Current enumeration constant ordinal value
+			final int ordinal = i.ordinal();
+			
+			format_conversion_init.put(i, format_conversion_text[ordinal]);
+			time_unit_signs_init.put(i, time_unit_sings_keys[ordinal]);
+			time_unit_short_names_init.put(i, time_unit_short_names_keys[ordinal]);
+			time_unit_digits_only_init.put(i, time_unit_digits_only_keys[ordinal]);
 		}
 		
 		format_conversions = Collections.unmodifiableMap(format_conversion_init);
+		time_unit_signs = Collections.unmodifiableMap(time_unit_signs_init);
+		time_unit_short_names =
+				Collections.unmodifiableMap(time_unit_short_names_init);
+		time_unit_digits_only =
+				Collections.unmodifiableMap(time_unit_digits_only_init);
+		
 		month_sizes = Collections.unmodifiableList(Arrays.asList(
 				31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31));
 		
-		// Значения для контейнера "time_unit_texts"
-		final String[][] time_unit_text_values = {
-				{ "y  ", "m  ", "d  ", ":", "\'", "\"  " },
-				{ " yr  ", " mn  ", " d  ", " hr  ", " min  ", " sec  " },
-				{ " year", " month", " day", " hour", " minute", " second" },
-				{ "  ", "  ", "   ", " ", " ", "  " } };
-
-		assert time_unit_text_values[0].length == time_unit_name_values.length &&
-				time_unit_text_values[1].length == time_unit_name_values.length &&
-				time_unit_text_values[2].length == time_unit_name_values.length &&
-				time_unit_text_values[3].length == time_unit_name_values.length :
-					"Some subarray\'s length doesn\'t match with "
-						+ Time_unit_name.class.getName() + " elements quantity";
-		
-		/* Четыре инициализатора для "time_unit_text_init". Каждый из них
-		 * отвечает за стиль названия единиц времени согласно перечислению
-		 * "Time_unit_layout" */
-		final Map<Time_unit_name, String> time_unit_text_init0 =
-				new EnumMap<>(Time_unit_name.class),
-				time_unit_text_init1 = new EnumMap<>(Time_unit_name.class),
-				time_unit_text_init2 = new EnumMap<>(Time_unit_name.class),
-				time_unit_text_init3 = new EnumMap<>(Time_unit_name.class);
-		
-		// Присваивание значений time_unit_text_init'ам
-		for (final Time_unit_name i : time_unit_name_values)
-		{
-			time_unit_text_init0.put(i,
-					time_unit_text_values[Time_unit_layout.TUL_value_sign.ordinal()][i.ordinal()]);
-			time_unit_text_init1.put(i,
-					time_unit_text_values[Time_unit_layout.TUL_short_name.ordinal()][i.ordinal()]);
-			time_unit_text_init2.put(i,
-					time_unit_text_values[Time_unit_layout.TUL_full_name.ordinal()][i.ordinal()]);
-			time_unit_text_init3.put(i,
-					time_unit_text_values[Time_unit_layout.TUL_digits_only.ordinal()][i.ordinal()]);
-		}
-		
-		// Инициализатор для "time_unit_texts"
-		final Map<Time_unit_layout, Map<Time_unit_name, String>> time_unit_text_init =
-				new EnumMap<>(Time_unit_layout.class);
-		
-		time_unit_text_init.put(Time_unit_layout.TUL_value_sign,
-				Collections.unmodifiableMap(time_unit_text_init0));
-		time_unit_text_init.put(Time_unit_layout.TUL_short_name,
-				Collections.unmodifiableMap(time_unit_text_init1));
-		time_unit_text_init.put(Time_unit_layout.TUL_full_name,
-				Collections.unmodifiableMap(time_unit_text_init2));
-		time_unit_text_init.put(Time_unit_layout.TUL_digits_only,
-				Collections.unmodifiableMap(time_unit_text_init3));
-		time_unit_texts = Collections.unmodifiableMap(time_unit_text_init);
-		
 		semaphore_permits = 4;
-		settings = Settings.get_instance();
 	}
 	
 	
@@ -612,7 +609,9 @@ public abstract class Time_counter implements Serializable
 	 * element&nbsp;{@code [0]} represents <u>biggest</u> possible displayed
 	 * time&nbsp;value (is on the&nbsp;<u>left</u> side), and
 	 * element&nbsp;{@code [1]} represents <u>lowest</u> possible displayed
-	 * time&nbsp;value (is on the&nbsp;<u>right</u> side).
+	 * time&nbsp;value (is on the&nbsp;<u>right</u> side).<br>
+	 * <i>Note.</i> Changing returned value <u>does&nbsp;not</u> affect to
+	 * the&nbsp;stored one.
 	 */
 	public Time_unit_name[] get_time_value_edges()
 	{
@@ -971,7 +970,14 @@ public abstract class Time_counter implements Serializable
 	 * calling this method more than once <u>is&nbsp;not</u> harmful.<br>
 	 * <b>Warning!</b> Object using after calling this method
 	 * <u>is&nbsp;prohibited</u>. Its methods behavior <u>is&nbsp;undefined</u>
-	 * in this case (excluding this method).<br>
+	 * except next ones:
+	 * <ul><li><i>this</i> method;</li>
+	 * <li>{@link #build_time_string()};</li>
+	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
+	 * Two last listed methods are used in
+	 * {@link Settings#set_locale_setting(time_obj.Settings.Locale_setting)} and
+	 * <u>are&nbsp;guaranteed</u> not&nbsp;to cause any exceptions when invoked
+	 * after this method calling.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #add_Time_counter_text_listener(Time_counter_text_listener)};</li>
@@ -1085,7 +1091,8 @@ public abstract class Time_counter implements Serializable
 				// Если выбран строгий диапазон отображаемых единиц времени
 				if (time_display_style.equals(Time_display_style.TDS_custom_strict))
 				{
-					formatter.format(strict_display_mode_text);
+					formatter.format(time_counter_resources.getString(
+							"strict_display_mode_mark"));
 				}
 				
 				// Если значение отрицательное - в начале ставится знак "минус"
@@ -1491,36 +1498,38 @@ public abstract class Time_counter implements Serializable
 	 */
 	private void format(final Time_unit_name time_unit)
 	{
-		/* Если вместе с числовыми значениями единиц времени будут
-		 * выводиться их полные названия */
-		if (time_unit_layout.equals(Time_unit_layout.TUL_full_name))
+		formatter.format(format_conversions.get(time_unit),
+				time_unit_values.get(time_unit));
+		
+		switch (time_unit_layout)
 		{
-			// Числовое значение единицы времени текущей итерации
-			final long time_unit_value_num = time_unit_values.get(time_unit);
-			// Длина названия единицы времени
-			final long value_name_length = time_unit_texts.
-					get(time_unit_layout).get(time_unit).length() + 1;
-			/* Название единицы времени, передаваемое в качестве
-			 * аргумента для форматирования строки */
-			final String value_name_text =
-					time_unit_texts.get(time_unit_layout).get(time_unit) +
-					// TODO: Учесть вывод чисел, заканчивающихся на ...11
-					/* Условие тернарного оператора: Если числовое
-					 * значение единицы времени текущей итерации
-					 * заканчивается на ...1 - значит название этой
-					 * единицы времени будет выводиться в
-					 * единственном роде */
-					(time_unit_value_num % 10 == 1 ? "" : "s");
+		case TUL_value_sign:
+			formatter.format(time_counter_resources.getString(
+					time_unit_signs.get(time_unit)));
 			
-			formatter.format(format_conversions.get(time_unit) + "%" +
-					value_name_length + "s  ", time_unit_value_num,
-					value_name_text);
-		}
-		else
-		{
-			formatter.format(format_conversions.get(time_unit) +
-					time_unit_texts.get(time_unit_layout).get(time_unit),
-					time_unit_values.get(time_unit));
+			break;
+			
+		case TUL_short_name:
+			formatter.format(time_counter_resources.getString(
+					time_unit_short_names.get(time_unit)));
+			
+			break;
+			
+		case TUL_full_name:
+			formatter.format(Time_unit_full_name_resource_provider.get_name(
+					time_unit, time_unit_values.get(time_unit)));
+			
+			break;
+			
+		case TUL_digits_only:
+			formatter.format(time_counter_resources.getString(
+					time_unit_digits_only.get(time_unit)));
+			
+			break;
+		
+		default:
+			throw new EnumConstantNotPresentException(
+					Time_unit_layout.class, time_unit_layout.name());
 		}
 	}
 	

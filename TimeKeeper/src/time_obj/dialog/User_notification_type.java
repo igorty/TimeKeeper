@@ -15,6 +15,8 @@ public enum User_notification_type
 {
 	/** Error occurred during IO&nbsp;operation performing. */
 	UNT_IO_error,
+	/** Deserialized file contains incorrect values. */
+	UNT_file_error,
 	/** Cannot obtain system time&nbsp;zone rules. */
 	UNT_time_zone_error,
 	/** Informing notification. */
