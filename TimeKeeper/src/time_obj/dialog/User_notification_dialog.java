@@ -1,6 +1,5 @@
 ﻿package time_obj.dialog;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,16 +41,16 @@ public class User_notification_dialog
 	
 	
 	///// Методы public статические =======================================/////
-	/* TODO: ? Is there possible resource leak if object has not unsubscribed
-	 * from this event notifying, but is not referred anymore else? If so - need
-	 * to mention this in javadoc */
 	/**
 	 * Sets specified {@code listener} to be notified about <i>user notification
 	 * events</i>.<br>
-	 * <b>Important!</b> <u>Only one</u> {@link User_notification_listener} can be
+	 * <i>Notes.</i>
+	 * <ul><li><u>Only one</u> {@link User_notification_listener} can be
 	 * subscribed to receive <i>user notification event</i> simultaneously.
 	 * Calling this method <u>when there&nbsp;is another listener already set</u>
-	 * overwrites existing listener with new&nbsp;one.<br>
+	 * overwrites existing listener with new&nbsp;one.</li>
+	 * <li>It&nbsp;is recommended to unsubscribe listener from receiving event
+	 * when it is&nbsp;not used anymore to prevent possible resource leaks.</li></ul>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized with:
 	 * <ul><li>{@link #notify_listener_and_wait(User_notification_event, User_notification_type, String)};</li>
 	 * <li>{@link #notify_listener_and_continue(User_notification_event, User_notification_type, String)}.</li></ul>
@@ -121,11 +120,11 @@ public class User_notification_dialog
 	public static void notify_listener_and_wait(final User_notification_event event,
 			final User_notification_type user_notification_type, final String message)
 	{
-		// Method argumetns cannot be null
+		// Method arguments cannot be null
 		if (event == null || user_notification_type == null || message == null)
 		{
 			throw new NullPointerException(
-					"At least one of passed argumetns is null");
+					"At least one of passed arguments is null");
 		}
 		
 		// Generated event source object
@@ -231,7 +230,7 @@ public class User_notification_dialog
 				return;
 			}
 			
-			Executors.newSingleThreadExecutor().execute(new Runnable()
+			new Thread(new Runnable()
 			{
 				@Override
 				public void run()
@@ -239,7 +238,7 @@ public class User_notification_dialog
 					listener.user_notification_occurred(
 							event, user_notification_type, message);
 				}
-			});
+			}).start();
 		}
 		finally
 		{

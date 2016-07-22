@@ -11,6 +11,7 @@ import java.util.EnumMap;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -19,6 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import time_obj.containers.Modified_ArrayList;
 import time_obj.events.Time_counter_event;
 import time_obj.events.Time_counter_text_listener;
 import time_obj.events.Time_elapsed_listener;
@@ -310,7 +312,7 @@ public abstract class Time_counter implements Serializable
 	/** Synchronizes access to {@link #time_value_edges} field. */
 	private transient ReentrantLock time_value_edges_lock;
 	/** Synchronizes access to {@link #time_value_listeners} and
-	 * {@link #listeners_notifier} in addition. */
+	 * {@link #time_value_listeners_notifier}. */
 	private transient ReentrantLock time_value_listeners_lock;
 	/** Synchronizes access to {@link #time_elapsed_listeners}. */
 	private transient ReentrantLock time_elapsed_listeners_lock;
@@ -339,7 +341,7 @@ public abstract class Time_counter implements Serializable
 	
 	/** Notifies subscribed listeners contained in {@link #time_value_listeners}
 	 * using separate thread for each notification to speed&nbsp;up performance. */
-	private transient ThreadPoolExecutor listeners_notifier;
+	private transient ThreadPoolExecutor time_value_listeners_notifier;
 	
 
 	///// Нестатический блок инициализации ================================/////
@@ -354,8 +356,10 @@ public abstract class Time_counter implements Serializable
 		is_positive = true;
 		time_value_listeners = new ArrayList<>();
 		time_elapsed_listeners = new ArrayList<>();
-		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
-				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
+		time_value_listeners_notifier = new ThreadPoolExecutor(
+				0, Integer.MAX_VALUE,
+				0, TimeUnit.NANOSECONDS,
+				new LinkedTransferQueue<>());
 	}
 	
 	
@@ -740,17 +744,24 @@ public abstract class Time_counter implements Serializable
 	}
 	
 	
-	/* TODO: ? Is there possible resource leak if object has not unsubscribed
-	 * from this event notifying, but is not referred anymore else? If so - need
-	 * to mention this in javadoc */
 	/**
 	 * Adds specified {@code listener} to receive time&nbsp;counter's
 	 * time&nbsp;value <i>text change event</i>. Same {@code listener} <u>can</u>
 	 * be&nbsp;added multiple times.<br>
+	 * <i>Notes.</i>
+	 * <ul><li>It is recommended to unsubscribe listener using
+	 * {@link #remove_Time_counter_text_listener(Time_counter_text_listener)}
+	 * when there&nbsp;is no&nbsp;need to receive such event. Such action
+	 * reduces resource usage and prevents resource leaks.</li>
+	 * <li>However when removing the&nbsp;time&nbsp;counter object from
+	 * {@link Modified_ArrayList}, obtained by
+	 * {@link Time_counter_control#get_time_counters()} method, <u>all</u> its
+	 * listeners removed automatically.</li></ul>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #remove_Time_counter_text_listener(Time_counter_text_listener)};</li>
-	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 * 
 	 * @param listener Listener to be subscribed on event.
 	 * 
@@ -779,8 +790,8 @@ public abstract class Time_counter implements Serializable
 		try
 		{
 			time_value_listeners.add(listener);
-			listeners_notifier.setCorePoolSize(
-					listeners_notifier.getCorePoolSize() + 1);
+			time_value_listeners_notifier.setCorePoolSize(
+					time_value_listeners_notifier.getCorePoolSize() + 1);
 		}
 		finally
 		{
@@ -795,7 +806,8 @@ public abstract class Time_counter implements Serializable
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #add_Time_counter_text_listener(Time_counter_text_listener)};</li>
-	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
+	 * <li>{@link #notify_time_counter_text_listeners()};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 * 
 	 * @param listener Listener to be unsubscribed from event notifying.
 	 * 
@@ -834,8 +846,8 @@ public abstract class Time_counter implements Serializable
 			// If given "listener" was unsubscribed from event notifying
 			if (is_removed)
 			{
-				listeners_notifier.setCorePoolSize(
-						listeners_notifier.getCorePoolSize() - 1);
+				time_value_listeners_notifier.setCorePoolSize(
+						time_value_listeners_notifier.getCorePoolSize() - 1);
 			}
 			
 			return is_removed;
@@ -847,16 +859,23 @@ public abstract class Time_counter implements Serializable
 	}
 	
 	
-	/* TODO: ? Is there possible resource leak if object has not unsubscribed
-	 * from this event notifying, but is not referred anymore else? If so - need
-	 * to mention this in javadoc */
 	/**
 	 * Adds specified {@code listener} to receive <i>time elapsed event</i>.
 	 * Same {@code listener} <u>can</u> be&nbsp;added multiple times.<br>
+	 * <i>Notes.</i>
+	 * <ul><li>It is recommended to unsubscribe listener using
+	 * {@link #remove_Time_elapsed_listener(Time_elapsed_listener)} when
+	 * there&nbsp;is no&nbsp;need to receive such event. Such action reduces
+	 * resource usage and prevents resource leaks.</li>
+	 * <li>However when removing the&nbsp;time&nbsp;counter object from
+	 * {@link Modified_ArrayList}, obtained by
+	 * {@link Time_counter_control#get_time_counters()} method, <u>all</u> its
+	 * listeners removed automatically.</li></ul>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #remove_Time_elapsed_listener(Time_elapsed_listener)};</li>
-	 * <li>{@link #notify_time_elapsed_listeners()}.</li></ul>
+	 * <li>{@link #notify_time_elapsed_listeners()};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 * 
 	 * @param listener Listener to be subscribed on event.
 	 * 
@@ -898,7 +917,8 @@ public abstract class Time_counter implements Serializable
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #add_Time_elapsed_listener(Time_elapsed_listener)};</li>
-	 * <li>{@link #notify_time_elapsed_listeners()}.</li></ul>
+	 * <li>{@link #notify_time_elapsed_listeners()};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 * 
 	 * @param listener Listener to be unsubscribed from event notifying.
 	 * 
@@ -931,6 +951,86 @@ public abstract class Time_counter implements Serializable
 		try
 		{
 			return time_elapsed_listeners.remove(listener);
+		}
+		finally
+		{
+			time_elapsed_listeners_lock.unlock();
+		}
+	}
+	
+	
+	/**
+	 * Releases all resources (threads, listeners). Is&nbsp;necessary when this
+	 * instance is&nbsp;not&nbsp;needed anymore.
+	 * This method is invoked in {@link Modified_ArrayList}
+	 * container&nbsp;methods related&nbsp;to removing object(&#8209;s).
+	 * Such&nbsp;container exists in {@link Time_counter_control} object and can
+	 * be obtained by calling {@link Time_counter_control#get_time_counters()}.
+	 * So there&nbsp;is <u>no&nbsp;need</u> to call this method explicitly
+	 * before removing the&nbsp;instance from mentioned container. However,
+	 * calling this method more than once <u>is&nbsp;not</u> harmful.<br>
+	 * <b>Warning!</b> Object using after calling this method
+	 * <u>is&nbsp;prohibited</u>. Its methods behavior <u>is&nbsp;undefined</u>
+	 * in this case (excluding this method).<br>
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with:
+	 * <ul><li>{@link #add_Time_counter_text_listener(Time_counter_text_listener)};</li>
+	 * <li>{@link #notify_time_counter_text_listeners()};</li>
+	 * <li>{@link #remove_Time_counter_text_listener(Time_counter_text_listener)};</li>
+	 * <li>{@link #add_Time_elapsed_listener(Time_elapsed_listener)};</li>
+	 * <li>{@link #notify_time_elapsed_listeners()};</li>
+	 * <li>{@link #remove_Time_elapsed_listener(Time_elapsed_listener)}.</li></ul>
+	 */
+	public void shutdown()
+	{
+		time_value_listeners_lock.lock();
+		
+		try
+		{
+			time_value_listeners.clear();
+			time_value_listeners_notifier.shutdown();
+			
+			new Thread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					try
+					{
+						time_value_listeners_notifier.awaitTermination(
+								5, TimeUnit.SECONDS);
+					}
+					catch (final InterruptedException exc)
+					{
+						logger.log(Level.INFO,
+								"Thread interrupts. Exception stack trace:", exc);
+						Thread.currentThread().interrupt();
+					}
+					finally
+					{
+						/* If ThreadPoolExecutor hasn't shutdown during waiting
+						 * time */
+						if (!time_value_listeners_notifier.isTerminated())
+						{
+							logger.log(Level.WARNING,
+									"Forcible " + ThreadPoolExecutor.class.getName()
+											+ " termination due\u00A0to long waiting");
+							time_value_listeners_notifier.shutdownNow();
+						}
+					}
+				}
+			}).start();
+		}
+		finally
+		{
+			time_value_listeners_lock.unlock();
+		}
+		
+		time_elapsed_listeners_lock.lock();
+		
+		try
+		{
+			time_elapsed_listeners.clear();
 		}
 		finally
 		{
@@ -1146,7 +1246,8 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #set_time_display_style(Time_display_style)};</li>
 	 * <li>{@link #set_time_unit_layout(Time_unit_layout)};</li>
 	 * <li>{@link #add_Time_counter_text_listener(Time_counter_text_listener)};</li>
-	 * <li>{@link #remove_Time_counter_text_listener(Time_counter_text_listener)}.</li></ul>
+	 * <li>{@link #remove_Time_counter_text_listener(Time_counter_text_listener)};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 */
 	protected final void notify_time_counter_text_listeners()
 	{
@@ -1181,7 +1282,7 @@ public abstract class Time_counter implements Serializable
 				// Listeners notification
 				for (final Time_counter_text_listener i : time_value_listeners)
 				{
-					listeners_notifier.execute(new Runnable()
+					time_value_listeners_notifier.execute(new Runnable()
 					{
 						@Override
 						public void run()
@@ -1319,7 +1420,8 @@ public abstract class Time_counter implements Serializable
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with:
 	 * <ul><li>{@link #add_Time_elapsed_listener(Time_elapsed_listener)};</li>
-	 * <li>{@link #remove_Time_elapsed_listener(Time_elapsed_listener)}.</li></ul>
+	 * <li>{@link #remove_Time_elapsed_listener(Time_elapsed_listener)};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 */
 	protected void notify_time_elapsed_listeners()
 	{
@@ -1333,16 +1435,22 @@ public abstract class Time_counter implements Serializable
 			Thread.currentThread().interrupt();
 		}
 		
+		/* Time elapsed listeners notifier to notify each listener in a separate
+		 * thread */
+		ThreadPoolExecutor notifier = null;
+		
 		try
 		{
 			final int time_elapsed_listeners_quantity =
 					time_elapsed_listeners.size();
-			/* Time elapsed listeners notifier to notify each listener in
-			 * a separate thread */
-			final ThreadPoolExecutor notifier = new ThreadPoolExecutor(
+			
+			notifier = new ThreadPoolExecutor(
 					time_elapsed_listeners_quantity,
-					time_elapsed_listeners_quantity, 0, TimeUnit.NANOSECONDS,
-					new LinkedTransferQueue<>());
+					time_elapsed_listeners_quantity,
+					0, TimeUnit.NANOSECONDS,
+					new ArrayBlockingQueue<>(time_elapsed_listeners_quantity));
+			notifier.prestartAllCoreThreads();
+			
 			// Reference to THIS object to send as event object
 			final Time_counter instance = this;
 			
@@ -1363,6 +1471,12 @@ public abstract class Time_counter implements Serializable
 		finally
 		{
 			time_elapsed_listeners_lock.unlock();
+			
+			// Shutdown executor
+			if (notifier != null)
+			{
+				notifier.setCorePoolSize(0);
+			}
 		}
 	}
 	
@@ -1478,7 +1592,7 @@ public abstract class Time_counter implements Serializable
 		time_unit_values = new EnumMap<>(Time_unit_name.class);
 		time_value_listeners = new ArrayList<>();
 		time_elapsed_listeners = new ArrayList<>();
-		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
+		time_value_listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
 				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}
 }

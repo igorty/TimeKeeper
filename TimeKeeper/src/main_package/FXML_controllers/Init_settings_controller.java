@@ -637,6 +637,19 @@ public class Init_settings_controller
 	}
 	
 	
+	/**
+	 * Shuts&nbsp;down this controller threads.<br>
+	 * This class has one {@link ExecutorService} which is kept alive for
+	 * 1&nbsp;minute from last runnable executing, after which becomes dormant.
+	 * However it&nbsp;is recommended to call this method to prevent possible
+	 * delays if the&nbsp;whole program need to be shutdown immediately.
+	 */
+	public void shutdown()
+	{
+		executor.shutdown();
+	}
+	
+	
 	///// Методы private экземпляра =======================================/////
 	/**
 	 * Вызывается {@link FXMLLoader}'ом.

@@ -810,7 +810,13 @@ class New_time_counter_window
 		init_countdown_till_pane_controller = null;
 		
 		init_settings_pane = null;
-		init_settings_pane_controller = null;
+		
+		// Need to terminate its inner threads
+		if (init_settings_pane_controller != null)
+		{
+			init_settings_pane_controller.shutdown();
+			init_settings_pane_controller = null;
+		}
 	}
 	
 	

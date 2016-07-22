@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -259,7 +260,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			catch (final IndexOutOfBoundsException exc)
 			{
 				logger.log(Level.SEVERE, "Fatal error.\nReason: Passed index"
-						+ " argument is out of bounds. Exception\'s stack trace:", exc);
+						+ " argument is out of bounds. Exception stack trace:", exc);
 				throw exc;
 			}
 			
@@ -311,6 +312,13 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 					Collection.class.getName() + " argument contains null");
 		}
 		
+		// If there are duplicates inside given collection
+		if (collection.size() != new HashSet<>(collection).size())
+		{
+			throw new IllegalArgumentException("There are duplicates in "
+					+ Collection.class.getName() + " argument");
+		}
+		
 		try
 		{
 			modification_lock.lockInterruptibly();
@@ -325,7 +333,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		{
 			/* Проверка элементов полученного контейнера на наличие их в этом
 			 * контейнере */
-			for (Time_counter i : collection)
+			for (final Time_counter i : collection)
 			{
 				if (this.contains(i))
 				{
@@ -391,6 +399,13 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 					Collection.class.getName() + " argument contains null");
 		}
 		
+		// If there are duplicates inside given collection
+		if (collection.size() != new HashSet<>(collection).size())
+		{
+			throw new IllegalArgumentException("There are duplicates in "
+					+ Collection.class.getName() + " argument");
+		}
+		
 		try
 		{
 			modification_lock.lockInterruptibly();
@@ -405,7 +420,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		{
 			/* Проверка элементов полученного контейнера на наличие их в этом
 			 * контейнере */
-			for (Time_counter i : collection)
+			for (final Time_counter i : collection)
 			{
 				if (this.contains(i))
 				{
@@ -425,7 +440,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			catch (final IndexOutOfBoundsException exc)
 			{
 				logger.log(Level.SEVERE, "Fatal error.\n Reason: Passed index"
-						+ " argument is out of bounds. Exception\'s stack trace:", exc);
+						+ " argument is out of bounds. Exception stack trace:", exc);
 				throw exc;
 			}
 			
@@ -462,6 +477,12 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		try
 		{
+			// Shutdown all objects
+			for (final Time_counter i : this)
+			{
+				i.shutdown();
+			}
+			
 			super.clear();
 			
 			instance_counters_quantity = 0;
@@ -509,11 +530,12 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			try
 			{
 				removed_element = super.remove(index);
+				removed_element.shutdown();
 			}
 			catch (final IndexOutOfBoundsException exc)
 			{
 				logger.log(Level.SEVERE, "Fatal error.\nReason: Passed index"
-						+ " argument is out of bounds. Exception\'s stack trace:", exc);
+						+ " argument is out of bounds. Exception stack trace:", exc);
 				throw exc;
 			}
 			
@@ -579,6 +601,10 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 				return false;
 			}
 			
+			// Cast object to remove with a view to shutdown
+			final Time_counter to_shutdown = (Time_counter)to_remove;
+			
+			to_shutdown.shutdown();
 			--instance_counters_quantity;
 			Time_counter_control.get_instance().remove_instance_counter(
 					(Instance_counter)to_remove);
@@ -622,6 +648,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		// Если в коллекции есть элементы И ...
 		if (!collection.isEmpty() &&
+				/* TODO? Is this checking needed or ArrayList provides such
+				 * checking itself? */
 				/* ... тип этих элементов отличный от "Time_counter" или его
 				 * подклассов */
 				!(collection.iterator().next() instanceof Time_counter))
@@ -650,6 +678,14 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 				return false;
 			}
 			
+			// Shutdown all removed elements
+			for (final Object i : collection)
+			{
+				final Time_counter to_shutdown = (Time_counter)i;
+				
+				to_shutdown.shutdown();
+			}
+			
 			transfer_collection_to_counter_control(
 					(Collection<? extends Time_counter>)collection,
 					Transfer_collection_mode.TCM_remove);
@@ -663,7 +699,6 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	}
 	
 	
-	// TODO: ? Правильно ли описание "<? super Time_counter>"?
 	/**
 	 * Удаляет все элементы контейнера, которые удовлетворяют указанному
 	 * условию. Ошибки времени выполнения, возникающие в процессе итерации,
@@ -682,13 +717,6 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	@Override
 	public boolean removeIf(final Predicate<? super Time_counter> filter)
 	{
-		// Если получен null в качестве параметра
-		if (filter == null)
-		{
-			throw new NullPointerException(
-					Predicate.class.getName() + " argument is null");
-		}
-		
 		try
 		{
 			modification_lock.lockInterruptibly();
@@ -706,12 +734,13 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			
 			/* Отбор удаляемых элементов контейнера для последующего поиска в
 			 * них экземпляров типа "Instance_counter" */
-			for (Time_counter i : this)
+			for (final Time_counter i : this)
 			{
 				// Если данный элемент контейнера необходимо удалить
 				if(filter.test(i))
 				{
 					to_remove.add(i);
+					i.shutdown();
 				}
 			}
 			
@@ -746,7 +775,6 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 	}
 	
 	
-	// TODO: ? Возможно вызывает исключение UnsupportedOperationException
 	/**
 	 * Удаляет все элементы контейнера, кроме тех которые содержатся в
 	 * полученной коллекции.<br>
@@ -778,6 +806,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		
 		// Если в коллекции есть элементы И ...
 		if (!collection.isEmpty() &&
+				/* TODO? Is this checking needed or ArrayList provides such
+				 * checking itself? */
 				/* ... тип этих элементов отличный от "Time_counter" или его
 				 * подклассов */
 				!(collection.iterator().next() instanceof Time_counter))
@@ -807,6 +837,16 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			if (!result)
 			{
 				return result;
+			}
+			
+			// Shutdown objects that are not in group to retain
+			for (final Time_counter i : this)
+			{
+				// If this time counter needed to be deleted
+				if (!collection.contains(i))
+				{
+					i.shutdown();
+				}
 			}
 			
 			transfer_collection_to_counter_control(
@@ -868,8 +908,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			// Если контейнер уже содержит добавляемый элемент
 			if (this.contains(element))
 			{
-				throw new IllegalArgumentException(Time_counter.class.getName() +
-						" argument already exists in container");
+				throw new IllegalArgumentException(Time_counter.class.getName()
+						+ " argument already exists in container");
 			}
 			
 			// Элемент, который необходимо заменить
@@ -878,11 +918,12 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			try
 			{
 				to_replace = super.set(index, element);
+				to_replace.shutdown();
 			}
 			catch (final IndexOutOfBoundsException exc)
 			{
 				logger.log(Level.SEVERE, "Passed index argument is out of bounds."
-						+ " Exception\'s stack trace:", exc);
+						+ " Exception stack trace:", exc);
 				throw exc;
 			}
 			
@@ -982,8 +1023,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			final Collection<? extends Time_counter> collection,
 			final Transfer_collection_mode action)
 	{
-		/* Временный контейнер для передачи синглтону "counter_control" всех
-		 * объектов "Instance_counter", обнаруженных в "collection_init", */
+		/* All "Instance_counter" objects which present in "collection" to pass
+		 * to "time_obj.Time_counter_control" singleton */
 		final ArrayList<Instance_counter> buffer = new ArrayList<>();
 		
 		/* Если необходимо оставить указанные элементы в списке синхронно
@@ -994,9 +1035,9 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			instance_counters_quantity = 0;
 		}
 
-		/* Поиск объектов типа "Instance_counter" в коллекции "collection_init"
-		 * для их передачи синглтону "counter_control" */
-		for (Time_counter i : collection)
+		/* Searching for "Instance_counter" objects in "collection" to pass them
+		 * to "time_obj.Time_counter_control" singleton */
+		for (final Time_counter i : collection)
 		{
 			// Если объект является экземпляром класса "Instance_counter"
 			if (i instanceof Instance_counter)
@@ -1016,7 +1057,8 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			}
 		}
 		
-		// Вызов метода из "counter_control" в зависимости от требуемой операции
+		/* Choosing "time_obj.Time_counter_control" method to call depending on
+		 * operation needed */
 		switch (action)
 		{
 		case TCM_add:

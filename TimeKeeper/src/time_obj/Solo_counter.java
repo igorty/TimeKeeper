@@ -7,8 +7,8 @@ import java.io.Serializable;
 import java.time.LocalTime;
 import java.time.Period;
 import java.util.ArrayList;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import time_obj.containers.Modified_ArrayList;
 import time_obj.events.Numeric_overflow_event;
 import time_obj.events.Numeric_overflow_listener;
 
@@ -192,19 +193,11 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <li>{@link Time_counter#is_positive_value()};</li>
 	 * <li>{@link #start()}.</li></ul> */
 	private transient ReentrantLock modify_lock;
-	/** Synchronizes relative to the&nbsp;listeners fields access.<br>
-	 * <i>Fields access to which is synchronized by this lock:</i>
-	 * <ul><li>{@link #numeric_overflow_listeners};</li>
-	 * <li>{@link #listeners_notifier}.</li></ul> */
+	/** Synchronizes access to {@link #numeric_overflow_listeners}. */
 	private transient ReentrantLock event_lock;
 	
 	/** Contains listeners subscribed for numeric overflow event. */
 	private transient ArrayList<Numeric_overflow_listener> numeric_overflow_listeners;
-	
-	/** Notifies subscribed listeners contained in
-	 * {@link #numeric_overflow_listeners} using separate thread for each
-	 * notification to speed&nbsp;up performance. */
-	private transient ThreadPoolExecutor listeners_notifier;
 	
 	
 	// Нестатическая инициализация ========================================/////
@@ -216,8 +209,6 @@ public class Solo_counter extends Time_counter implements Serializable
 		modify_lock = new ReentrantLock();
 		event_lock = new ReentrantLock();
 		numeric_overflow_listeners = new ArrayList<>();
-		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
-				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}
 
 
@@ -920,15 +911,22 @@ public class Solo_counter extends Time_counter implements Serializable
 	}
 	
 	
-	/* TODO: ? Is there possible resource leak if object has not unsubscribed
-	 * from this event notifying, but is not referred anymore else? If so - need
-	 * to mention this in javadoc */
 	/**
 	 * Adds specified {@code listener} to receive numeric overflow event. Same
 	 * {@code listener} <u>can</u> be&nbsp;added multiple times.<br>
+	 * <i>Notes.</i>
+	 * <ul><li>It is recommended to unsubscribe listener using
+	 * {@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)} when
+	 * there&nbsp;is no&nbsp;need to receive such event. Such action reduces
+	 * resource usage and prevents resource leaks.</li>
+	 * <li>However when removing the&nbsp;time&nbsp;counter object from
+	 * {@link Modified_ArrayList}, obtained by
+	 * {@link Time_counter_control#get_time_counters()} method, <u>all</u> its
+	 * listeners removed automatically.</li></ul>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with (private methods <u>are&nbsp;not</u> listed):
-	 * <ul><li>{@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
+	 * <ul><li>{@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)};</li>
+	 * <li>{@link #shutdown()}.</li></ul>
 	 * 
 	 * @param listener Listener to be subscribed on event.
 	 * 
@@ -957,8 +955,6 @@ public class Solo_counter extends Time_counter implements Serializable
 		try
 		{
 			numeric_overflow_listeners.add(listener);
-			listeners_notifier.setCorePoolSize(
-					listeners_notifier.getCorePoolSize() + 1);
 		}
 		finally
 		{
@@ -972,7 +968,8 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * <u>if such present</u>.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with (private methods <u>are&nbsp;not</u> listed):
-	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
+	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)};</li>]
+	 * <li>{@link #shutdown()}.</li></ul>
 	 * 
 	 * @param listener Listener to be unsubscribed from event.
 	 * 
@@ -1005,23 +1002,37 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		try
 		{
-			// true - given "listener" is successfully removed; false - otherwise
-			final boolean is_removed =
-					numeric_overflow_listeners.remove(listener);
-			
-			// If given "listener" was unsubscribed from event notifying
-			if (is_removed)
-			{
-				listeners_notifier.setCorePoolSize(
-						listeners_notifier.getCorePoolSize() - 1);
-			}
-			
-			return is_removed;
+			return numeric_overflow_listeners.remove(listener);
 		}
 		finally
 		{
 			event_lock.unlock();
 		}
+	}
+	
+	
+	/**
+	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
+	 * with (private methods <u>are&nbsp;not</u> listed):
+	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)}</li>
+	 * <li>{@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)}.</li></ul>
+	 */
+	@Override
+	public void shutdown()
+	{
+		pause();
+		event_lock.lock();
+		
+		try
+		{
+			numeric_overflow_listeners.clear();
+		}
+		finally
+		{
+			event_lock.unlock();
+		}
+		
+		super.shutdown();
 	}
 	
 	
@@ -1127,8 +1138,6 @@ public class Solo_counter extends Time_counter implements Serializable
 		modify_lock = new ReentrantLock();
 		event_lock = new ReentrantLock();
 		numeric_overflow_listeners = new ArrayList<>();
-		listeners_notifier = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0,
-				TimeUnit.NANOSECONDS, new LinkedTransferQueue<>());
 	}
 	
 	
@@ -1452,15 +1461,29 @@ public class Solo_counter extends Time_counter implements Serializable
 			Thread.currentThread().interrupt();
 		}
 		
+		/* Numeric overflow listeners notifier to notify each listener in
+		 * a separate thread */
+		ThreadPoolExecutor notifier = null;
+		
 		try
 		{
+			final int numeric_overflow_listeners_quantity =
+					numeric_overflow_listeners.size();
+			
+			notifier = new ThreadPoolExecutor(
+					numeric_overflow_listeners_quantity,
+					numeric_overflow_listeners_quantity,
+					0, TimeUnit.NANOSECONDS,
+					new ArrayBlockingQueue<>(numeric_overflow_listeners_quantity));
+			notifier.prestartAllCoreThreads();
+			
 			// This object's reference to be passed with event
 			final Solo_counter instance = this;
 			
 			// Listeners notification
 			for (final Numeric_overflow_listener i : numeric_overflow_listeners)
 			{
-				listeners_notifier.execute(new Runnable()
+				notifier.execute(new Runnable()
 				{
 					@Override
 					public void run()
@@ -1474,6 +1497,12 @@ public class Solo_counter extends Time_counter implements Serializable
 		finally
 		{
 			event_lock.unlock();
+			
+			// Shutdown executor
+			if (notifier != null)
+			{
+				notifier.setCorePoolSize(0);
+			}
 		}
 	}
 }

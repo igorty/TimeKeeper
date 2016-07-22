@@ -98,8 +98,6 @@ public class Time_counter_control
 	
 	///// Нестатическая инициализация =====================================/////
 	{
-		instance_counters_executor = Executors.newCachedThreadPool();
-		
 		synchronous_task = new Runnable()
 		{
 			@Override
@@ -694,7 +692,6 @@ public class Time_counter_control
 	}
 	
 	
-	// TODO: ? Возможно вызывает исключение UnsupportedOperationException
 	/**
 	 * Удаляет все элементы из общего списка синхронно выполняющихся объектов
 	 * за&nbsp;исключением объектов из указанного контейнера.<br>
@@ -853,9 +850,9 @@ public class Time_counter_control
 	
 	///// Методы private экземпляра =======================================/////
 	/**
-	 * Отвечает за запуск/приостановку executor'а
-	 * {@link #synchronous_task_executor}. При вызове определяет необходимость
-	 * запуска либо остановки executor'а.
+	 * Is in&nbsp;charge for {@link #synchronous_task_executor} and
+	 * {@link #instance_counters_executor} launching/terminating. Determines
+	 * the&nbsp;necessary action when called.
 	 */
 	private void synchronous_task_executor_manager()
 	{
@@ -871,6 +868,7 @@ public class Time_counter_control
 				return;
 			}
 			
+			instance_counters_executor = Executors.newCachedThreadPool();
 			Instance_counter.difference_calculation_barrier =
 					instance_counters_barrier;
 			synchronous_task_executor =
@@ -888,10 +886,12 @@ public class Time_counter_control
 			}
 			
 			synchronous_task_executor.shutdown();
+			instance_counters_executor.shutdown();
 			
 			try
 			{
 				synchronous_task_executor.awaitTermination(1, TimeUnit.SECONDS);
+				instance_counters_executor.awaitTermination(1, TimeUnit.SECONDS);
 			}
 			/* Данное исключение не ожидается. Даже в случае его возникновения
 			 * необходимо полностью выполнить метод с целью принудительного
@@ -904,9 +904,22 @@ public class Time_counter_control
 						+ " thread will continue to execute. Exception stack trace:", exc);
 			}
 			
+			// If this executor wasn't terminated while waiting
 			if (!synchronous_task_executor.isTerminated())
 			{
+				logger.log(Level.WARNING,
+						"Forcible " + ScheduledExecutorService.class.getName()
+								+ " termination due\u00A0to long waiting");
 				synchronous_task_executor.shutdownNow();
+			}
+			
+			// If this executor wasn't terminated while waiting
+			if (!instance_counters_executor.isTerminated())
+			{
+				logger.log(Level.WARNING,
+						"Forcible " + ExecutorService.class.getName()
+								+ " termination due\u00A0to long waiting");
+				instance_counters_executor.shutdownNow();
 			}
 		}
 	}
