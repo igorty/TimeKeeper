@@ -6,12 +6,12 @@
 
 <VBox spacing="20.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="main_package.FXML_controllers.Init_Time_counter_type_controller">
    <children>
-      <RadioButton fx:id="stopwatch_radio_button" mnemonicParsing="false" selected="true">
+      <RadioButton fx:id="stopwatch_radio_button" mnemonicParsing="false" selected="true" text="%modes.stopwatch">
          <toggleGroup>
             <ToggleGroup fx:id="toggle_group" />
          </toggleGroup></RadioButton>
-      <RadioButton fx:id="countdown_radio_button" mnemonicParsing="false" toggleGroup="$toggle_group" />
-      <RadioButton fx:id="elapsed_from_radio_button" mnemonicParsing="false" toggleGroup="$toggle_group" />
-      <RadioButton fx:id="countdown_till_radio_button" mnemonicParsing="false" toggleGroup="$toggle_group" />
+      <RadioButton fx:id="countdown_radio_button" mnemonicParsing="false" text="%modes.timer" toggleGroup="$toggle_group" />
+      <RadioButton fx:id="elapsed_from_radio_button" mnemonicParsing="false" text="%modes.elapsed_from" toggleGroup="$toggle_group" />
+      <RadioButton fx:id="countdown_till_radio_button" mnemonicParsing="false" text="%modes.remains_till" toggleGroup="$toggle_group" />
    </children>
 </VBox>

@@ -28,37 +28,37 @@
    <children>
       <VBox>
          <children>
-            <Label text="Years" />
+            <Label text="%Solo_counter_time_fields.years" />
             <TextField fx:id="years_field" maxWidth="81.0" promptText="0" />
          </children>
       </VBox>
       <VBox GridPane.columnIndex="1">
          <children>
-            <Label text="Months" />
+            <Label text="%Solo_counter_time_fields.months" />
             <TextField fx:id="months_field" maxWidth="81.0" promptText="0" />
          </children>
       </VBox>
       <VBox GridPane.columnIndex="2">
          <children>
-            <Label text="Days" />
+            <Label text="%Solo_counter_time_fields.days" />
             <TextField fx:id="days_field" maxWidth="81.0" promptText="0" />
          </children>
       </VBox>
       <VBox GridPane.rowIndex="1">
          <children>
-            <Label text="Hours" />
+            <Label text="%Solo_counter_time_fields.hours" />
             <TextField fx:id="hours_field" maxWidth="81.0" promptText="0" />
          </children>
       </VBox>
       <VBox GridPane.columnIndex="1" GridPane.rowIndex="1">
          <children>
-            <Label text="Minutes" />
+            <Label text="%Solo_counter_time_fields.minutes" />
             <TextField fx:id="minutes_field" maxWidth="81.0" promptText="0" />
          </children>
       </VBox>
       <VBox GridPane.columnIndex="2" GridPane.rowIndex="1">
          <children>
-            <Label text="Seconds" />
+            <Label text="%Solo_counter_time_fields.seconds" />
             <TextField fx:id="seconds_field" maxWidth="81.0" promptText="0" />
          </children>
       </VBox>
@@ -77,7 +77,7 @@
       </Label>
       <FlowPane prefWrapLength="0.0" GridPane.columnSpan="3" GridPane.rowIndex="3">
          <children>
-            <Label text="Days count">
+            <Label text="%time_counter_settings.days_count">
                <padding>
                   <Insets right="10.0" />
                </padding>

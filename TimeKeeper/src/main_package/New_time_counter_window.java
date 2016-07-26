@@ -5,7 +5,7 @@ import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,10 +34,16 @@ import main_package.FXML_controllers.Init_settings_controller.Init_settings;
 import main_package.FXML_controllers.Init_Solo_counter_controller.Time_values;
 import main_package.dialog.Error_dialog;
 import main_package.dialog.Error_dialog.Template_message;
+import main_package.events.Locale_change_listener;
 import time_obj.Mode;
 import time_obj.Settings;
 
 
+/* TODO? If this class instance won't be used several times, provide its
+ * unsubscribing from receiving locale change events
+ * ("main_package.GUI_settings.remove_Locale_change_listener()" method) when
+ * the class instance is going out of scope. Also unsubscribe listening in
+ * controller objects used by this class. */
 /**
  * Реализует окно создания счетчика времени. Экземпляр данного класса можно
  * использовать повторно.
@@ -88,6 +94,9 @@ class New_time_counter_window
 	 * {@code Esc}. */
 	private static final String esc_key_combination_text;
 	
+	/** Graphic user interface settings. */
+	private static final GUI_settings gui_settings;
+	
 	
 	static
 	{
@@ -95,8 +104,8 @@ class New_time_counter_window
 		
 		// Строки, которые должны содержаться в контейнере "mode_img_directories"
 		final String[] mode_img_directories_strings = {
-				"../images/stopwatch_large.png", "../images/countdown_large.png",
-				"../images/elapsed_from_large.png", "../images/countdown_till_large.png" };
+				"images/stopwatch_large.png", "images/countdown_large.png",
+				"images/elapsed_from_large.png", "images/countdown_till_large.png" };
 		// Все элементы перечисления "Mode"
 		final Mode[] mode_values = Mode.values();
 		
@@ -117,11 +126,17 @@ class New_time_counter_window
 		
 		mode_img_directories =
 				Collections.unmodifiableMap(mode_img_directories_init);
-		basic_init_layout_directory = "Basic_init_layout.fxml";
-		init_Time_counter_type_layout_directory = "Init_Time_counter_type_layout.fxml";
-		init_Solo_counter_layout_directory = "Init_Solo_counter_layout.fxml";
-		init_Instance_counter_layout_directory = "Init_Instance_counter_layout.fxml";
-		init_settings_layout_directory = "Init_settings_layout.fxml";
+		
+		basic_init_layout_directory = "FXML_controllers/Basic_init_layout.fxml";
+		init_Time_counter_type_layout_directory =
+				"FXML_controllers/Init_Time_counter_type_layout.fxml";
+		init_Solo_counter_layout_directory =
+				"FXML_controllers/Init_Solo_counter_layout.fxml";
+		init_Instance_counter_layout_directory =
+				"FXML_controllers/Init_Instance_counter_layout.fxml";
+		init_settings_layout_directory =
+				"FXML_controllers/Init_settings_layout.fxml";
+		
 		shortcut_enter_key_combination =
 				new KeyCodeCombination(KeyCode.ENTER, KeyCombination.SHORTCUT_DOWN);
 		shortcut_esc_key_combination =
@@ -132,10 +147,22 @@ class New_time_counter_window
 				new KeyCodeCombination(KeyCode.ENTER).getDisplayText() + " >";
 		esc_key_combination_text = "< " +
 				new KeyCodeCombination(KeyCode.ESCAPE).getDisplayText() + " >";
+		
+		gui_settings = GUI_settings.get_instance();
 	}
 	
 	
 	///// Поля private экземпляра =========================================/////
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * dialog messages. */
+	private ResourceBundle messages_resources;
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * labels names. */
+	private ResourceBundle labels_resources;
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * hints and tooltips texts. */
+	private ResourceBundle hints_resources;
+	
 	/** {@code FXML}&#8209;загрузчик класса {@link Basic_init_controller},
 	 * отвечающего за корневую панель компоновки. */
 	private final FXMLLoader basic_init_controller_fxml_loader;
@@ -211,15 +238,25 @@ class New_time_counter_window
 	
 	///// Нестатическая инициализация =====================================/////
 	{
+		messages_resources = gui_settings.get_messages_resources();
+		labels_resources = gui_settings.get_labels_resources();
+		hints_resources = gui_settings.get_hints_resources();
+		
 		basic_init_controller_fxml_loader = new FXMLLoader();
 		basic_init_controller_fxml_loader.setLocation(
 				New_time_counter_window.class.getResource(basic_init_layout_directory));
+		basic_init_controller_fxml_loader.setResources(gui_settings.get_buttons_resources());
+		root_pane = basic_init_controller_fxml_loader.load();
 		root_pane_controller = basic_init_controller_fxml_loader.getController();
 		
 		init_Time_counter_type_controller_fxml_loader = new FXMLLoader();
 		init_Time_counter_type_controller_fxml_loader.setLocation(
 				New_time_counter_window.class.getResource(
 						init_Time_counter_type_layout_directory));
+		init_Time_counter_type_controller_fxml_loader.setResources(
+				gui_settings.get_time_counter_resources());
+		time_counter_type_set_pane =
+				init_Time_counter_type_controller_fxml_loader.load();
 		time_counter_type_set_pane_controller =
 				init_Time_counter_type_controller_fxml_loader.getController();
 		
@@ -249,6 +286,8 @@ class New_time_counter_window
 		init_settings_pane_controller = null;
 		
 		stage = new Stage();
+		
+		// TODO: stage.setOnCloseRequest()
 		
 		shortcut_n_accelerator = new Runnable()
 		{
@@ -283,8 +322,7 @@ class New_time_counter_window
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
 										init_Solo_counter_layout_directory));
-						init_stopwatch_pane_controller =
-								stage_2_fxml_loader.getController();
+						stage_2_fxml_loader.setResources(labels_resources);
 						
 						try
 						{
@@ -293,7 +331,7 @@ class New_time_counter_window
 						catch (final IOException exc)
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
-									+ " fxml layout. Exception\'s stack trace:", exc);
+									+ " fxml layout. Exception stack trace:", exc);
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
@@ -301,6 +339,9 @@ class New_time_counter_window
 							
 							return;
 						}
+						
+						init_stopwatch_pane_controller =
+								stage_2_fxml_loader.getController();
 					}
 					
 					root_pane.setCenter(init_stopwatch_pane);
@@ -340,7 +381,7 @@ class New_time_counter_window
 								 * as argument */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_default_layout_settings();
+								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -359,8 +400,7 @@ class New_time_counter_window
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
 										init_Solo_counter_layout_directory));
-						init_countdown_pane_controller =
-								stage_2_fxml_loader.getController();
+						stage_2_fxml_loader.setResources(labels_resources);
 						
 						try
 						{
@@ -369,7 +409,7 @@ class New_time_counter_window
 						catch (final IOException exc)
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
-									+ " fxml layout. Exception\'s stack trace:", exc);
+									+ " fxml layout. Exception stack trace:", exc);
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
@@ -377,6 +417,9 @@ class New_time_counter_window
 							
 							return;
 						}
+						
+						init_countdown_pane_controller =
+								stage_2_fxml_loader.getController();
 					}
 					
 					root_pane.setCenter(init_countdown_pane);
@@ -402,7 +445,7 @@ class New_time_counter_window
 							if (init_settings_pane == null)
 							{
 								/* TODO: Create countdown mode time counter,
-								 * using constructio which DOESN'T TAKE layout
+								 * using constructor which DOESN'T TAKE layout
 								 * settings as argument */
 							}
 							else
@@ -416,7 +459,7 @@ class New_time_counter_window
 								 * as argument */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_default_layout_settings();
+								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -435,8 +478,7 @@ class New_time_counter_window
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
 										init_Instance_counter_layout_directory));
-						init_elapsed_from_pane_controller =
-								stage_2_fxml_loader.getController();
+						stage_2_fxml_loader.setResources(labels_resources);
 						
 						try
 						{
@@ -445,7 +487,7 @@ class New_time_counter_window
 						catch (final IOException exc)
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
-									+ " fxml layout. Exception\'s stack trace:", exc);
+									+ " fxml layout. Exception stack trace:", exc);
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
@@ -453,6 +495,9 @@ class New_time_counter_window
 							
 							return;
 						}
+						
+						init_elapsed_from_pane_controller =
+								stage_2_fxml_loader.getController();
 						
 						init_elapsed_from_pane_controller.set_tooltip_to_now_button(
 								"< " + shortcut_n_key_combination.getDisplayText() + " >");
@@ -499,7 +544,7 @@ class New_time_counter_window
 								 * TAKES layout settings as argument */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_default_layout_settings();
+								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -518,8 +563,7 @@ class New_time_counter_window
 						stage_2_fxml_loader.setLocation(
 								New_time_counter_window.class.getResource(
 										init_Instance_counter_layout_directory));
-						init_countdown_till_pane_controller =
-								stage_2_fxml_loader.getController();
+						stage_2_fxml_loader.setResources(labels_resources);
 						
 						try
 						{
@@ -528,7 +572,7 @@ class New_time_counter_window
 						catch (final IOException exc)
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
-									+ " fxml layout. Exception\'s stack trace:", exc);
+									+ " fxml layout. Exception stack trace:", exc);
 							Error_dialog.show_IO_error_message(
 									Template_message.TM_layout_build);
 							close_window();
@@ -536,6 +580,9 @@ class New_time_counter_window
 							
 							return;
 						}
+						
+						init_countdown_till_pane_controller =
+								stage_2_fxml_loader.getController();
 					}
 					
 					init_countdown_till_pane_controller.make_now_button_disabled();
@@ -577,7 +624,7 @@ class New_time_counter_window
 								 * settings as argument */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_default_layout_settings();
+								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -611,6 +658,8 @@ class New_time_counter_window
 				
 				root_pane_controller.mode_image.setImage(
 						new Image(mode_img_directories.get(time_counter_mode)));
+				root_pane_controller.layout_description.setText(
+						labels_resources.getString("new_time_counter_wizard.stage.2"));
 				
 				root_pane_controller.previous_button.setTooltip(
 						new Tooltip(esc_key_combination_text));
@@ -700,12 +749,10 @@ class New_time_counter_window
 					/* FXML-загрузчик панели компоновки третьего этапа создания
 					 * счетчика времени */
 					final FXMLLoader stage_3_fxml_loader = new FXMLLoader();
-					
 					stage_3_fxml_loader.setLocation(
 							New_time_counter_window.class.getResource(
 									init_settings_layout_directory));
-					init_settings_pane_controller =
-							stage_3_fxml_loader.getController();
+					stage_3_fxml_loader.setResources(labels_resources);
 					
 					try
 					{
@@ -714,9 +761,10 @@ class New_time_counter_window
 					catch (final IOException exc)
 					{
 						logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
-								+ " fxml layout. Exception\'s stack trace:", exc);
+								+ " fxml layout. Exception stack trace:", exc);
 						Error_dialog.show_IO_error_message(
-								"Cannot show time counter display settings.");
+								messages_resources.getString(
+										"error.cannot_show_settings_pane"));
 						/* Окно создания счетчика времени умышленно
 						 * не закрывается в этом случае, т.к. в крайнем случае
 						 * счетчик времени можно создать и с дефолтными
@@ -724,6 +772,9 @@ class New_time_counter_window
 						
 						return;
 					}
+					
+					init_settings_pane_controller =
+							stage_3_fxml_loader.getController();
 				}
 				
 				root_pane.setCenter(init_settings_pane);
@@ -780,7 +831,7 @@ class New_time_counter_window
 									Mode.class, selected_mode.name());
 						}
 						
-						overwrite_default_layout_settings();
+						overwrite_layout_settings();
 						close_window();
 						back_to_initial_state();
 					}
@@ -789,10 +840,15 @@ class New_time_counter_window
 				root_pane_controller.previous_button.setOnAction(
 						from_3_to_2_stage_event_handler);
 				
+				root_pane_controller.layout_description.setText(
+						labels_resources.getString("new_time_counter_wizard.stage.3"));
+				
 				root_pane_controller.next_button.setTooltip(null);
 				root_pane_controller.apply_button.getTooltip().setText(
 						"< " + shortcut_enter_key_combination.getDisplayText()
-								+ " > or " + enter_key_combination_text);
+								+ " > "
+								+ hints_resources.getString("accelerators.or")
+								+ ' ' + enter_key_combination_text);
 			}
 		};
 		
@@ -844,6 +900,9 @@ class New_time_counter_window
 				root_pane_controller.next_button.setDefaultButton(true);
 				root_pane_controller.next_button.setDisable(false);
 				
+				root_pane_controller.layout_description.setText(
+						labels_resources.getString("new_time_counter_wizard.stage.2"));
+				
 				root_pane_controller.next_button.setTooltip(
 						new Tooltip(enter_key_combination_text));
 				root_pane_controller.apply_button.getTooltip().setText(
@@ -858,8 +917,22 @@ class New_time_counter_window
 			{
 				back_to_initial_state();
 				root_pane.setCenter(time_counter_type_set_pane);
+				
+				root_pane_controller.layout_description.setText(
+						labels_resources.getString("new_time_counter_wizard.stage.1"));
 			}
 		};
+		
+		gui_settings.add_Locale_change_listener(new Locale_change_listener()
+		{
+			@Override
+			public void locale_changed()
+			{
+				messages_resources = gui_settings.get_messages_resources();
+				labels_resources = gui_settings.get_labels_resources();
+				hints_resources = gui_settings.get_hints_resources();
+			}
+		});
 	}
 	
 	
@@ -882,9 +955,6 @@ class New_time_counter_window
 					Window.class.getName() + " argument is null");
 		}
 		
-		root_pane = basic_init_controller_fxml_loader.load();
-		time_counter_type_set_pane =
-				init_Time_counter_type_controller_fxml_loader.load();
 		scene = new Scene(root_pane);
 		accelerators = scene.getAccelerators();
 		
@@ -956,7 +1026,8 @@ class New_time_counter_window
 		root_pane_controller.next_button.setTooltip(
 				new Tooltip(enter_key_combination_text));
 		root_pane_controller.cancel_button.setTooltip(new Tooltip(
-				"< " + shortcut_esc_key_combination.getDisplayText() + " > or "
+				"< " + shortcut_esc_key_combination.getDisplayText() + " > "
+						+ hints_resources.getString("accelerators.or") + ' '
 						+ esc_key_combination_text));
 		
 		root_pane_controller.next_button.setOnAction(
@@ -970,6 +1041,9 @@ class New_time_counter_window
 				root_pane_controller.cancel_button.fire();
 			}
 		});
+		
+		root_pane_controller.layout_description.setText(
+				labels_resources.getString("new_time_counter_wizard.stage.1"));
 	}
 	
 	
@@ -1009,9 +1083,9 @@ class New_time_counter_window
 	 * @exception NullPointerException If {@link #init_settings_pane_controller}
 	 * is {@code null}.
 	 */
-	private void overwrite_default_layout_settings()
+	private void overwrite_layout_settings()
 	{
-		Executors.newSingleThreadExecutor().execute(new Runnable()
+		new Thread(new Runnable()
 		{
 			@Override
 			public void run()
@@ -1022,8 +1096,10 @@ class New_time_counter_window
 				final Init_settings init_settings =
 						init_settings_pane_controller.get_init_settings();
 				
-				settings.set_time_unit_layout_setting(init_settings.time_unit_layout);
-				settings.set_time_display_style_setting(init_settings.time_display_style);
+				settings.set_time_unit_layout_setting(
+						init_settings.time_unit_layout);
+				settings.set_time_display_style_setting(
+						init_settings.time_display_style);
 				
 				// If time counter's displayed range is set
 				if (init_settings.left_displayed_edge != null &&
@@ -1033,10 +1109,8 @@ class New_time_counter_window
 							init_settings.right_displayed_edge);
 				}
 				
-				/* TODO: Uncomment after making "Settings.serialize()" method
-				 * public */
-//				settings.serialize();
+				settings.write_to_file();
 			}
-		});
+		}).start();
 	}
 }

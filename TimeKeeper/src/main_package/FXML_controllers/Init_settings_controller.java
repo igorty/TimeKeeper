@@ -29,6 +29,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import main_package.GUI_settings;
 import time_obj.Settings;
 import time_obj.Time_display_style;
 import time_obj.Time_unit_layout;
@@ -36,19 +37,23 @@ import time_obj.Time_unit_name;
 
 
 /**
- * Контроллер компоновки окна создания счетчика времени с общими настройками.
- * Вызывается {@link FXMLLoader}'ом для файла <i>Init_settings_layout.fxml</i>.<br>
- * <b>Важно!</b> {@code FXML}&#8209;loader для данного класса (а соответственно
- * и инициализацию данного класса) необходимо запускать когда объект типа
- * {@link Stage}, на котором этот класс будет установлен, <u>уже отображается</u>
- * (для подмосток вызван метод {@link Stage#show()}). Иначе в данном классе
- * может быть сгенерировано {@link NullPointerException}. Причина описана
- * по&nbsp;ссылке внизу.<br>
- * <i>Примечание.</i> Корневой компоновкой для файла
- * <i>Init_settings_layout.fxml</i> является {@link GridPane}.
+ * Time counter settings pane controller. Called by {@link FXMLLoader} for
+ * <i>"main_package/FXML_controllers/Init_settings_layout.fxml"</i>.<br>
+ * <b>Important!</b> {@code FXML}&#8209;loader for this class and its
+ * initialization <u>must</u> be invoked only when {@link Stage} object, on
+ * which the&nbsp;class's pane is located, <u>is&nbsp;already&nbsp;shown</u>
+ * (i.e.&nbsp;{@link Stage#show()} is already called). Otherwise
+ * {@link NullPointerException} can be thrown in the&nbsp;class. The&nbsp;reason
+ * is described in the&nbsp;link below.<br>
+ * <i>Notes.</i>
+ * <ul><li>Root pane in <i>"Init_settings_layout.fxml"</i> is {@link GridPane}.</li>
+ * <li><i>"Init_settings_layout.fxml"</i> requires
+ * <i>"main_package/resources/GUI_elements/labels.properties"</i> resources to
+ * be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko
+ * 
  * @see <a href="http://stackoverflow.com/questions/36969745/rangeslider-causes-nullpointerexception-when-pressing-tab-on-the-focused-slider">RangeSlider causes NullPointerException when pressing Tab on the focused slider</a>
  */
 public class Init_settings_controller
@@ -70,10 +75,16 @@ public class Init_settings_controller
 		/** Выбранный режим отображения счетчика времени целиком. */
 		public final Time_display_style time_display_style;
 		
-		/** Крайняя левая отображаемая единица времени. */
+		/** Leftmost displayed time&nbsp;unit. <u>Can</u> be {@code null} if
+		 * {@link #time_display_style} is
+		 * {@link Time_display_style#TDS_if_reaches} or
+		 * {@link Time_display_style#TDS_show_all}. */
 		public final Time_unit_name left_displayed_edge;
 		
-		/** Крайняя правая отображаемая единица времени. */
+		/** Rightmost displayed time&nbsp;unit. <u>Can</u> be {@code null} if
+		 * {@link #time_display_style} is
+		 * {@link Time_display_style#TDS_if_reaches} or
+		 * {@link Time_display_style#TDS_show_all}. */
 		public final Time_unit_name right_displayed_edge;
 		
 		/** {@code true}&nbsp;&#0151; создаваемый счетчик времени должен
@@ -153,76 +164,16 @@ public class Init_settings_controller
 	
 	
 	///// Поля private статические ========================================/////
-	/** Содержит возможные варианты выбора для {@link #time_unit_names_choicebox}.<br>
-	 * <b>Важно!</b> Ссылается на {@link Collections#unmodifiableMap(Map)}.
-	 * Попытка изменения содержимого контейнера приведет к ошибке времени
-	 * выполнения. */
-	private static final Map<Time_unit_layout, String> time_unit_names_choicebox_values;
-	
-	/** Настройки программы. */
-	private static Settings settings;
-	
-	/** Содержит возможные варианты выбора для
-	 * {@link #time_display_style_choicebox}.<br>
-	 * <b>Важно!</b> Ссылается на {@link Collections#unmodifiableMap(Map)}.
-	 * Попытка изменения содержимого контейнера приведет к ошибке времени
-	 * выполнения. */
-	private static final Map<Time_display_style, String>
-			time_display_style_choicebox_values;
+	/** Program settings. */
+	private static final Settings program_settings;
+	/** Graphic user interface settings. */
+	private static final GUI_settings gui_settings;
 	
 	
 	static
 	{
-		// Инициализатор контейнера "time_unit_names_choicebox_values"
-		final Map<Time_unit_layout, String> time_unit_names_choicebox_values_init =
-				new EnumMap<>(Time_unit_layout.class);
-		/* Строки значений, которые будут содержаться в контейнере
-		 * "time_unit_names_choicebox_values" */
-		final String[] time_unit_names_choicebox_strings =
-			{ "Signs", "Short names", "Full names", "Digits only" };
-		// Все именованные константы перечисления "Time_unit_layout"
-		final Time_unit_layout[] time_unit_layout_values =
-				Time_unit_layout.values();
-		
-		assert time_unit_names_choicebox_strings.length == time_unit_layout_values.length :
-			"Array size doesn\'t match with " + Time_unit_layout.class.getName()
-			+ " enum constants quantity";
-		
-		// Инициализация контейнера "time_unit_names_choicebox_values_init"
-		for (final Time_unit_layout i : time_unit_layout_values)
-		{
-			time_unit_names_choicebox_values_init.put(
-					i, time_unit_names_choicebox_strings[i.ordinal()]);
-		}
-		
-		time_unit_names_choicebox_values =
-				Collections.unmodifiableMap(time_unit_names_choicebox_values_init);
-		settings = Settings.get_instance();
-		
-		// Инициализатор контейнера "time_display_style_choicebox_values"
-		final Map<Time_display_style, String> time_display_style_choicebox_values_init =
-				new EnumMap<>(Time_display_style.class);
-		/* Строки значений, которые будут содержаться в контейнере
-		 * "time_display_style_choicebox_values" */
-		final String[] time_display_style_choicebox_strings =
-			{ "If reaches", "Show all", "Custom strict", "Increase able" };
-		// Все именованные константы перечисления "Time_display_style"
-		final Time_display_style[] time_display_style_values =
-				Time_display_style.values();
-		
-		assert time_display_style_choicebox_strings.length == time_display_style_values.length :
-			"Array size doesn\'t match with " + Time_display_style.class.getName()
-			+ " enum constants quantity";
-		
-		// Инициализация контейнера "time_display_style_choicebox_values"
-		for (final Time_display_style i : time_display_style_values)
-		{
-			time_display_style_choicebox_values_init.put(
-					i, time_display_style_choicebox_strings[i.ordinal()]);
-		}
-		
-		time_display_style_choicebox_values =
-				Collections.unmodifiableMap(time_display_style_choicebox_values_init);
+		program_settings = Settings.get_instance();
+		gui_settings = GUI_settings.get_instance();
 	}
 	
 
@@ -236,6 +187,11 @@ public class Init_settings_controller
 	 * {@link #time_unit_names_choicebox}. */
 	private Time_unit_layout chosen_time_unit_layout;
 	
+	/** Contains string items for {@link #time_unit_names_choicebox}.<br>
+	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
+	 * to change its content results in runtime exception. */
+	private final Map<Time_unit_layout, String> time_unit_names_choicebox_values;
+	
 	/** Панель выбора отображения значений счетчика времени согласно именованным
 	 * константам перечисления {@link Time_display_style}. */
 	@FXML
@@ -244,6 +200,11 @@ public class Init_settings_controller
 	/** Содержит выбранное на текущий момент значение в
 	 * {@link #time_display_style_choicebox}. */
 	private Time_display_style chosen_time_display_style;
+	
+	/** Contains string items for {@link #time_display_style_choicebox}.<br>
+	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
+	 * to change its content results in runtime exception. */
+	private final Map<Time_display_style, String> time_display_style_choicebox_values;
 
 	/** Текстовая метка, относящаяся к {@link #time_units_displayed_rangeslider}. */
 	@FXML
@@ -319,21 +280,86 @@ public class Init_settings_controller
 	/** Пул потоков, созданный для выполнения {@link #example_text_modifier}. */
 	private final ExecutorService executor;
 	
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * hints and tooltips texts. */
+	private final ResourceBundle hints_resources;
+	
 	
 	///// Нестатическая инициализация =====================================/////
 	{
-		chosen_time_unit_layout = settings.get_time_unit_layout_setting();
-		chosen_time_display_style = settings.get_time_display_style_setting();
+		chosen_time_unit_layout = program_settings.get_time_unit_layout_setting();
+		chosen_time_display_style = program_settings.get_time_display_style_setting();
 		update_rangeslider_enabling_state();
 		
 		// Значения крайних отображаемых единиц времени
-		final Time_unit_name[] display_edges = settings.get_time_value_edges();
+		final Time_unit_name[] display_edges = program_settings.get_time_value_edges();
 		
 		left_chosen_displayed_edge = display_edges[0];
 		right_chosen_displayed_edge = display_edges[1];
 		
-		time_unit_name_resources = settings.get_time_counter_resources();
+		time_unit_name_resources = program_settings.get_time_counter_resources();
 		
+		/* Resource bundle representing ".properties" resource which contains
+		 * specific time counter settings names */
+		final ResourceBundle time_counter_resources =
+				gui_settings.get_time_counter_resources();
+		
+		///// "time_unit_names_choicebox_values" container initialization /////
+		// "time_unit_names_choicebox_values" container initializer
+		final Map<Time_unit_layout, String> time_unit_names_choicebox_values_init =
+				new EnumMap<>(Time_unit_layout.class);
+		// String items to be stored in "time_unit_names_choicebox_values"
+		final String[] time_unit_names_choicebox_strings = {
+				time_counter_resources.getString("time_units_layout.signs"),
+				time_counter_resources.getString("time_units_layout.short_names"),
+				time_counter_resources.getString("time_units_layout.full_names"),
+				time_counter_resources.getString("time_units_layout.digits_only") };
+		// All "Time_unit_layout" enumeration constants
+		final Time_unit_layout[] time_unit_layout_values = Time_unit_layout.values();
+		
+		assert time_unit_names_choicebox_strings.length == time_unit_layout_values.length :
+			"Array size doesn\'t match with " + Time_unit_layout.class.getName()
+				+ " enum constants quantity";
+		
+		// "time_unit_names_choicebox_values_init" container initialization
+		for (final Time_unit_layout i : time_unit_layout_values)
+		{
+			time_unit_names_choicebox_values_init.put(
+					i, time_unit_names_choicebox_strings[i.ordinal()]);
+		}
+		
+		time_unit_names_choicebox_values =
+				Collections.unmodifiableMap(time_unit_names_choicebox_values_init);
+		
+		///// "time_display_style_choicebox_values" container initialization /////
+		// "time_display_style_choicebox_values" container initializer
+		final Map<Time_display_style, String> time_display_style_choicebox_values_init =
+				new EnumMap<>(Time_display_style.class);
+		// String items to be stored in "time_display_style_choicebox_values"
+		final String[] time_display_style_choicebox_strings = {
+				time_counter_resources.getString("time_display_style.if_reaches"),
+				time_counter_resources.getString("time_display_style.show_all"),
+				time_counter_resources.getString("time_display_style.custom_strict"),
+				time_counter_resources.getString("time_display_style.increase_able") };
+		// All "Time_display_style" enumeration constants
+		final Time_display_style[] time_display_style_values =
+				Time_display_style.values();
+		
+		assert time_display_style_choicebox_strings.length == time_display_style_values.length :
+			"Array size doesn\'t match with " + Time_display_style.class.getName()
+				+ " enum constants quantity";
+		
+		// "time_display_style_choicebox_values" container initialization
+		for (final Time_display_style i : time_display_style_values)
+		{
+			time_display_style_choicebox_values_init.put(
+					i, time_display_style_choicebox_strings[i.ordinal()]);
+		}
+		
+		time_display_style_choicebox_values =
+				Collections.unmodifiableMap(time_display_style_choicebox_values_init);
+		
+		///// "time_unit_names" container initialization /////
 		// Time unit names to be stored in "time_unit_name_resources" container
 		final String[][] time_unit_names_values = {
 				{ time_unit_name_resources.getString("TUL_value_sign.years"),
@@ -412,6 +438,7 @@ public class Init_settings_controller
 		time_unit_names_init.put(Time_unit_layout.TUL_digits_only,
 				Collections.unmodifiableMap(time_unit_names_init3));
 		time_unit_names = Collections.unmodifiableMap(time_unit_names_init);
+		
 		
 		example_text_modifier = new Runnable()
 		{
@@ -616,6 +643,7 @@ public class Init_settings_controller
 		};
 		
 		executor = Executors.newCachedThreadPool();
+		hints_resources = gui_settings.get_hints_resources();
 	}
 	
 	
@@ -657,7 +685,9 @@ public class Init_settings_controller
 	 * This class has one {@link ExecutorService} which is kept alive for
 	 * 1&nbsp;minute from last runnable executing, after which becomes dormant.
 	 * However it&nbsp;is recommended to call this method to prevent possible
-	 * delays if the&nbsp;whole program need to be shutdown immediately.
+	 * delays if the&nbsp;whole program need to be shutdown immediately.<br>
+	 * <b>Warning!</b> Using class instance after this method called may result
+	 * in exception.
 	 */
 	public void shutdown()
 	{
@@ -665,9 +695,9 @@ public class Init_settings_controller
 	}
 	
 	
-	///// Методы private экземпляра =======================================/////
+	///// Methods private of-instance =====================================/////
 	/**
-	 * Вызывается {@link FXMLLoader}'ом.
+	 * Called by {@link FXMLLoader}.
 	 */
 	@FXML
 	private void initialize()
@@ -760,31 +790,43 @@ public class Init_settings_controller
 			@Override
 			public String toString(final Number object)
 			{
+				/* Resource bundle representing ".properties" resource which
+				 * contains labels names */
+				final ResourceBundle label_resources =
+						gui_settings.get_labels_resources();
+				
 				// Преобразование значения со шкалы
 				switch (object.intValue())
 				{
 				case 0:
-					return "Years";
+					return label_resources.getString(
+							"layout_settings.displayed_range.years");
 					
 				case 1:
-					return "Months";
+					return label_resources.getString(
+							"layout_settings.displayed_range.months");
 					
 				case 2:
-					return "Days";
+					return label_resources.getString(
+							"layout_settings.displayed_range.days");
 					
 				case 3:
-					return "Hours";
+					return label_resources.getString(
+							"layout_settings.displayed_range.hours");
 					
 				case 4:
-					return "Minutes";
+					return label_resources.getString(
+							"layout_settings.displayed_range.minutes");
 					
 				case 5:
-					return "Seconds";
+					return label_resources.getString(
+							"layout_settings.displayed_range.seconds");
 					
 				default:
-					throw new IllegalArgumentException("Unsupported value ("
-							+ object.intValue() + ") has been passed as "
-							+ Number.class.getName() + " argument");
+					throw new IllegalArgumentException(
+							"Unsupported value (" + object.intValue()
+									+ ") has been passed as "
+									+ Number.class.getName() + " argument");
 				}
 			}
 
@@ -895,7 +937,7 @@ public class Init_settings_controller
 		});
 		
 		display_on_title_check_box.setTooltip(new Tooltip(
-				"The time value is being displayed\nin task bar when this box is checked"));
+				hints_resources.getString("layout_settings.display_on_title_hint")));
 	}
 	
 	
@@ -908,7 +950,7 @@ public class Init_settings_controller
 	{
 		// Текст поясняющего сообщения
 		final Label explanation_text = new Label(
-				"The way in which time unit names will be represented.");
+				hints_resources.getString("layout_settings.time_unit_names_hint"));
 		// Окно всплывающего сообщения
 		final PopOver hint = new PopOver(explanation_text);
 		
@@ -926,52 +968,61 @@ public class Init_settings_controller
 	@FXML
 	private void time_display_style_hint_button_on_action()
 	{
-		/* Кол-во символов, память под которые будет выделяться для построения
-		 * текста. Данное кол-во основано на размере добавляемых строк в
-		 * "explanation_text_builder" */
-		final int explanation_text_builder_capacity =
-				55 + 10 + 162 + 8 + 60 + 13 + 206 + 5 + 10 + 13 + 121;  // Сумма - 663
-		// Компоновщик текста для поясняющего сообщения
-		final StringBuilder explanation_text_builder =
-				new StringBuilder(explanation_text_builder_capacity);
+		/* Resource bundle representing ".properties" resource which contains
+		 * labels names */
+		final ResourceBundle labels_resources =
+				gui_settings.get_labels_resources();
 		
-		// Кол-во добавляемых символов - 55
-		explanation_text_builder.append(
-				"Determines mode in which time values are being shown.\n\"");
-		// Кол-во добавляемых символов - 10
+		/* Explanation text. Length is reserved according to minimal strings
+		 * length that will be contained in */
+		final StringBuilder explanation_text_builder = new StringBuilder(
+				56 + 10 + 176 + 8 + 65 + 13 + 30 + 26 + 164 + 5 + 11 + 13 + 25 + 26 + 87);
+		
+		// 56 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.1"));
+		// 10 signs in default resource
 		explanation_text_builder.append(time_display_style_choicebox_values.get(
 				Time_display_style.TDS_if_reaches));
-		// Кол-во добавляемых символов - 162
-		explanation_text_builder.append("\" \u2014 time values showing starts"
-				+ " from biggest non zero value (e.g. current value\n\tof time"
-				+ " counter is 10 minutes and 0 seconds, only these values are"
-				+ " being shown).\n\"");
-		// Кол-во добавляемых символов - 8
+		// 176 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.2"));
+		// 8 signs in default resource
 		explanation_text_builder.append(time_display_style_choicebox_values.get(
 				Time_display_style.TDS_show_all));
-		// Кол-во добавляемых символов - 60
-		explanation_text_builder.append(
-				"\" \u2014 all time values from years to seconds are being shown.\n\"");
-		// Кол-во добавляемых символов - 13
+		// 65 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.3"));
+		// 13 signs in default resource
 		explanation_text_builder.append(time_display_style_choicebox_values.get(
 				Time_display_style.TDS_custom_strict));
-		// Кол-во добавляемых символов - 206
-		explanation_text_builder.append("\" \u2014 only time values from \"Time"
-				+ " units displayed range\" are being shown.\n\tOther time"
-				+ " values won\'t be shown even in case of bigger than chosen"
-				+ " range time value.\n\tNote: in this mode time value is marked with \"");
-		// Кол-во добавляемых символов - 5
+		// 30 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.4"));
+		// 26 signs in default resource
+		explanation_text_builder.append(
+				labels_resources.getString("layout_settings.displayed_range"));
+		// 164 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.5"));
+		// 5 signs in default resource
 		explanation_text_builder.append(
 				time_unit_name_resources.getString("strict_display_mode_mark"));
-		// Кол-во добавляемых символов - 10
-		explanation_text_builder.append("\" label.\n\"");
-		// Кол-во добавляемых символов - 13
+		// 11 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.6"));
+		// 13 signs in default resource
 		explanation_text_builder.append(time_display_style_choicebox_values.get(
 				Time_display_style.TDS_increase_able));
-		// Кол-во добавляемых символов - 121
-		explanation_text_builder.append("\" \u2014 Time values from \"Time units"
-				+ " displayed range\" are always shown.\n\tBigger values only"
-				+ " shown if time value reaches them.");
+		// 25 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.7"));
+		// 26 signs in default resource
+		explanation_text_builder.append(labels_resources.getString(
+				"layout_settings.displayed_range"));
+		// 87 signs in default resource
+		explanation_text_builder.append(hints_resources.getString(
+				"layout_settings.time_display_style_hint.8"));
 		
 		// Текст поясняющего сообщения
 		final Label explanation_text =
@@ -994,33 +1045,31 @@ public class Init_settings_controller
 	@FXML
 	private void time_units_displayed_range_hint_button_on_action()
 	{
-		/* Кол-во символов, память под которые будет выделяться для построения
-		 * текста. Данное кол-во основано на размере добавляемых строк в
-		 * "explanation_text_builder" */
-		final int explanation_text_builder_capacity = 56 + 13 + 7 + 13 + 27;  // Сумма - 116
-		// Компоновщик текста для поясняющего сообщения
-		final StringBuilder explanation_text_builder =
-				new StringBuilder(explanation_text_builder_capacity);
+		/* Explanation text. Length is reserved according to minimal strings
+		 * length that will be contained in */
+		final StringBuilder explanation_text =
+				new StringBuilder(57 + 13 + 7 + 13 + 27);
 		
-		// Кол-во добавляемых символов - 56
-		explanation_text_builder.append(
-				"Determines time values to be shown.\nCan be set only in \"");
-		// Кол-во добавляемых символов - 13
-		explanation_text_builder.append(time_display_style_choicebox_values.get(
+		// 57 signs in default resource
+		explanation_text.append(
+				hints_resources.getString("layout_settings.displayed_range_hint.1"));
+		// 13 signs in default resource
+		explanation_text.append(time_display_style_choicebox_values.get(
 				Time_display_style.TDS_custom_strict));
-		// Кол-во добавляемых символов - 7
-		explanation_text_builder.append("\" and \"");
-		// Кол-во добавляемых символов - 13
-		explanation_text_builder.append(time_display_style_choicebox_values.get(
+		// 7 signs in default resource
+		explanation_text.append(
+				hints_resources.getString("layout_settings.displayed_range_hint.2"));
+		// 13 signs in default resource
+		explanation_text.append(time_display_style_choicebox_values.get(
 				Time_display_style.TDS_increase_able));
-		// Кол-во добавляемых символов - 27
-		explanation_text_builder.append("\" time display style modes.");
+		// 27 signs in default resource
+		explanation_text.append(
+				hints_resources.getString("layout_settings.displayed_range_hint.3"));
 		
-		// Текст поясняющего сообщения
-		final Label explanation_text =
-				new Label(explanation_text_builder.toString());
+		// Node to contain explanation text
+		final Label label = new Label(explanation_text.toString());
 		// Окно всплывающего сообщения
-		final PopOver hint = new PopOver(explanation_text);
+		final PopOver hint = new PopOver(label);
 		
 		hint.setArrowLocation(ArrowLocation.BOTTOM_CENTER);
 		hint.setDetachable(false);

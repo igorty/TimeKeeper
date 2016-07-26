@@ -1,7 +1,11 @@
 ﻿package main_package.dialog;
 
+import java.util.ResourceBundle;
+
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import main_package.GUI_settings;
+import main_package.events.Locale_change_listener;
 
 
 /**
@@ -22,16 +26,38 @@ public class Error_dialog
 	 */
 	public enum Template_message
 	{
-		/**
-		 * Выводится сообщение об&nbsp;ошибке построения компонента окна
-		 * создания нового счетчика времени.
-		 */
+		/** Window layout component&nbsp;build error&nbsp;message is shown. */
 		TM_layout_build
 	}
 	
 	
+	///// Fields private static ===========================================/////
+	/** Graphic user interface settings. */
+	private static final GUI_settings gui_settings;
+	
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * dialog messages. */
+	private static ResourceBundle messages_resources;
+	
+	
+	static
+	{
+		gui_settings = GUI_settings.get_instance();
+		messages_resources = gui_settings.get_messages_resources();
+		
+		gui_settings.add_Locale_change_listener(new Locale_change_listener()
+		{
+			@Override
+			public void locale_changed()
+			{
+				messages_resources = gui_settings.get_messages_resources();
+			}
+		});
+	}
+	
+	
 	///// Методы public статические =======================================/////
-	// TODO: ? Опримизировать
+	// TODO? Optimize
 	/**
 	 * Выводит шаблонный текст сообщения об&nbsp;ошибке.
 	 * 
@@ -52,8 +78,8 @@ public class Error_dialog
 		switch (message)
 		{
 		case TM_layout_build:
-			show_IO_error_message("Error occurred during creating new time"
-					+ " counter window layout component.");
+			show_IO_error_message(
+					messages_resources.getString("error.window_layout"));
 			
 			break;
 			
@@ -74,7 +100,7 @@ public class Error_dialog
 		// Диалоговое окно сообщения об ошибке
 		final Alert error_dialog = new Alert(AlertType.ERROR);
 		
-		error_dialog.setTitle("IO Error");
+		error_dialog.setTitle(messages_resources.getString("error.title.IO"));
 		error_dialog.setHeaderText(null);
 		error_dialog.setContentText(message_text);
 		error_dialog.showAndWait();

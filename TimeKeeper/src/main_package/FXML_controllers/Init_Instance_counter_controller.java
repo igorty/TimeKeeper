@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,16 +38,24 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TextFormatter.Change;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
+import main_package.GUI_settings;
 import time_obj.Instance_counter;
 import time_obj.Mode;
+import time_obj.Settings;
+import time_obj.Settings.Locale_setting;
 
 
 /**
- * Контроллер компоновки участка окна для создания объекта
- * {@link Instance_counter}. Вызывается {@link FXMLLoader}'ом для файла
- * <i>Init_Instance_counter_layout.fxml</i>.<br>
- * <i>Примечание.</i> Корневой компоновкой для файла
- * <i>Init_Instance_counter_layout.fxml</i> является {@link GridPane}.
+ * {@link Instance_counter} initial&nbsp;values settings&nbsp;pane controller.
+ * Called by {@link FXMLLoader} for
+ * <i>"main_package/FXML_controllers/Init_Instance_counter_layout.fxml"</i>
+ * file.<br>
+ * <i>Notes.</i>
+ * <ul><li>Root pane in <i>"Init_Instance_counter_layout.fxml"</i> is
+ * {@link GridPane}.</li>
+ * <li><i>"Init_Instance_counter_layout.fxml"</i> requires
+ * <i>"main_package/resources/GUI_elements/labels.properties"</i> resources to
+ * be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -57,10 +66,14 @@ public class Init_Instance_counter_controller
 	/** Отвечает за логирование событий. */
 	private static final Logger logger;
 	
+	/** Graphic user interface settings. */
+	private static final GUI_settings gui_settings;
+	
 	
 	static
 	{
 		logger = Logger.getLogger(Init_Instance_counter_controller.class.getName());
+		gui_settings = GUI_settings.get_instance();
 	}
 	
 	
@@ -149,8 +162,16 @@ public class Init_Instance_counter_controller
 	 * присваивается значение&nbsp;{@code 0}. */
 	private int second_value;
 	
-	///// Нестатическая инциализация ======================================/////
+	
+	///// Instance initializer ============================================/////
 	{
+		// Program locale
+		final Locale_setting program_locale =
+				Settings.get_instance().get_locale_setting();
+		
+		Locale.setDefault(new Locale(program_locale.language_code,
+				program_locale.country_code, program_locale.variant_code));
+		
 		date_time_now = null;
 		
 		// Размер контейнера "text_formatters_init"
@@ -248,8 +269,10 @@ public class Init_Instance_counter_controller
 						minute_value = field_value;
 						date_time_now = null;
 					}
-					/* TextFormatter принадлежит текстовому полю "second_field".
-					 * Если ввденное значение отличается от уже существующего */
+					/* TextFormatter belongs to "second_field" text field.
+					 * 
+					 * Condition: if newly entered value differs from already
+					 * existing */
 					else if (second_value != field_value)
 					{
 						second_value = field_value;
@@ -304,15 +327,17 @@ public class Init_Instance_counter_controller
 			return date_time_now;
 		}
 		
-		// Шаблонный текст предупреждения
-		final String warning_template_text = "Incorrect date time value";
+		/* Resource bundle representing ".properties" resource which contains
+		 * labels names */
+		final ResourceBundle labels_resources = gui_settings.get_labels_resources();
 		
 		// Если не были введены необходимые значения либо введены неверные значения
 		if (year_value == Integer.MIN_VALUE || month_value == Integer.MIN_VALUE ||
 				day_value == Integer.MIN_VALUE || hour_value == 0 ||
 				minute_value == 0 || second_value == 0)
 		{
-			warning_label.setText(warning_template_text);
+			warning_label.setText(
+					labels_resources.getString("warning.incorrect_date_time"));
 			
 			return null;
 		}
@@ -327,11 +352,16 @@ public class Init_Instance_counter_controller
 		}
 		catch (final DateTimeException exc)
 		{
-			warning_label.setText(warning_template_text);
+			warning_label.setText(
+					labels_resources.getString("warning.incorrect_date_time"));
 			
 			return null;
 		}
 		
+		/* Resource bundle representing ".properties" resource which contains
+		 * dialog messages */
+		final ResourceBundle messages_resources =
+				gui_settings.get_messages_resources();
 		// Временная зона с локальными настройками сезонного перевода времени
 		ZoneId zone_id;
 		
@@ -342,18 +372,14 @@ public class Init_Instance_counter_controller
 		catch (final DateTimeException exc)
 		{
 			logger.log(Level.WARNING, "Cannot obtain system default ZoneId."
-					+ " Exception\'s stack trace:", exc);
+					+ " Exception stack trace:", exc);
 			zone_id = ZoneId.ofOffset("UTC", ZoneOffset.UTC);
 			
 			// Диалоговое окно с сообщением об ошибке
 			final Alert error = new Alert(AlertType.ERROR);
 			
 			error.setTitle(null);
-			error.setContentText("Cannot obtain system time zone. Time zone"
-					+ " is set to \"UTC\" for this time counter. The correct"
-					+ " time zone will be set automaticaly as soon as"
-					+ " program could obtain it. You will be notified of"
-					+ " that with dialog window.");
+			error.setContentText(messages_resources.getString("error.time_zone"));
 			error.showAndWait();
 		}
 		
@@ -363,22 +389,20 @@ public class Init_Instance_counter_controller
 		// Кол-во валидных временных зон для устанавливаемых даты и времени
 		final int valid_offsets_quantity = valid_offsets.size();
 		
-		/* Если для устанавливаемые дата и время не могут существовать в данной
-		 * временной зоне */
+		// If date time value set cannot exist in specified time zone
 		if (valid_offsets_quantity == 0)
 		{
 			// Диалоговое окно с сообщением
 			final Alert notification = new Alert(AlertType.INFORMATION);
 			
 			notification.setTitle(null);
-			notification.setHeaderText("Nonexistent date and time");
-			notification.setContentText("The specified date and time doesn\'t exist."
-					+ "\nThis usually happens when clocks jump forward"
-					+ " due to the spring daylight savings change from"
-					+ " \"winter\" to \"summer\" time. Choose the valid"
-					+ " time please.");
+			notification.setHeaderText(messages_resources.getString(
+					"notification.time_zone.nonexistent.header"));
+			notification.setContentText(messages_resources.getString(
+					"notification.time_zone.nonexistent.content"));
 			notification.showAndWait();
-			warning_label.setText(warning_template_text);
+			warning_label.setText(
+					labels_resources.getString("warning.incorrect_date_time"));
 			
 			return null;
 		}
@@ -391,14 +415,23 @@ public class Init_Instance_counter_controller
 					new ChoiceDialog<ZoneOffset>(valid_offsets.get(0), valid_offsets);
 			
 			clarification_dialog.setTitle(null);
-			clarification_dialog.setHeaderText(
-					"Specified date and time value has more than one offset");
-			clarification_dialog.setContentText("The specified date and time"
-					+ " value has " + valid_offsets_quantity + " possible"
-					+ "\noffsets. This usually happens when clocks"
-					+ "\nare set back due to the autumn daylight savings"
-					+ "\nchange from \"summer\" to \"winter\" time."
-					+ "\nChoose an appropriate offset please:");
+			clarification_dialog.setHeaderText(messages_resources.getString(
+					"notification.time_zone.more_than_one.header"));
+			
+			/* Dialog content text. Length is reserved according to minimal
+			 * strings length that will be contained in */
+			final StringBuilder context_text = new StringBuilder(39 + 1 + 182);
+			
+			// 39 signs in default resource
+			context_text.append(messages_resources.getString(
+							"notification.time_zone.more_than_one.content.1"));
+			// At least 1 symbol
+			context_text.append(valid_offsets_quantity);
+			// 182 signs in default resource
+			context_text.append(messages_resources.getString(
+							"notification.time_zone.more_than_one.content.2"));
+			
+			clarification_dialog.setContentText(context_text.toString());
 			
 			// Выбранный пользователем часовой пояс (если выбран)
 			final Optional<ZoneOffset> choice = clarification_dialog.showAndWait();
@@ -409,7 +442,8 @@ public class Init_Instance_counter_controller
 				return ZonedDateTime.ofStrict(date_time, choice.get(), zone_id);
 			}
 			
-			warning_label.setText(warning_template_text);
+			warning_label.setText(
+					labels_resources.getString("warning.incorrect_date_time"));
 			
 			return null;
 		}
@@ -472,9 +506,9 @@ public class Init_Instance_counter_controller
 	}
 	
 	
-	///// Методы private экземпляра =======================================/////
+	///// Methods private of-instance =====================================/////
 	/**
-	 * Вызывается {@link FXMLLoader}'ом.
+	 * Called by {@link FXMLLoader}.
 	 */
 	@FXML
 	private void initialize()
@@ -489,6 +523,8 @@ public class Init_Instance_counter_controller
 		assert now_button != null : "now_button field was not injected";
 		assert hint_button != null : "hint_button field was not injected";
 		assert warning_label != null : "warning_label field was not injected";
+		
+		now_button.setText(gui_settings.get_buttons_resources().getString("now"));
 		
 		year_field.setTextFormatter(
 				new TextFormatter<>(new UnaryOperator<TextFormatter.Change>()
@@ -671,7 +707,9 @@ public class Init_Instance_counter_controller
 					if (!month_parsed)
 					{
 						month_field.setStyle("-fx-text-fill: red");
-						month_field.setText("Incorrect value");
+						month_field.setText(
+								gui_settings.get_text_fields_resources().getString(
+										"month_field_incorrect"));
 						month_value = Integer.MIN_VALUE;
 						date_time_now = null;
 					}
@@ -803,7 +841,8 @@ public class Init_Instance_counter_controller
 			}
 		}));
 		
-		hour_field.setTextFormatter(new TextFormatter<>(new UnaryOperator<TextFormatter.Change>()
+		hour_field.setTextFormatter(
+				new TextFormatter<>(new UnaryOperator<TextFormatter.Change>()
 		{
 			@Override
 			public Change apply(final Change change)
@@ -954,23 +993,65 @@ public class Init_Instance_counter_controller
 	@FXML
 	private void hint_button_on_action()
 	{
-		// TODO: Поправить описание названия режима "Elapsed from"
-		// Текст всплывающего сообщения
-		final Label explanation_text = new Label(
-				"Set date and time values in these fields. The supported years"
-		    			+ "\nrange is from " + Year.MIN_VALUE + " to " + Year.MAX_VALUE + "."
-		    			+ "\nYou may enter month value in different ways: simply"
-		    			+ "\nentering its ordinal number, entering its short or full name."
-		    			+ "\nThe program also supports short and full names in current"
-		    			+ "\nsystem language if such month names templates are present."
-						+ "\nHour, Minute and Second fields may be left empty."
-						+ "\nThis is preceived as 0 for specified empty field."
-						+ "\nYou may also pick date from date picker or set current date"
-						+ "\nand time values with pressing \"" + now_button.getText()
-						+ "\" button (available only"
-						+ "\nwhen setting time counter in \"Elapsed from\" mode)");
+		/* Resource bundle representing ".properties" resource which contains
+		 * hints and tooltips texts */
+		final ResourceBundle hints_resources = gui_settings.get_hints_resources();
+		/* Resource bundle representing ".properties" resource which contains
+		 * labels names */
+		final ResourceBundle labels_resources = gui_settings.get_labels_resources();
+		
+		/* Explanation text. Length is reserved according to minimal strings
+		 * length that will be contained in */
+		final StringBuilder explanation_text = new StringBuilder(
+				78 + 9 + 4 + 10 + 177 + 5 + 2 + 7 + 5 + 7 + 172 + 3 + 58 + 13 + 8);
+		
+		// 78 sings in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.1"));
+		// 10 signs
+		explanation_text.append(Year.MIN_VALUE);
+		// 4 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.2"));
+		// 9 signs
+		explanation_text.append(Year.MAX_VALUE);
+		// 177 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.3"));
+		// 5 signs in default resource
+		explanation_text.append(labels_resources.getString(
+				"Instance_counter_time_fields.hour"));
+		// 2 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.4"));
+		// 7 signs in default resource
+		explanation_text.append(labels_resources.getString(
+				"Instance_counter_time_fields.minute"));
+		// 5 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.5"));
+		// 7 signs in default resource
+		explanation_text.append(labels_resources.getString(
+				"Instance_counter_time_fields.second"));
+		// 172 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.6"));
+		// 3 signs in default resource
+		explanation_text.append(now_button.getText());
+		// 58 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.7"));
+		// 13 signs in default resource
+		explanation_text.append(
+				gui_settings.get_time_counter_resources().getString("modes.elapsed_from"));
+		// 8 signs in default resource
+		explanation_text.append(hints_resources.getString(
+				"Init_Instance_counter_controller.hint.8"));
+		
+		// Node to contain explanation text
+		final Label label = new Label(explanation_text.toString());
 		// Окно всплывающего сообщения
-		final PopOver hint = new PopOver(explanation_text);
+		final PopOver hint = new PopOver(label);
 		
 		hint.setArrowLocation(ArrowLocation.BOTTOM_CENTER);
 		hint.setDetachable(false);

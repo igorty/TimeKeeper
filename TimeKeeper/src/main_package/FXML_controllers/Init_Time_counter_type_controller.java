@@ -1,5 +1,7 @@
 ﻿package main_package.FXML_controllers;
 
+import java.util.ResourceBundle;
+
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
@@ -9,16 +11,21 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
-import main_package.Main_class;
+import main_package.GUI_settings;
+import main_package.events.Locale_change_listener;
 import time_obj.Mode;
 
 
 /**
- * Контроллер участка компоновки для выбора типа создаваемого счетчика времени
- * на основе именованных констант перечисления {@link Mode}. Вызывается
- * {@link FXMLLoader}'ом для файла <i>Init_Time_counter_type_layout.fxml</i>.<br>
- * <i>Примечание.</i> Корневой компоновкой для файла
- * <i>Init_Time_counter_type_layout.fxml</i> является {@link VBox}.
+ * Time counter type choosing layout&nbsp;pane controller. Called by
+ * {@link FXMLLoader} for
+ * <i>"main_package/FXML_controllers/Init_Time_counter_type_layout.fxml"</i>
+ * file.<br>
+ * <i>Notes.</i>
+ * <ul><li>Root pane in <i>"Init_Time_counter_type_layout.fxml"</i> is
+ * {@link VBox}.</li>
+ * <li><i>"Init_Time_counter_type_layout.fxml"</i> requires
+ * <i>"main_package/resources/time_counter.properties"</i> resources to be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -69,8 +76,10 @@ public class Init_Time_counter_type_controller
 	}
 	
 	
-	///// Методы private экземпляра =======================================/////
-	/** Вызывается {@link FXMLLoader}'ом. */
+	///// Methods private of-instance =====================================/////
+	/**
+	 * Called by {@link FXMLLoader}.
+	 */
 	@FXML
 	private void initialize()
 	{
@@ -90,11 +99,6 @@ public class Init_Time_counter_type_controller
 		elapsed_from_radio_button.setGraphic(new ImageView("images/elapsed_from_middle.png"));
 		countdown_till_radio_button.setGraphic(new ImageView("images/countdown_till_middle.png"));
 		
-		stopwatch_radio_button.setText(Main_class.mode_names.get(Mode.M_stopwatch));
-		countdown_radio_button.setText(Main_class.mode_names.get(Mode.M_countdown));
-		elapsed_from_radio_button.setText(Main_class.mode_names.get(Mode.M_elapsed_from));
-		countdown_till_radio_button.setText(Main_class.mode_names.get(Mode.M_countdown_till));
-		
 		toggle_group.selectedToggleProperty().addListener(new ChangeListener<Toggle>()
 		{
 			@Override
@@ -102,6 +106,26 @@ public class Init_Time_counter_type_controller
 					final Toggle old_value, final Toggle new_value)
 			{
 				selected_mode = (Mode)new_value.getUserData();
+			}
+		});
+		
+		// Graphic user interface settings
+		final GUI_settings gui_settings = GUI_settings.get_instance();
+		
+		gui_settings.add_Locale_change_listener(new Locale_change_listener()
+		{
+			@Override
+			public void locale_changed()
+			{
+				/* Resource bundle representing ".properties" resource which
+				 * contains specific time counter settings names */
+				final ResourceBundle resources =
+						gui_settings.get_time_counter_resources();
+				
+				stopwatch_radio_button.setText(resources.getString("modes.stopwatch"));
+				countdown_radio_button.setText("modes.timer");
+				elapsed_from_radio_button.setText("modes.elapsed_from");
+				countdown_till_radio_button.setText("modes.remains_till");
 			}
 		});
 	}

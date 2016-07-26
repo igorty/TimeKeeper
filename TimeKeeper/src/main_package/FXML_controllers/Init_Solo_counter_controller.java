@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 
@@ -26,16 +27,22 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextFormatter.Change;
 import javafx.scene.layout.GridPane;
+import main_package.GUI_settings;
 import time_obj.Days_in_year;
 import time_obj.Settings;
 import time_obj.Solo_counter;
 
 
 /**
- * Контроллер участка компоновки для создания объекта {@link Solo_counter}.
- * Вызывается {@link FXMLLoader}'ом для файла <i>Init_Solo_counter_layout.fxml</i>.<br>
- * <i>Примечание.</i> Корневой компоновкой для файла
- * <i>Init_Solo_counter_layout.fxml</i> является {@link GridPane}.
+ * {@link Solo_counter} initial&nbsp;values settings&nbsp;pane controller.
+ * Called by {@link FXMLLoader} for
+ * <i>"main_package/FXML_controllers/Init_Solo_counter_layout.fxml"</i> file.<br>
+ * <i>Notes.</i>
+ * <ul><li>Root pane in <i>"Init_Solo_counter_layout.fxml"</i> is
+ * {@link GridPane}.</li>
+ * <li><i>"Init_Solo_counter_layout.fxml"</i> requires
+ * <i>"main_package/resources/GUI_elements/labels.properties"</i> resources to
+ * be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -69,22 +76,23 @@ public class Init_Solo_counter_controller
 		
 		///// Конструкторы по умолчанию ===================================/////
 		/**
-		 * Содержит значения времени и типа посчета дней в месяце
-		 * (кол&#8209;ва&nbsp;дней в году), необходимые для передачи
-		 * конструктору
-		 * {@link Solo_counter#Solo_counter(time_obj.Mode, Period, LocalTime, Days_in_year)}.
+		 * Contains time&nbsp;values and
+		 * days&#8209;in&#8209;year/days&#8209;in&#8209;month counting type to
+		 * pass&nbsp;on
+		 * {@link Solo_counter#Solo_counter(time_obj.Mode, Period, LocalTime, Days_in_year)}
+		 * constructor.
 		 * 
-		 * @param period Значения лет, месяцев и дней. <u>Может</u> иметь
-		 * значение {@code null}.
+		 * @param period Years, months and days time&nbsp;values. <u>Can</u> be
+		 * {@code null}.
 		 * 
-		 * @param duration Значения часов, минут и секунд. <u>Может</u> иметь
-		 * значение {@code null}.
+		 * @param duration Hours, minutes and seconds time&nbsp;values.
+		 * <u>Can</u> be {@code null}.
 		 * 
-		 * @param days_count Тип подсчета дней в месяце (кол&#8209;во&nbsp;дней
-		 * в году).
+		 * @param days_count Days&#8209;in&#8209;year/days&#8209;in&#8209;month
+		 * counting type.
 		 * 
-		 * @exception NullPointerException Если в качестве аргумента типа
-		 * {@link Days_in_year} передан {@code null}.
+		 * @exception NullPointerException {@link Days_in_year} argument is
+		 * {@code null}.
 		 */
 		Time_values(final Period period, final LocalTime duration,
 				final Days_in_year days_count)
@@ -103,38 +111,14 @@ public class Init_Solo_counter_controller
 	}
 	
 	
-	///// Поля private статические ========================================/////
-	/** Содержит возможные варианты выбора для {@link #days_count_choice}.<br>
-	 * <b>Важно!</b> Ссылается на {@link Collections#unmodifiableMap(Map)}.
-	 * Попытка изменения содержимого контейнера приведет к ошибке времени
-	 * выполнения. */
-	private static final Map<Days_in_year, String> days_count_choice_values;
+	///// Fields private static ===========================================/////
+	/** Graphic user interface settings. */
+	private static final GUI_settings gui_settings;
 	
 	
 	static
 	{
-		// Инициализатор контейнера "days_count_choice_values"
-		final Map<Days_in_year, String> days_count_choice_values_init =
-				new EnumMap<>(Days_in_year.class);
-		// Все именованные константы перечисления "Days_in_year"
-		final Days_in_year[] days_in_year_values = Days_in_year.values();
-		/* Строки значений, которые будут содержаться в контейнере
-		 * "days_count_choice_values_init" */
-		final String[] days_count_choice_strings = { "360/year", "365/year" };
-		
-		assert days_count_choice_strings.length == days_in_year_values.length :
-			"Array size doesn\'t match with " + Days_in_year.class.getName()
-			+ " enum constants quantity";
-		
-		// Инициализация контейнера "days_count_choice_values_init"
-		for (final Days_in_year i : days_in_year_values)
-		{
-			days_count_choice_values_init.put(
-					i, days_count_choice_strings[i.ordinal()]);
-		}
-		
-		days_count_choice_values =
-				Collections.unmodifiableMap(days_count_choice_values_init);
+		gui_settings = GUI_settings.get_instance();
 	}
 	
 	
@@ -176,6 +160,11 @@ public class Init_Solo_counter_controller
 	/** Содержит выбранное в {@link #days_count_choice} значение. */
 	private Days_in_year chosen_days_count;
 	
+	/** Contains string items for {@link #days_count_choice}.<br>
+	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
+	 * to change its content results in runtime exception. */
+	private final Map<Days_in_year, String> days_count_choice_values;
+	
 	/** Выводит справку об ограничениях для вводимых чисел в текстовые поля
 	 * {@link #years_field}, {@link #months_field}, {@link #days_field},
 	 * {@link #hours_field}, {@link #minutes_field}, {@link #seconds_field}. */
@@ -193,9 +182,49 @@ public class Init_Solo_counter_controller
 	 * {@link #seconds_field}). */
 	private final ArrayList<TextFormatter<Integer>> text_formatters;
 	
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * specific time counter settings names. */
+	private final ResourceBundle time_counter_resources;
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * hints and tooltips texts. */
+	private final ResourceBundle hints_resources;
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * labels names. */
+	private final ResourceBundle labels_resources;
+	
 	
 	///// Нестатическая инициализация =====================================/////
 	{
+		time_counter_resources = gui_settings.get_time_counter_resources();
+		hints_resources = gui_settings.get_hints_resources();
+		labels_resources = gui_settings.get_labels_resources();
+		
+		///// "days_count_choice_values" container initialization /////
+		// "days_count_choice_values" container initializer
+		final Map<Days_in_year, String> days_count_choice_values_init =
+				new EnumMap<>(Days_in_year.class);
+		// All "Days_in_year" enumeration constants
+		final Days_in_year[] days_in_year_values = Days_in_year.values();
+		// String items to be stored in "days_count_choice_values" container
+		final String[] days_count_choice_strings = {
+				time_counter_resources.getString("days_count.360"),
+				time_counter_resources.getString("days_count.365") };
+		
+		assert days_count_choice_strings.length == days_in_year_values.length :
+			"Array size doesn\'t match with " + Days_in_year.class.getName()
+				+ " enum constants quantity";
+		
+		// "days_count_choice_values_init" container initialization
+		for (final Days_in_year i : days_in_year_values)
+		{
+			days_count_choice_values_init.put(
+					i, days_count_choice_strings[i.ordinal()]);
+		}
+		
+		days_count_choice_values =
+				Collections.unmodifiableMap(days_count_choice_values_init);
+		
+		
 		// Кол-во TextFormatter'ов для добавления к текстовым полям
 		final int text_formatters_quantity = 6;
 		
@@ -339,8 +368,9 @@ public class Init_Solo_counter_controller
 			days = 0;
 		}
 		
-		// Шаблонный текст предупреждения о слишком большом значении времени
-		final String warning_label_text = "Entered value is too big";
+		/* Resource bundle representing ".properties" resource which contains
+		 * labels names */
+		final ResourceBundle labels_resources = gui_settings.get_labels_resources();
 		// Значения лет, месяцев и дней
 		Period period = null;
 
@@ -352,9 +382,10 @@ public class Init_Solo_counter_controller
 				period = Solo_counter.normalize_period_obj(
 						Period.of(years, months, days), chosen_days_count);
 			}
-			catch (ArithmeticException exc)
+			catch (final ArithmeticException exc)
 			{
-				warning_label.setText(warning_label_text);
+				warning_label.setText(
+						labels_resources.getString("warning.too_big_time_value"));
 				
 				return null;
 			}
@@ -410,9 +441,10 @@ public class Init_Solo_counter_controller
 					period = Solo_counter.normalize_period_obj(
 							period.plusDays(whole_days), chosen_days_count);
 				}
-				catch (ArithmeticException exc)
+				catch (final ArithmeticException exc)
 				{
-					warning_label.setText(warning_label_text);
+					warning_label.setText(labels_resources.getString(
+							"warning.too_big_time_value"));
 					
 					return null;
 				}
@@ -441,7 +473,6 @@ public class Init_Solo_counter_controller
 	}
 	
 	
-	// TODO [with separate commit]: Remove method (not needed)
 	/**
 	 * Выводит указанное предупреждение в отведенном участке панели компоновки.
 	 * 
@@ -453,10 +484,9 @@ public class Init_Solo_counter_controller
 	}
 	
 	
-	///// Методы private экземпляра =======================================/////
+	///// Methods private of-instance =====================================/////
 	/**
-	 * Вызывается {@link FXMLLoader}'ом. Проверяет инициализацию ключевых
-	 * {@code FXML}&#8209;полей при включенном режиме проверки {@code assert}'ов.
+	 * Called by {@link FXMLLoader}.
 	 */
 	@FXML
 	private void initialize()
@@ -516,14 +546,30 @@ public class Init_Solo_counter_controller
 	@FXML
 	private void date_time_hint_button_on_action()
 	{
-		// Текст поясняющего сообщения
-		final Label explanation_text = new Label(
-				"Set time values in these text fields. You may set not only strict values (like up to 59 in minutes field)."
-		    			+ "\nFor example, setting 100 minutes and 120 seconds will be converted to 1 hour and 42 minutes. Leaving a field"
-		    			+ "\nempty is perceived as 0 for this field. Maximum supported time value is\n"
-		    			+ Integer.MAX_VALUE + " years  11 months  30/29 days (depending on Days count mode)  23 hours  59 minutes  59 seconds.");
+		/* Explanation text. Length is reserved according to minimal strings
+		 * length that will be contained in */
+		final StringBuilder explanation_text =
+				new StringBuilder(306 + 9 + 48 + 10 + 45);
+		
+		// 306 signs in default resource
+		explanation_text.append(hints_resources.getString(
+						"Init_Solo_counter_controller.date_time_hint.1"));
+		// 9 signs
+		explanation_text.append(Integer.MAX_VALUE);
+		// 48 signs in default resource
+		explanation_text.append(hints_resources.getString(
+						"Init_Solo_counter_controller.date_time_hint.2"));
+		// 10 signs in default resource
+		explanation_text.append(
+				labels_resources.getString("time_counter_settings.days_count"));
+		// 45 signs in default resource
+		explanation_text.append(hints_resources.getString(
+						"Init_Solo_counter_controller.date_time_hint.3"));
+		
+		// Node to contain explanation text
+		final Label label = new Label(explanation_text.toString());
 		// Окно всплывающего сообщения
-		final PopOver hint = new PopOver(explanation_text);
+		final PopOver hint = new PopOver(label);
 		
 		hint.setArrowLocation(ArrowLocation.BOTTOM_CENTER);
 		hint.setDetachable(false);
@@ -540,16 +586,29 @@ public class Init_Solo_counter_controller
 	@FXML
 	private void days_count_hint_button_on_action()
 	{
-		// Текст поясняющего сообщения
-		final Label explanation_text = new Label(
-				"The way in which days in month quantity will be calculated."
-				+ "\n\"360/year\" means that every month consists of 30 days,"
-				+ "\nwhereas in \"365/year\" mode quantity of days"
-				+ "\nlike in calendar. Fabruary in this case consists of 28 days."
-				+ "\nNOTE: This value cannot be changed when time counter"
-				+ "\nalready created.");
+		/* Explanation text. Length is reserved according to minimal strings
+		 * length that will be contained in */
+		final StringBuilder explanation_text =
+				new StringBuilder(67 + 8 + 60 + 8 + 162);
+		
+		// 67 signs in default resource
+		explanation_text.append(hints_resources.getString(
+						"Init_Solo_counter_controller.days_count_hint.1"));
+		// 8 signs in default resource
+		explanation_text.append(time_counter_resources.getString("days_count.360"));
+		// 60 signs in default resource
+		explanation_text.append(hints_resources.getString(
+						"Init_Solo_counter_controller.days_count_hint.2"));
+		// 8 signs in default resource
+		explanation_text.append(time_counter_resources.getString("days_count.365"));
+		// 162 signs in default resource
+		explanation_text.append(hints_resources.getString(
+						"Init_Solo_counter_controller.days_count_hint.3"));
+		
+		// Node to contain explanation text
+		final Label label = new Label(explanation_text.toString());
 		// Окно всплывающего сообщения
-		final PopOver hint = new PopOver(explanation_text);
+		final PopOver hint = new PopOver(label);
 		
 		hint.setArrowLocation(ArrowLocation.BOTTOM_CENTER);
 		hint.setDetachable(false);

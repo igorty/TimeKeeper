@@ -26,11 +26,11 @@
       <RowConstraints />
    </rowConstraints>
    <children>
-      <Label text="Time unit names" />
+      <Label text="%layout_settings.time_unit_names" />
       <ChoiceBox fx:id="time_unit_names_choicebox" prefWidth="150.0" GridPane.columnIndex="1" />
-      <Label text="Time display style" GridPane.rowIndex="1" />
+      <Label text="%layout_settings.time_display_style" GridPane.rowIndex="1" />
       <ChoiceBox fx:id="time_display_style_choicebox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-      <Label fx:id="time_units_displayed_range_label" text="Time units displayed range" GridPane.rowIndex="2">
+      <Label fx:id="time_units_displayed_range_label" text="%layout_settings.displayed_range" GridPane.rowIndex="2">
          <GridPane.margin>
             <Insets bottom="-5.0" />
          </GridPane.margin>
@@ -38,7 +38,7 @@
       <RangeSlider fx:id="time_units_displayed_rangeslider" blockIncrement="1.0" highValue="5.0" lowValue="0.0" majorTickUnit="1.0" max="5.0" minorTickCount="0" showTickLabels="true" showTickMarks="true" snapToTicks="true" stylesheets="@../../time_units_display_range.css" GridPane.columnSpan="3" GridPane.rowIndex="3" />
       <FlowPane prefWrapLength="0.0" GridPane.columnSpan="3" GridPane.rowIndex="4">
          <children>
-            <Label text="Example:">
+            <Label text="%layout_settings.example">
                <padding>
                   <Insets right="15.0" />
                </padding>
@@ -47,7 +47,7 @@
             <Label fx:id="enabled_label" />
          </children>
       </FlowPane>
-      <CheckBox fx:id="display_on_title_check_box" mnemonicParsing="false" nodeOrientation="RIGHT_TO_LEFT" text="Display on title  " GridPane.rowIndex="5">
+      <CheckBox fx:id="display_on_title_check_box" mnemonicParsing="false" nodeOrientation="RIGHT_TO_LEFT" text="%layout_settings.display_on_title" GridPane.rowIndex="5">
          <GridPane.margin>
             <Insets top="15.0" />
          </GridPane.margin>

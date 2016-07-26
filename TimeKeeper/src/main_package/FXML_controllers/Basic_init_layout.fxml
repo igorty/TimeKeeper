@@ -16,22 +16,22 @@
    <bottom>
       <FlowPane alignment="CENTER_RIGHT" BorderPane.alignment="CENTER">
          <children>
-            <Button fx:id="previous_button" disable="true" mnemonicParsing="false" prefWidth="80.0" text="Previous">
+            <Button fx:id="previous_button" disable="true" mnemonicParsing="false" prefWidth="80.0" text="%previous">
                <FlowPane.margin>
                   <Insets right="10.0" />
                </FlowPane.margin>
             </Button>
-            <Button fx:id="next_button" defaultButton="true" mnemonicParsing="false" prefWidth="80.0" text="Next">
+            <Button fx:id="next_button" defaultButton="true" mnemonicParsing="false" prefWidth="80.0" text="%next">
                <FlowPane.margin>
                   <Insets right="10.0" />
                </FlowPane.margin>
             </Button>
-            <Button fx:id="apply_button" disable="true" mnemonicParsing="false" prefWidth="80.0" text="Apply">
+            <Button fx:id="apply_button" disable="true" mnemonicParsing="false" prefWidth="80.0" text="%apply">
                <FlowPane.margin>
                   <Insets left="10.0" right="10.0" />
                </FlowPane.margin>
             </Button>
-            <Button fx:id="cancel_button" cancelButton="true" mnemonicParsing="false" prefWidth="80.0" text="Cancel" />
+            <Button fx:id="cancel_button" cancelButton="true" mnemonicParsing="false" prefWidth="80.0" text="%cancel" />
          </children>
          <BorderPane.margin>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

@@ -1,19 +1,27 @@
 ﻿package main_package.FXML_controllers;
 
+import java.util.ResourceBundle;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import main_package.GUI_settings;
+import main_package.events.Locale_change_listener;
 import time_obj.Mode;
 
 
 /**
- * Контроллер базовой компоновки для окна создания счетчика времени. Вызывается
- * {@link FXMLLoader}'ом для файла <i>Basic_init_layout.fxml</i>.<br>
- * <i>Примечание.</i> Корневой компоновкой для файла <i>Basic_init_layout.fxml</i>
- * является {@link BorderPane}.
+ * Root pane for <i>new&nbsp;time&nbsp;counter wizard</i> window. Called by
+ * {@link FXMLLoader} for
+ * <i>"main_package/FXML_controllers/Basic_init_layout.fxml"</i> file.<br>
+ * <i>Notes.</i>
+ * <ul><li>Root pane in <i>"Basic_init_layout.fxml"</i> is {@link BorderPane}.</li>
+ * <li><i>"<i>Basic_init_layout.fxml</i>"</i> requires
+ * <i>"main_package/resources/GUI_elements/buttons.properties"</i> resources to
+ * be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -47,9 +55,9 @@ public class Basic_init_controller
 	public Button cancel_button;
 	
 	
-	///// Методы private экземпляра =======================================/////
+	///// Methods private of-instance =====================================/////
 	/**
-	 * Вызывается {@link FXMLLoader}'ом.
+	 * Called by {@link FXMLLoader}.
 	 */
 	@FXML
 	private void initialize()
@@ -60,5 +68,25 @@ public class Basic_init_controller
 		assert next_button != null : "next_button field was not injected";
 		assert apply_button != null : "apply_button field was not injected";
 		assert cancel_button != null : "cancel_button field was not injected";
+		
+		// Graphic user interface settings
+		final GUI_settings gui_settings = GUI_settings.get_instance();
+		
+		gui_settings.add_Locale_change_listener(new Locale_change_listener()
+		{
+			@Override
+			public void locale_changed()
+			{
+				/* Resource bundle representing ".properties" resource which
+				 * contains buttons names */
+				final ResourceBundle resources =
+						gui_settings.get_buttons_resources();
+				
+				previous_button.setText(resources.getString("previous"));
+				next_button.setText(resources.getString("next"));
+				apply_button.setText(resources.getString("apply"));
+				cancel_button.setText(resources.getString("cancel"));
+			}
+		});
 	}
 }

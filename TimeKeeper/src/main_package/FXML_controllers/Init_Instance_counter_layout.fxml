@@ -28,7 +28,7 @@
          <children>
             <VBox>
                <children>
-                  <Label text="Year" />
+                  <Label text="%Instance_counter_time_fields.year" />
                   <TextField fx:id="year_field" maxWidth="81.0" />
                </children>
                <FlowPane.margin>
@@ -37,7 +37,7 @@
             </VBox>
             <VBox>
                <children>
-                  <Label text="Month" />
+                  <Label text="%Instance_counter_time_fields.month" />
                   <TextField fx:id="month_field" maxWidth="81.0" />
                </children>
                <FlowPane.margin>
@@ -46,7 +46,7 @@
             </VBox>
             <VBox>
                <children>
-                  <Label text="Day" />
+                  <Label text="%Instance_counter_time_fields.day" />
                   <TextField fx:id="day_field" maxWidth="30.0" />
                </children>
             </VBox>
@@ -56,7 +56,7 @@
          <children>
             <VBox prefWidth="40.0">
                <children>
-                  <Label text="Hour" />
+                  <Label text="%Instance_counter_time_fields.hour" />
                   <TextField fx:id="hour_field" maxWidth="30.0" promptText="0" />
                </children>
                <FlowPane.margin>
@@ -65,7 +65,7 @@
             </VBox>
             <VBox prefWidth="40.0">
                <children>
-                  <Label text="Minute" />
+                  <Label text="%Instance_counter_time_fields.minute" />
                   <TextField fx:id="minute_field" maxWidth="30.0" promptText="0" />
                </children>
                <FlowPane.margin>
@@ -74,7 +74,7 @@
             </VBox>
             <VBox prefWidth="40.0">
                <children>
-                  <Label text="Second" />
+                  <Label text="%Instance_counter_time_fields.second" />
                   <TextField fx:id="second_field" maxWidth="30.0" promptText="0" />
                </children>
             </VBox>
@@ -85,7 +85,7 @@
             <Insets top="15.0" />
          </GridPane.margin>
       </DatePicker>
-      <Button fx:id="now_button" mnemonicParsing="false" onAction="#now_button_on_action" text="Now" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="1" GridPane.valignment="BOTTOM" />
+      <Button fx:id="now_button" mnemonicParsing="false" onAction="#now_button_on_action" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="1" GridPane.valignment="BOTTOM" />
       <Label fx:id="warning_label" textFill="RED" GridPane.columnSpan="2" GridPane.halignment="CENTER" GridPane.rowIndex="2" GridPane.valignment="CENTER">
          <font>
             <Font size="14.0" />
