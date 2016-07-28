@@ -289,7 +289,6 @@ public class Init_settings_controller
 	{
 		chosen_time_unit_layout = program_settings.get_time_unit_layout_setting();
 		chosen_time_display_style = program_settings.get_time_display_style_setting();
-		update_rangeslider_enabling_state();
 		
 		// Значения крайних отображаемых единиц времени
 		final Time_unit_name[] display_edges = program_settings.get_time_value_edges();
@@ -938,6 +937,8 @@ public class Init_settings_controller
 		
 		display_on_title_check_box.setTooltip(new Tooltip(
 				hints_resources.getString("layout_settings.display_on_title_hint")));
+		update_rangeslider_enabling_state();
+		executor.execute(example_text_modifier);
 	}
 	
 	

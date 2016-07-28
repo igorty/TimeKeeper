@@ -1,6 +1,7 @@
 ﻿package main_package;
 
 import java.io.IOException;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -25,6 +26,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import main_package.FXML_controllers.Basic_init_controller;
 import main_package.FXML_controllers.Init_Instance_counter_controller;
 import main_package.FXML_controllers.Init_Solo_counter_controller;
@@ -35,8 +37,11 @@ import main_package.FXML_controllers.Init_Solo_counter_controller.Time_values;
 import main_package.dialog.Error_dialog;
 import main_package.dialog.Error_dialog.Template_message;
 import main_package.events.Locale_change_listener;
+import time_obj.Instance_counter;
 import time_obj.Mode;
 import time_obj.Settings;
+import time_obj.Solo_counter;
+import time_obj.Time_counter;
 
 
 /* TODO? If this class instance won't be used several times, provide its
@@ -76,10 +81,9 @@ class New_time_counter_window
 	 * которая должна приводить нажатию кнопки {@code Apply} на корневой панели
 	 * компоновки. */
 	private static final KeyCodeCombination shortcut_enter_key_combination;
-	/** Комбинация нажатия клавиш {@code Ctrl}&nbsp;{@code +}&nbsp;{@code Esc},
-	 * которая должна приводить к нажатию кнопки {@code Cancel} на корневой
-	 * панели компоновки. */
-	private static final KeyCodeCombination shortcut_esc_key_combination;
+	/** {@code Ctrl}&nbsp;{@code +}&nbsp;{@code Backspace} key&nbsp;combination
+	 * which causes <i>Cancel</i> button fire on the&nbsp;{@link #root_pane}. */
+	private static final KeyCodeCombination shortcut_backspace_key_combination;
 	/** Комбинация нажатия клавиш {@code Ctrl}&nbsp;{@code +}&nbsp;{@code N},
 	 * которая должна приводить к нажатию кнопки {@code Now} на панели
 	 * компоновки, представленной объектом
@@ -139,8 +143,8 @@ class New_time_counter_window
 		
 		shortcut_enter_key_combination =
 				new KeyCodeCombination(KeyCode.ENTER, KeyCombination.SHORTCUT_DOWN);
-		shortcut_esc_key_combination =
-				new KeyCodeCombination(KeyCode.ESCAPE, KeyCodeCombination.SHORTCUT_DOWN);
+		shortcut_backspace_key_combination =
+				new KeyCodeCombination(KeyCode.BACK_SPACE, KeyCodeCombination.SHORTCUT_DOWN);
 		shortcut_n_key_combination = new KeyCodeCombination(
 				KeyCode.N, KeyCombination.SHORTCUT_DOWN);
 		enter_key_combination_text = "< " +
@@ -234,6 +238,9 @@ class New_time_counter_window
 	private final EventHandler<ActionEvent> from_3_to_2_stage_event_handler;
 	/** Handles moving from 2nd to 1st stage event of creating time counter. */
 	private final EventHandler<ActionEvent> from_2_to_1_stage_event_handler;
+	
+	/** {@link Time_counter}'s initial layout settings. */
+	private Init_settings init_settings;
 
 	
 	///// Нестатическая инициализация =====================================/////
@@ -287,7 +294,15 @@ class New_time_counter_window
 		
 		stage = new Stage();
 		
-		// TODO: stage.setOnCloseRequest()
+		stage.setOnCloseRequest(new EventHandler<WindowEvent>()
+		{
+			@Override
+			public void handle(final WindowEvent event)
+			{
+				close_window();
+				back_to_initial_state();
+			}
+		});
 		
 		shortcut_n_accelerator = new Runnable()
 		{
@@ -366,19 +381,45 @@ class New_time_counter_window
 							 * contains time counter layout settings */
 							if (init_settings_pane == null)
 							{
-								/* TODO: Create stopwatch mode time counter,
-								 * using constructor which DOESN'T TAKE layout
-								 * settings as argument */
+								// Newly created time counter
+								final Solo_counter new_stopwatch =
+										new Solo_counter(
+												Mode.M_stopwatch,
+												init_time_values.period,
+												init_time_values.duration,
+												init_time_values.days_count);
+								
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 							}
 							else
 							{
-								// Time counter's layout settings
-								final Init_settings init_settings =
+								init_settings =
 										init_settings_pane_controller.get_init_settings();
-										
-								/* TODO: Create stopwatch mode time counter,
-								 * using constructor which TAKES layout settings
-								 * as argument */
+								// Newly created time counter
+								final Solo_counter new_stopwatch =
+										new Solo_counter(
+												Mode.M_stopwatch,
+												init_time_values.period,
+												init_time_values.duration,
+												init_time_values.days_count,
+												init_settings.time_display_style,
+												init_settings.left_displayed_edge,
+												init_settings.right_displayed_edge,
+												init_settings.time_unit_layout);
+								
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 								overwrite_layout_settings();
@@ -440,23 +481,82 @@ class New_time_counter_window
 								return;
 							}
 							
+							/* true - time value is 0 (is inappropriate for
+							 * timer mode); false - initial timer value is more
+							 * than 0 */
+							boolean is_0 = false;
+							
+							// Initial timer value cannot be 0
+							if (init_time_values.period == null &&
+									init_time_values.duration == null)
+							{
+								is_0 = true;
+							}
+							else if (init_time_values.period == null &&
+									init_time_values.duration != null &&
+									init_time_values.duration.equals(LocalTime.of(0, 0, 0)))
+							{
+								is_0 = true;
+							}
+							else if (init_time_values.duration == null &&
+									init_time_values.period != null &&
+									init_time_values.period.isZero())
+							{
+								is_0 = true;
+							}
+							
+							// If initial timer value is 0
+							if (is_0)
+							{
+								init_countdown_pane_controller.set_warning_text(
+										labels_resources.getString(
+												"warning.incorrect_timer_value"));
+								
+								return;
+							}
+							
 							/* If user hasn't moved to wizard's 3rd stage which
 							 * contains time counter layout settings */
 							if (init_settings_pane == null)
 							{
-								/* TODO: Create countdown mode time counter,
-								 * using constructor which DOESN'T TAKE layout
-								 * settings as argument */
+								// Newly created time counter
+								final Solo_counter new_timer = new Solo_counter(
+										Mode.M_countdown,
+										init_time_values.period,
+										init_time_values.duration,
+										init_time_values.days_count);
+								
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 							}
 							else
 							{
-								// Time counter's layout settings
-								final Init_settings init_settings =
+								init_settings =
 										init_settings_pane_controller.get_init_settings();
 								
-								/* TODO: Create countdown mode time counter,
-								 * using constructor which TAKES layout settings
-								 * as argument */
+								// Newly created time counter
+								final Solo_counter new_timer = new Solo_counter(
+										Mode.M_countdown,
+										init_time_values.period,
+										init_time_values.duration,
+										init_time_values.days_count,
+										init_settings.time_display_style,
+										init_settings.left_displayed_edge,
+										init_settings.right_displayed_edge,
+										init_settings.time_unit_layout);
+								
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 								overwrite_layout_settings();
@@ -529,19 +629,40 @@ class New_time_counter_window
 							 * contains time counter layout settings */
 							if (init_settings_pane == null)
 							{
-								/* TODO: Create elapsed-from-specified-instant
-								 * mode time counter, using constructor which
-								 * DOESN'T TAKE layout settings as argument */
+								// Newly created time counter
+								final Instance_counter new_elapsed_from =
+										new Instance_counter(
+												Mode.M_elapsed_from, init_date_time);
+								
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 							}
 							else
 							{
-								// Time counter's layout settings
-								final Init_settings init_settings =
+								init_settings =
 										init_settings_pane_controller.get_init_settings();
+								// Newly created time counter
+								final Instance_counter new_elapsed_from =
+										new Instance_counter(
+												Mode.M_elapsed_from,
+												init_date_time,
+												init_settings.time_display_style,
+												init_settings.left_displayed_edge,
+												init_settings.right_displayed_edge,
+												init_settings.time_unit_layout);
 								
-								/* TODO: Create elapsed-from-specified-instant
-								 * mode time counter, using constructor which
-								 * TAKES layout settings as argument */
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 								overwrite_layout_settings();
@@ -609,19 +730,40 @@ class New_time_counter_window
 							 * contains time counter layout settings */
 							if (init_settings_pane == null)
 							{
-								/* TODO: Create remains-to-specified-instant
-								 * mode time counter, which DOESN'T TAKE layout
-								 * settings as argument */
+								// Newly created time counter
+								final Instance_counter new_remains_till =
+										new Instance_counter(
+												Mode.M_countdown_till, init_date_time);
+								
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 							}
 							else
 							{
-								// Time counter's layout settings
-								final Init_settings init_settings =
+								init_settings =
 										init_settings_pane_controller.get_init_settings();
+								// Newly created time counter
+								final Instance_counter new_remains_till =
+										new Instance_counter(
+												Mode.M_countdown_till,
+												init_date_time,
+												init_settings.time_display_style,
+												init_settings.left_displayed_edge,
+												init_settings.right_displayed_edge,
+												init_settings.time_unit_layout);
 								
-								/* TODO: Create remains-to-specified-instant
-								 * mode time counter, which TAKES layout
-								 * settings as argument */
+								/* TODO: Provide necessary listeners to newly
+								 * created time counter */
+								/* TODO: Set newly created time counter's
+								 * "index_number" field according to its
+								 * position in the main window */
+								/* TODO: Place newly created time counter to 
+								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 								overwrite_layout_settings();
@@ -641,6 +783,8 @@ class New_time_counter_window
 				
 				root_pane_controller.previous_button.setOnAction(
 						from_2_to_1_stage_event_handler);
+				root_pane_controller.next_button.setOnAction(
+						from_2_to_3_stage_event_handler);
 				
 				root_pane_controller.apply_button.setDisable(false);
 				root_pane_controller.previous_button.setDisable(false);
@@ -666,7 +810,7 @@ class New_time_counter_window
 				root_pane_controller.apply_button.setTooltip(new Tooltip(
 						"< " + shortcut_enter_key_combination.getDisplayText() + " >"));
 				root_pane_controller.cancel_button.getTooltip().setText(
-						"< " + shortcut_esc_key_combination.getDisplayText() + " >");
+						"< " + shortcut_backspace_key_combination.getDisplayText() + " >");
 			}
 		};
 		
@@ -708,6 +852,40 @@ class New_time_counter_window
 					// Если пользователь ввел некорректное значение
 					if (init_Solo_counter_values == null)
 					{
+						return;
+					}
+					
+					/* true - time value is 0 (is inappropriate for
+					 * timer mode); false - initial timer value is more
+					 * than 0 */
+					boolean is_0 = false;
+					
+					// Initial timer value cannot be 0
+					if (init_Solo_counter_values.period == null &&
+							init_Solo_counter_values.duration == null)
+					{
+						is_0 = true;
+					}
+					else if (init_Solo_counter_values.period == null &&
+							init_Solo_counter_values.duration != null &&
+							init_Solo_counter_values.duration.equals(LocalTime.of(0, 0, 0)))
+					{
+						is_0 = true;
+					}
+					else if (init_Solo_counter_values.duration == null &&
+							init_Solo_counter_values.period != null &&
+							init_Solo_counter_values.period.isZero())
+					{
+						is_0 = true;
+					}
+					
+					// If initial timer value is 0
+					if (is_0)
+					{
+						init_countdown_pane_controller.set_warning_text(
+								labels_resources.getString(
+										"warning.incorrect_timer_value"));
+						
 						return;
 					}
 					
@@ -790,37 +968,175 @@ class New_time_counter_window
 					@Override
 					public void handle(final ActionEvent event)
 					{
-						// Настройки отображения счетчика времени
-						final Init_settings init_settings =
+						init_settings =
 								init_settings_pane_controller.get_init_settings();
 						
 						switch (selected_mode)
 						{
 						case M_stopwatch:
-							// TODO: Создать счетчик времени в режиме секундомера
+							// Initial stopwatch mode values
+							final Time_values init_stopwatch_values =
+									init_stopwatch_pane_controller.get_time_values();
+							
+							// If user entered incorrect time values
+							if (init_stopwatch_values == null)
+							{
+								return;
+							}
+							
+							// Newly created time counter
+							final Solo_counter new_stopwatch =
+									new Solo_counter(
+											Mode.M_stopwatch,
+											init_stopwatch_values.period,
+											init_stopwatch_values.duration,
+											init_stopwatch_values.days_count,
+											init_settings.time_display_style,
+											init_settings.left_displayed_edge,
+											init_settings.right_displayed_edge,
+											init_settings.time_unit_layout);
+							
+							/* TODO: Provide necessary listeners to newly
+							 * created time counter */
+							/* TODO: Set newly created time counter's
+							 * "index_number" field according to its
+							 * position in the main window */
+							/* TODO: Place newly created time counter to 
+							 * the main window */
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
 							break;
 							
 						case M_countdown:
-							// TODO: Создать счетчик времени в режиме таймера
+							// Initial timer mode values
+							final Time_values init_timer_values =
+									init_countdown_pane_controller.get_time_values();
+							
+							// If user entered incorrect time values
+							if (init_timer_values == null)
+							{
+								return;
+							}
+							
+							/* true - time value is 0 (is inappropriate for
+							 * timer mode); false - initial timer value is more
+							 * than 0 */
+							boolean is_0 = false;
+							
+							// Initial timer value cannot be 0
+							if (init_timer_values.period == null &&
+									init_timer_values.duration == null)
+							{
+								is_0 = true;
+							}
+							else if (init_timer_values.period == null &&
+									init_timer_values.duration != null &&
+									init_timer_values.duration.equals(LocalTime.of(0, 0, 0)))
+							{
+								is_0 = true;
+							}
+							else if (init_timer_values.duration == null &&
+									init_timer_values.period != null &&
+									init_timer_values.period.isZero())
+							{
+								is_0 = true;
+							}
+							
+							// If initial timer value is 0
+							if (is_0)
+							{
+								init_countdown_pane_controller.set_warning_text(
+										labels_resources.getString(
+												"warning.incorrect_timer_value"));
+								
+								return;
+							}
+							
+							// Newly created time counter
+							final Solo_counter new_timer = new Solo_counter(
+									Mode.M_countdown,
+									init_timer_values.period,
+									init_timer_values.duration,
+									init_timer_values.days_count,
+									init_settings.time_display_style,
+									init_settings.left_displayed_edge,
+									init_settings.right_displayed_edge,
+									init_settings.time_unit_layout);
+							
+							/* TODO: Provide necessary listeners to newly
+							 * created time counter */
+							/* TODO: Set newly created time counter's
+							 * "index_number" field according to its
+							 * position in the main window */
+							/* TODO: Place newly created time counter to 
+							 * the main window */
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
 							break;
 							
 						case M_elapsed_from:
-							/* TODO: Создать счетчик времени в режиме подсчета
-							 * прошедшего времени с указанного момента */
+							// Target date time values set by user
+							final ZonedDateTime init_elapsed_from_time =
+									init_elapsed_from_pane_controller.get_date_time();
+							
+							// If user entered incorrect date time value
+							if (init_elapsed_from_time == null)
+							{
+								return;
+							}
+							
+							// Newly created time counter
+							final Instance_counter new_elapsed_from =
+									new Instance_counter(
+											Mode.M_elapsed_from,
+											init_elapsed_from_time,
+											init_settings.time_display_style,
+											init_settings.left_displayed_edge,
+											init_settings.right_displayed_edge,
+											init_settings.time_unit_layout);
+							
+							/* TODO: Provide necessary listeners to newly
+							 * created time counter */
+							/* TODO: Set newly created time counter's
+							 * "index_number" field according to its
+							 * position in the main window */
+							/* TODO: Place newly created time counter to 
+							 * the main window */
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
 							break;
 							
 						case M_countdown_till:
-							/* TODO: Создать счетчик времени в режиме таймера
-							 * обратного отсчета до указанного момента */
+							// Target date time values set by user
+							final ZonedDateTime init_remains_till_time =
+									init_countdown_till_pane_controller.get_date_time();
+							
+							// If user entered incorrect date time value
+							if (init_remains_till_time == null)
+							{
+								return;
+							}
+							
+							// Newly created time counter
+							final Instance_counter new_remains_till =
+									new Instance_counter(
+											Mode.M_countdown_till,
+											init_remains_till_time,
+											init_settings.time_display_style,
+											init_settings.left_displayed_edge,
+											init_settings.right_displayed_edge,
+											init_settings.time_unit_layout);
+							
+							/* TODO: Provide necessary listeners to newly
+							 * created time counter */
+							/* TODO: Set newly created time counter's
+							 * "index_number" field according to its
+							 * position in the main window */
+							/* TODO: Place newly created time counter to 
+							 * the main window */
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
@@ -933,6 +1249,8 @@ class New_time_counter_window
 				hints_resources = gui_settings.get_hints_resources();
 			}
 		});
+		
+		init_settings = null;
 	}
 	
 	
@@ -980,6 +1298,7 @@ class New_time_counter_window
 	void show_window()
 	{
 		set_root_pane_to_initial_state();
+		init_settings = null;
 		root_pane.setCenter(time_counter_type_set_pane);
 		stage.show();
 	}
@@ -1026,14 +1345,14 @@ class New_time_counter_window
 		root_pane_controller.next_button.setTooltip(
 				new Tooltip(enter_key_combination_text));
 		root_pane_controller.cancel_button.setTooltip(new Tooltip(
-				"< " + shortcut_esc_key_combination.getDisplayText() + " > "
+				"< " + shortcut_backspace_key_combination.getDisplayText() + " > "
 						+ hints_resources.getString("accelerators.or") + ' '
 						+ esc_key_combination_text));
 		
 		root_pane_controller.next_button.setOnAction(
 				from_1_to_2_stage_event_handler);
 		
-		accelerators.put(shortcut_esc_key_combination, new Runnable()
+		accelerators.put(shortcut_backspace_key_combination, new Runnable()
 		{
 			@Override
 			public void run()
@@ -1076,9 +1395,8 @@ class New_time_counter_window
 	/**
 	 * Overwrites time&nbsp;counter user&nbsp;defined layout settings using
 	 * separate thread.<br>
-	 * <b>Warning!</b> This method <u>doesn't check</u>
-	 * {@link #init_settings_pane_controller} initialization, from where it
-	 * takes layout settings.
+	 * <b>Warning!</b> This method <u>does&nbsp;not check</u>
+	 * {@link #init_settings} initialization, from where it takes layout settings.
 	 * 
 	 * @exception NullPointerException If {@link #init_settings_pane_controller}
 	 * is {@code null}.
@@ -1092,9 +1410,6 @@ class New_time_counter_window
 			{
 				// Application's settings
 				final Settings settings = Settings.get_instance();
-				// New time counter's layout settings
-				final Init_settings init_settings =
-						init_settings_pane_controller.get_init_settings();
 				
 				settings.set_time_unit_layout_setting(
 						init_settings.time_unit_layout);

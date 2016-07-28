@@ -220,10 +220,9 @@ public class Init_Instance_counter_controller
 							minute_value = 0;
 							date_time_now = null;
 						}
-						/* TextFormatter принадлежит текстовому полю
-						 * "second_field".
-						 * Если уже установленное значение отличное от нуля */
-						else if (second_value != 0)
+						/* If TextFormatter belongs to "second_field" text field
+						 * AND already set value differs from 0 */
+						else if (!is_minute_field && second_value != 0)
 						{
 							second_value = 0;
 							date_time_now = null;
@@ -269,11 +268,10 @@ public class Init_Instance_counter_controller
 						minute_value = field_value;
 						date_time_now = null;
 					}
-					/* TextFormatter belongs to "second_field" text field.
-					 * 
-					 * Condition: if newly entered value differs from already
+					/* Condition: If TextFormatter belongs to "second_field"
+					 * text field AND newly entered value differs from already
 					 * existing */
-					else if (second_value != field_value)
+					else if (!is_minute_field && second_value != field_value)
 					{
 						second_value = field_value;
 						date_time_now = null;
@@ -333,8 +331,7 @@ public class Init_Instance_counter_controller
 		
 		// Если не были введены необходимые значения либо введены неверные значения
 		if (year_value == Integer.MIN_VALUE || month_value == Integer.MIN_VALUE ||
-				day_value == Integer.MIN_VALUE || hour_value == 0 ||
-				minute_value == 0 || second_value == 0)
+				day_value == Integer.MIN_VALUE)
 		{
 			warning_label.setText(
 					labels_resources.getString("warning.incorrect_date_time"));
@@ -406,8 +403,7 @@ public class Init_Instance_counter_controller
 			
 			return null;
 		}
-		/* Если для устанавливаемые дата и время могут существовать в более чем
-		 * одном часовом поясе */
+		// If date time value set can exist in more than one time zone
 		if (valid_offsets_quantity > 1)
 		{
 			// Уточняющее диалоговое окно
@@ -945,7 +941,12 @@ public class Init_Instance_counter_controller
 			
 			date_picker_text_field.setText(null);
 			year_field.setText(Integer.toString(date_picked.getYear()));
-			month_field.setText(Integer.toString(date_picked.getMonthValue()));
+			
+			// Picked month value
+			final int picked_month = date_picked.getMonthValue();
+			
+			month_field.setText(Integer.toString(picked_month));
+			month_value = picked_month;
 			day_field.setText(Integer.toString(date_picked.getDayOfMonth()));
 			date_time_now = null;
 		}
@@ -983,6 +984,13 @@ public class Init_Instance_counter_controller
 		hour_value = date_time_now.getHour();
 		minute_value = date_time_now.getMinute();
 		second_value = date_time_now.getSecond();
+		
+		year_field.setText(Integer.toString(year_value));
+		month_field.setText(Integer.toString(month_value));
+		day_field.setText(Integer.toString(day_value));
+		hour_field.setText(Integer.toString(hour_value));
+		minute_field.setText(Integer.toString(minute_value));
+		second_field.setText(Integer.toString(second_value));
 	}
 	
 	
