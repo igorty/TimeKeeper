@@ -4,4 +4,4 @@
  * @since 1.0
  * @author Igor Taranenko
  */
-package main_package.events;
+package graphical_shell.events;

@@ -1,7 +1,9 @@
-﻿package main_package.FXML_controllers;
+﻿package graphical_shell.FXML_controllers;
 
 import java.util.ResourceBundle;
 
+import graphical_shell.GUI_settings;
+import graphical_shell.events.Locale_change_listener;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
@@ -11,21 +13,19 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
-import main_package.GUI_settings;
-import main_package.events.Locale_change_listener;
 import time_obj.Mode;
 
 
 /**
  * Time counter type choosing layout&nbsp;pane controller. Called by
  * {@link FXMLLoader} for
- * <i>"main_package/FXML_controllers/Init_Time_counter_type_layout.fxml"</i>
+ * <i>"graphical_shell/FXML_controllers/Init_Time_counter_type_layout.fxml"</i>
  * file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_Time_counter_type_layout.fxml"</i> is
  * {@link VBox}.</li>
  * <li><i>"Init_Time_counter_type_layout.fxml"</i> requires
- * <i>"main_package/resources/time_counter.properties"</i> resources to be set.</li></ul>
+ * <i>"graphical_shell/resources/time_counter.properties"</i> resources to be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko

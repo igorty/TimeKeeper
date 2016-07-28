@@ -1,4 +1,4 @@
-﻿package main_package.FXML_controllers;
+﻿package graphical_shell.FXML_controllers;
 
 import java.text.DecimalFormat;
 import java.text.ParsePosition;
@@ -15,6 +15,7 @@ import java.util.function.UnaryOperator;
 import org.controlsfx.control.PopOver;
 import org.controlsfx.control.PopOver.ArrowLocation;
 
+import graphical_shell.GUI_settings;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -27,7 +28,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextFormatter.Change;
 import javafx.scene.layout.GridPane;
-import main_package.GUI_settings;
 import time_obj.Days_in_year;
 import time_obj.Settings;
 import time_obj.Solo_counter;
@@ -36,12 +36,12 @@ import time_obj.Solo_counter;
 /**
  * {@link Solo_counter} initial&nbsp;values settings&nbsp;pane controller.
  * Called by {@link FXMLLoader} for
- * <i>"main_package/FXML_controllers/Init_Solo_counter_layout.fxml"</i> file.<br>
+ * <i>"graphical_shell/FXML_controllers/Init_Solo_counter_layout.fxml"</i> file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_Solo_counter_layout.fxml"</i> is
  * {@link GridPane}.</li>
  * <li><i>"Init_Solo_counter_layout.fxml"</i> requires
- * <i>"main_package/resources/GUI_elements/labels.properties"</i> resources to
+ * <i>"graphical_shell/resources/GUI_elements/labels.properties"</i> resources to
  * be set.</li></ul>
  * 
  * @version 1.0

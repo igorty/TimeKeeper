@@ -1,26 +1,26 @@
-﻿package main_package.FXML_controllers;
+﻿package graphical_shell.FXML_controllers;
 
 import java.util.ResourceBundle;
 
+import graphical_shell.GUI_settings;
+import graphical_shell.events.Locale_change_listener;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import main_package.GUI_settings;
-import main_package.events.Locale_change_listener;
 import time_obj.Mode;
 
 
 /**
  * Root pane for <i>new&nbsp;time&nbsp;counter wizard</i> window. Called by
  * {@link FXMLLoader} for
- * <i>"main_package/FXML_controllers/Basic_init_layout.fxml"</i> file.<br>
+ * <i>"graphical_shell/FXML_controllers/Basic_init_layout.fxml"</i> file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Basic_init_layout.fxml"</i> is {@link BorderPane}.</li>
  * <li><i>"<i>Basic_init_layout.fxml</i>"</i> requires
- * <i>"main_package/resources/GUI_elements/buttons.properties"</i> resources to
+ * <i>"graphical_shell/resources/GUI_elements/buttons.properties"</i> resources to
  * be set.</li></ul>
  * 
  * @version 1.0

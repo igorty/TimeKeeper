@@ -1,4 +1,4 @@
-﻿package main_package.FXML_controllers;
+﻿package graphical_shell.FXML_controllers;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -11,6 +11,7 @@ import org.controlsfx.control.PopOver;
 import org.controlsfx.control.RangeSlider;
 import org.controlsfx.control.PopOver.ArrowLocation;
 
+import graphical_shell.GUI_settings;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -29,7 +30,6 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-import main_package.GUI_settings;
 import time_obj.Settings;
 import time_obj.Time_display_style;
 import time_obj.Time_unit_layout;
@@ -38,7 +38,7 @@ import time_obj.Time_unit_name;
 
 /**
  * Time counter settings pane controller. Called by {@link FXMLLoader} for
- * <i>"main_package/FXML_controllers/Init_settings_layout.fxml"</i>.<br>
+ * <i>"graphical_shell/FXML_controllers/Init_settings_layout.fxml"</i>.<br>
  * <b>Important!</b> {@code FXML}&#8209;loader for this class and its
  * initialization <u>must</u> be invoked only when {@link Stage} object, on
  * which the&nbsp;class's pane is located, <u>is&nbsp;already&nbsp;shown</u>
@@ -48,7 +48,7 @@ import time_obj.Time_unit_name;
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_settings_layout.fxml"</i> is {@link GridPane}.</li>
  * <li><i>"Init_settings_layout.fxml"</i> requires
- * <i>"main_package/resources/GUI_elements/labels.properties"</i> resources to
+ * <i>"graphical_shell/resources/GUI_elements/labels.properties"</i> resources to
  * be set.</li></ul>
  * 
  * @version 1.0

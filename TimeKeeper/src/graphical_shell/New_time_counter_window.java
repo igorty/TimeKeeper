@@ -1,4 +1,4 @@
-﻿package main_package;
+﻿package graphical_shell;
 
 import java.io.IOException;
 import java.time.LocalTime;
@@ -10,6 +10,16 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import graphical_shell.FXML_controllers.Basic_init_controller;
+import graphical_shell.FXML_controllers.Init_Instance_counter_controller;
+import graphical_shell.FXML_controllers.Init_Solo_counter_controller;
+import graphical_shell.FXML_controllers.Init_Time_counter_type_controller;
+import graphical_shell.FXML_controllers.Init_settings_controller;
+import graphical_shell.FXML_controllers.Init_Solo_counter_controller.Time_values;
+import graphical_shell.FXML_controllers.Init_settings_controller.Init_settings;
+import graphical_shell.dialog.Error_dialog;
+import graphical_shell.dialog.Error_dialog.Template_message;
+import graphical_shell.events.Locale_change_listener;
 import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -27,16 +37,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
-import main_package.FXML_controllers.Basic_init_controller;
-import main_package.FXML_controllers.Init_Instance_counter_controller;
-import main_package.FXML_controllers.Init_Solo_counter_controller;
-import main_package.FXML_controllers.Init_Time_counter_type_controller;
-import main_package.FXML_controllers.Init_settings_controller;
-import main_package.FXML_controllers.Init_settings_controller.Init_settings;
-import main_package.FXML_controllers.Init_Solo_counter_controller.Time_values;
-import main_package.dialog.Error_dialog;
-import main_package.dialog.Error_dialog.Template_message;
-import main_package.events.Locale_change_listener;
 import time_obj.Instance_counter;
 import time_obj.Mode;
 import time_obj.Settings;
@@ -46,7 +46,7 @@ import time_obj.Time_counter;
 
 /* TODO? If this class instance won't be used several times, provide its
  * unsubscribing from receiving locale change events
- * ("main_package.GUI_settings.remove_Locale_change_listener()" method) when
+ * ("graphical_shell.GUI_settings.remove_Locale_change_listener()" method) when
  * the class instance is going out of scope. Also unsubscribe listening in
  * controller objects used by this class. */
 /**

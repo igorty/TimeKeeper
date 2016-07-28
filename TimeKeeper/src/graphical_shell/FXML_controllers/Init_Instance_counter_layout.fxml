@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<GridPane vgap="15.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="main_package.FXML_controllers.Init_Instance_counter_controller">
+<GridPane vgap="15.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="graphical_shell.FXML_controllers.Init_Instance_counter_controller">
   <columnConstraints>
     <ColumnConstraints hgrow="SOMETIMES" />
     <ColumnConstraints hgrow="SOMETIMES" />

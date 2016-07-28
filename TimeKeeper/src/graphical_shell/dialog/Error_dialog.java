@@ -1,11 +1,11 @@
-﻿package main_package.dialog;
+﻿package graphical_shell.dialog;
 
 import java.util.ResourceBundle;
 
+import graphical_shell.GUI_settings;
+import graphical_shell.events.Locale_change_listener;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import main_package.GUI_settings;
-import main_package.events.Locale_change_listener;
 
 
 /**

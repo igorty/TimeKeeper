@@ -1,4 +1,4 @@
-﻿package main_package;
+﻿package graphical_shell;
 
 import java.util.Collections;
 import java.util.EnumMap;

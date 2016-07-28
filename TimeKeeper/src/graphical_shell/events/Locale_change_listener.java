@@ -1,9 +1,9 @@
-package main_package.events;
+package graphical_shell.events;
 
 import java.util.EventListener;
 import java.util.ResourceBundle;
 
-import main_package.GUI_settings;
+import graphical_shell.GUI_settings;
 
 
 /**

@@ -1,4 +1,4 @@
-package main_package;
+package graphical_shell;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import main_package.events.Locale_change_listener;
+import graphical_shell.events.Locale_change_listener;
 import time_obj.Settings;
 import time_obj.Settings.Locale_setting;
 
@@ -36,17 +36,17 @@ public class GUI_settings implements Serializable
 	private enum Resource
 	{
 		/** Provides dialog messages. */
-		R_messages("main_package/resources/messages"),
+		R_messages("graphical_shell/resources/messages"),
 		/** Provides specific time&nbsp;counter settings names. */
-		R_time_counter("main_package/resources/time_counter"),
+		R_time_counter("graphical_shell/resources/time_counter"),
 		/** Provides buttons names. */
-		R_buttons("main_package/resources/GUI_elements/buttons"),
+		R_buttons("graphical_shell/resources/GUI_elements/buttons"),
 		/** Provides hints and tooltips texts. */
-		R_hints("main_package/resources/GUI_elements/hints"),
+		R_hints("graphical_shell/resources/GUI_elements/hints"),
 		/** Provides labels names. */
-		R_labels("main_package/resources/GUI_elements/labels"),
+		R_labels("graphical_shell/resources/GUI_elements/labels"),
 		/** Provides text&nbsp;fields texts. */
-		R_text_fields("main_package/resources/GUI_elements/text_fields");
+		R_text_fields("graphical_shell/resources/GUI_elements/text_fields");
 		
 		
 		///// Fields default-access of-instance ===========================/////

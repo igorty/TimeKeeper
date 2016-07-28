@@ -4,4 +4,4 @@
  * @since 1.0
  * @author Igor Taranenko
  */
-package main_package.FXML_controllers;
+package graphical_shell.FXML_controllers;
