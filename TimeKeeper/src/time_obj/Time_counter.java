@@ -1150,17 +1150,15 @@ public abstract class Time_counter implements Serializable
 					 * единиц времени; false - установлен СТРОГИЙ диапазон */
 					final boolean increase_able_is_set = time_display_style.equals(
 								Time_display_style.TDS_increase_able);
-					/* Формирование строки для форматирования, содержащей
-					 * отображаемые единицы времени, происходит от больших
-					 * единиц времени к меньшим. Соответственно, если большая
-					 * единица времени имеет значение (т.е. не равна 0), -
-					 * меньшие единицы должны отображаться в любом случае. Это
-					 * касается режима НЕСТРОГОГО отображения диапазона
-					 * отображаемых единиц времени
-					 * (Time_display_style.TDS_increase_able). true - обнаружено
-					 * ненулевое значение единицы времени, превышающее
-					 * установленный диапазон для отображения; false - нет */
-					boolean out_of_set_range = false;
+					/* Time string formatting is performed in direction from
+					 * the biggest time unit to the smallest one. So if bigger
+					 * time unit has value (i.e. is not 0), smaller ones must be
+					 * shown anyway. It concerns only the NON STRICT time units
+					 * display style ("Time_display_style.TDS_increase_able").
+					 * true - non zero time unit value is found (even if it's
+					 * bigger than set time units displaying range); false -
+					 * otherwise */
+					boolean must_be_shown = false;
 					
 					/* Формирование строки для форматирования, содержащей
 					 * отображаемые единицы времени */
@@ -1169,22 +1167,24 @@ public abstract class Time_counter implements Serializable
 						/* Результат сравнения именованной константы текущей
 						 * итерации и крайней правой отображаемой единицы
 						 * (наименьшей отображаемой единицы) времени */
-						final int compare_to_1 =
+						final int compare_to_rightmost =
 								i.compareTo(time_value_edges[1]);
 						
-						/* Если (единица времени входит в выставленный диапазон
-						 * отображения) ... */
-						if ((i.compareTo(time_value_edges[0]) >= 0 && compare_to_1 <= 0) ||
-								/* ... ИЛИ (установлен нестрогий диапазон
-								 * отображаемых единиц времени И (в предыдущих
-								 * итерациях обнаружено ненулевое значение
-								 * единицы времени, превышающее установленный
-								 * диапазон для отображения ... */
-								(increase_able_is_set && (out_of_set_range ||
-										// ... ИЛИ (это обнаружилось в этой итерации)))
-										(compare_to_1 <= 0 && time_unit_values.get(i) != 0))))
+						// If (time value is in set displaying range) OR ...
+						if ((i.compareTo(time_value_edges[0]) >= 0 && compare_to_rightmost <= 0) ||
+								/* ... (bigger than set displaying range time values
+								 * can be shown, if time value is greater than
+								 * set displaying range AND current iteration
+								 * time unit is bigger or equals to
+								 * the rightmost possible displayed time unit
+								 * AND ... */
+								(increase_able_is_set && compare_to_rightmost <= 0 &&
+								/* ... (in previous iterations nonzero
+								 * time value occurred OR it's occurred in this
+								 * iteration)) */
+								(must_be_shown || time_unit_values.get(i) != 0)))
 						{
-							out_of_set_range = true;
+							must_be_shown = true;
 							format(i);
 						}
 					}
@@ -1450,6 +1450,12 @@ public abstract class Time_counter implements Serializable
 		{
 			final int time_elapsed_listeners_quantity =
 					time_elapsed_listeners.size();
+			
+			// If there is no listeners to notify
+			if (time_elapsed_listeners_quantity == 0)
+			{
+				return;
+			}
 			
 			notifier = new ThreadPoolExecutor(
 					time_elapsed_listeners_quantity,

@@ -1314,7 +1314,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		// Если параметр часов/минут/секунд не задан
 		if (duration_init == null)
 		{
-			duration_passed = LocalTime.of(0, 0, 0);
+			duration_init = LocalTime.of(0, 0, 0);
 		}
 	}
 	
