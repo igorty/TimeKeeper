@@ -108,8 +108,8 @@ class New_time_counter_window
 		
 		// Строки, которые должны содержаться в контейнере "mode_img_directories"
 		final String[] mode_img_directories_strings = {
-				"images/stopwatch_large.png", "images/countdown_large.png",
-				"images/elapsed_from_large.png", "images/countdown_till_large.png" };
+				"/images/stopwatch_large.png", "/images/countdown_large.png",
+				"/images/elapsed_from_large.png", "/images/remains_till_large.png" };
 		// Все элементы перечисления "Mode"
 		final Mode[] mode_values = Mode.values();
 		
@@ -207,11 +207,11 @@ class New_time_counter_window
 	/** Контроллер {@link #init_elapsed_from_pane}. */
 	private Init_Instance_counter_controller init_elapsed_from_pane_controller;
 	
-	/** Панель компоновки, основанная на {@link Init_Instance_counter_controller},
-	 * для режима {@link Mode#M_countdown_till}. */
-	private GridPane init_countdown_till_pane;
-	/** Контроллер {@link #init_countdown_till_pane}. */
-	private Init_Instance_counter_controller init_countdown_till_pane_controller;
+	/** Layout pane based&nbsp;on {@link Init_Instance_counter_controller} for
+	 * {@link Mode#M_remains_till} mode. */
+	private GridPane init_remains_till_pane;
+	/** {@link #init_remains_till_pane} layout&nbsp;pane controller. */
+	private Init_Instance_counter_controller init_remains_till_pane_controller;
 	
 	/** Панель компоновки с настройками отображения времени, основанная на
 	 * {@link Init_settings_controller}. */
@@ -286,8 +286,8 @@ class New_time_counter_window
 		init_elapsed_from_pane = null;
 		init_elapsed_from_pane_controller = null;
 		
-		init_countdown_till_pane = null;
-		init_countdown_till_pane_controller = null;
+		init_remains_till_pane = null;
+		init_remains_till_pane_controller = null;
 		
 		init_settings_pane = null;
 		init_settings_pane_controller = null;
@@ -675,10 +675,10 @@ class New_time_counter_window
 					
 					break;
 					
-				case M_countdown_till:
+				case M_remains_till:
 					/* Если панель компоновки для режима таймера обратного
 					 * отсчета с привязкой к будущей дате еще не инициализировалась */
-					if (init_countdown_till_pane == null)
+					if (init_remains_till_pane == null)
 					{
 						stage_2_fxml_loader = new FXMLLoader();
 						stage_2_fxml_loader.setLocation(
@@ -688,7 +688,7 @@ class New_time_counter_window
 						
 						try
 						{
-							init_countdown_till_pane = stage_2_fxml_loader.load();
+							init_remains_till_pane = stage_2_fxml_loader.load();
 						}
 						catch (final IOException exc)
 						{
@@ -702,12 +702,12 @@ class New_time_counter_window
 							return;
 						}
 						
-						init_countdown_till_pane_controller =
+						init_remains_till_pane_controller =
 								stage_2_fxml_loader.getController();
 					}
 					
-					init_countdown_till_pane_controller.make_now_button_disabled();
-					root_pane.setCenter(init_countdown_till_pane);
+					init_remains_till_pane_controller.make_now_button_disabled();
+					root_pane.setCenter(init_remains_till_pane);
 					
 					root_pane_controller.apply_button.setOnAction(
 							new EventHandler<ActionEvent>()
@@ -718,7 +718,7 @@ class New_time_counter_window
 							/* Целевые значения даты и времени, введенные
 							 * пользователем */
 							final ZonedDateTime init_date_time =
-									init_countdown_till_pane_controller.get_date_time();
+									init_remains_till_pane_controller.get_date_time();
 							
 							// Если пользователь ввел некорректные данные
 							if (init_date_time == null)
@@ -733,7 +733,7 @@ class New_time_counter_window
 								// Newly created time counter
 								final Instance_counter new_remains_till =
 										new Instance_counter(
-												Mode.M_countdown_till, init_date_time);
+												Mode.M_remains_till, init_date_time);
 								
 								/* TODO: Provide necessary listeners to newly
 								 * created time counter */
@@ -750,7 +750,7 @@ class New_time_counter_window
 								// Newly created time counter
 								final Instance_counter new_remains_till =
 										new Instance_counter(
-												Mode.M_countdown_till,
+												Mode.M_remains_till,
 												init_date_time,
 												init_settings.time_display_style,
 												init_settings.left_displayed_edge,
@@ -800,8 +800,9 @@ class New_time_counter_window
 					}
 				});
 				
-				root_pane_controller.mode_image.setImage(
-						new Image(mode_img_directories.get(time_counter_mode)));
+				root_pane_controller.mode_image.setImage(new Image(
+						New_time_counter_window.class.getResource(
+								mode_img_directories.get(time_counter_mode)).toString()));
 				root_pane_controller.layout_description.setText(
 						labels_resources.getString("new_time_counter_wizard.stage.2"));
 				
@@ -822,8 +823,8 @@ class New_time_counter_window
 				/* Начальные значения счетчика времени в режиме секундомера или
 				 * таймера */
 				Time_values init_Solo_counter_values;
-				/* Целевое значение даты и времени для счетчика времени в режиме
-				 * "M_elapsed_from" или "M_countdown_till" */
+				/* Target date time value for time counter in "M_elapsed_from"
+				 * and "M_remains_till" modes */
 				ZonedDateTime init_Instance_counter_value;
 				// Режим создаваемого счетчика времени
 				final Mode selected_mode =
@@ -903,9 +904,9 @@ class New_time_counter_window
 					
 					break;
 					
-				case M_countdown_till:
+				case M_remains_till:
 					init_Instance_counter_value =
-							init_countdown_till_pane_controller.get_date_time();
+							init_remains_till_pane_controller.get_date_time();
 					
 					// Если пользователь ввел некорректные значения
 					if (init_Instance_counter_value == null)
@@ -1109,10 +1110,10 @@ class New_time_counter_window
 							
 							break;
 							
-						case M_countdown_till:
+						case M_remains_till:
 							// Target date time values set by user
 							final ZonedDateTime init_remains_till_time =
-									init_countdown_till_pane_controller.get_date_time();
+									init_remains_till_pane_controller.get_date_time();
 							
 							// If user entered incorrect date time value
 							if (init_remains_till_time == null)
@@ -1123,7 +1124,7 @@ class New_time_counter_window
 							// Newly created time counter
 							final Instance_counter new_remains_till =
 									new Instance_counter(
-											Mode.M_countdown_till,
+											Mode.M_remains_till,
 											init_remains_till_time,
 											init_settings.time_display_style,
 											init_settings.left_displayed_edge,
@@ -1197,8 +1198,8 @@ class New_time_counter_window
 					
 					break;
 					
-				case M_countdown_till:
-					root_pane.setCenter(init_countdown_till_pane);
+				case M_remains_till:
+					root_pane.setCenter(init_remains_till_pane);
 					
 					break;
 					
@@ -1323,8 +1324,8 @@ class New_time_counter_window
 		init_elapsed_from_pane = null;
 		init_elapsed_from_pane_controller = null;
 		
-		init_countdown_till_pane = null;
-		init_countdown_till_pane_controller = null;
+		init_remains_till_pane = null;
+		init_remains_till_pane_controller = null;
 		
 		init_settings_pane = null;
 		

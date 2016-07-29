@@ -16,5 +16,5 @@ public enum Mode
 	/** Counting time elapsed from specified instant. */
 	M_elapsed_from,
 	/** Counting time remaining to specified instant. */
-	M_countdown_till
+	M_remains_till
 }

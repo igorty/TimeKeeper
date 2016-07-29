@@ -27,20 +27,12 @@ import time_obj.events.User_notification_event;
 
 
 /**
- * Реализует режимы подсчета прошедшего времени с заданного момента и таймера
- * обратного отсчета с привязкой к будущей дате (согласно именованным
- * константам {@link Mode#M_elapsed_from} и {@link Mode#M_countdown_till}
- * соответственно).<br>
- * <i>Примечания.</i>
- * <ul><li>После создания объект добавляет себя в общий контейнер
- * элементов типа {@link Time_counter}, находящийся в singleton'е
- * {@link Time_counter_control}.</li>
- * <li>При десериализации объект может бросить следующие исключения:
- * <ul><li>{@link IOException}&nbsp;&#0151; ошибка в работе входящего потока;</li>
- * <li>{@link ClassNotFoundException}&nbsp;&#0151; класс сериализованного
- * объекта не&nbsp;определен;</li>
- * <li>{@link InvalidObjectException}&nbsp;&#0151; если хотя&#8209;бы один
- * инвариант десериализованного объекта не&nbsp;прошел валидацию.</li></ul></li></ul>
+ * Implements time&nbsp;counter working in {@link Mode#M_elapsed_from} and
+ * {@link Mode#M_remains_till} modes.<br>
+ * <i>Note.</i> Created class's instance adds itself to the&nbsp;common
+ * {@link Time_counter} container, situated in {@link Time_counter_control}
+ * singleton. This container can be obtained using
+ * {@link Time_counter_control#get_time_counters()}.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -114,7 +106,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * <b>Important!</b> Since this class implements <i>counting time elapsed
 	 * from specified instant</i> and <i>counting time remaining to specified
 	 * instant</i> modes, this argument can be {@link Mode#M_elapsed_from} or
-	 * {@link Mode#M_countdown_till} <u>only</u>.
+	 * {@link Mode#M_remains_till} <u>only</u>.
 	 * 
 	 * @param time_instance Date and time values relatively to which
 	 * elapsed/remaining time will be counted. <u>Cannot</u> be {@code null}.<br>
@@ -242,7 +234,7 @@ public class Instance_counter extends Time_counter implements Serializable
 		if (offset_difference == 0)
 		{
 			difference_calculation_sub_method(time_current,
-					instance_mode.equals(Mode.M_countdown_till) ? true : false);
+					instance_mode.equals(Mode.M_remains_till) ? true : false);
 		}
 		else
 		{
@@ -263,7 +255,7 @@ public class Instance_counter extends Time_counter implements Serializable
 			}
 			
 			difference_calculation_sub_method(time_current_local,
-					instance_mode.equals(Mode.M_countdown_till) ? true : false);
+					instance_mode.equals(Mode.M_remains_till) ? true : false);
 		}
 		
 		build_time_string();
@@ -314,7 +306,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * @param date_time_now Current date and time.
 	 * 
 	 * @param calculation_till {@code true} means calculating time in
-	 * {@link Mode#M_countdown_till}&nbsp;mode. In this case
+	 * {@link Mode#M_remains_till}&nbsp;mode. In this case
 	 * time&nbsp;difference <u>will be positive if
 	 * target&nbsp;time&nbsp;({@link #time_instance}) has&nbsp;not yet come</u>
 	 * (in&nbsp;other words, when current time&nbsp;value <u>is&nbsp;less</u>
@@ -349,8 +341,8 @@ public class Instance_counter extends Time_counter implements Serializable
 		 * определенной временной точки */
 		if (calculation_till)
 		{
-			/* В режиме "Mode.M_countdown_till" положительное кол-во секунд
-			 * означает положительные значения таймера обратного отсчета */
+			/* In "Mode.M_remains_till" mode positive seconds quantity means
+			 * positive countdown time value */
 			current_value_sign = seconds >= 0 ? true : false;
 			previous_value_sign = set_time_counter_value_sign(current_value_sign);
 		}
@@ -575,7 +567,7 @@ public class Instance_counter extends Time_counter implements Serializable
 			/* Если режим работы экземпляра счетчика времени является
 			 * неподходящим для данного класса */
 			if (!instance_mode.equals(Mode.M_elapsed_from) &&
-					!instance_mode.equals(Mode.M_countdown_till))
+					!instance_mode.equals(Mode.M_remains_till))
 			{
 				throw new InvalidObjectException(
 						"Incompatible time mode for Instance_counter object");
@@ -601,7 +593,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * {@link #Instance_counter(Mode, ZonedDateTime, Time_display_style, Time_unit_name, Time_unit_name, Time_unit_layout)}.
 	 * 
 	 * @param mode_init Mode in which this time&nbsp;counter runs.
-	 * {@link Mode#M_elapsed_from} and {@link Mode#M_countdown_till} <u>are
+	 * {@link Mode#M_elapsed_from} and {@link Mode#M_remains_till} <u>are
 	 * only</u> permitted.
 	 * 
 	 * @param time_instance_init Initial date and time values relatively to
@@ -618,7 +610,7 @@ public class Instance_counter extends Time_counter implements Serializable
 	{
 		// If time counter mode is inappropriate for this class
 		if (!mode_init.equals(Mode.M_elapsed_from) &&
-				!mode_init.equals(Mode.M_countdown_till))
+				!mode_init.equals(Mode.M_remains_till))
 		{
 			throw new IllegalArgumentException("Incompatible "
 					+ Mode.class.getName() + " value passed to constructor");

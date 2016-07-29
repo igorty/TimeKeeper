@@ -459,11 +459,10 @@ public class Init_Instance_counter_controller
 	
 	
 	/**
-	 * Делает кнопку установки текущей даты и времени неактивной
-	 * (т.е.&nbsp;применяет к ней метод {@link Button#setDisable(boolean)} с
-	 * аргументом {@code true}). Этот метод необходим в случае создания счетчика
-	 * времени в режиме {@link Mode#M_countdown_till}, т.к.&nbsp;в&nbsp;этом
-	 * случае не&nbsp;имеет&nbsp;смысла устанавливать текущие дату и время.
+	 * Makes current date&nbsp;time set button (<i>"Now"</i> button) disabled.
+	 * The&nbsp;method is useful when creating time&nbsp;counter in
+	 * {@link Mode#M_remains_till} mode, because there&nbsp;is no&nbsp;sense to
+	 * set current date and time.
 	 */
 	public void make_now_button_disabled()
 	{

@@ -1331,7 +1331,7 @@ public abstract class Time_counter implements Serializable
 	 * from which need to be calculated). {@code true} need to be passed when
 	 * current time&nbsp;value <u>is&nbsp;after</u> designated time&nbsp;point
 	 * (i.e.&nbsp;time&nbsp;value <u>is&nbsp;positive</u>).</li>
-	 * <li><i>{@link Mode#M_countdown_till}.</i> {@code true} need to be passed
+	 * <li><i>{@link Mode#M_remains_till}.</i> {@code true} need to be passed
 	 * while current time&nbsp;value <u>has&nbsp;not</u> yet reached
 	 * the&nbsp;designated time&nbsp;point (i.e.&nbsp;time&nbsp;value
 	 * <u>is&nbsp;positive</u> because it actually shows time remaining to
@@ -1406,7 +1406,7 @@ public abstract class Time_counter implements Serializable
 	 * is&nbsp;returned when current time&nbsp;value <u>is&nbsp;after</u>
 	 * designated time&nbsp;point (i.e.&nbsp;time&nbsp;value
 	 * <u>is&nbsp;positive</u>).</li>
-	 * <li><i>{@link Mode#M_countdown_till}.</i> {@code true} is&nbsp;returned
+	 * <li><i>{@link Mode#M_remains_till}.</i> {@code true} is&nbsp;returned
 	 * while current time&nbsp;value <u>has&nbsp;not</u> yet reached
 	 * the&nbsp;designated time&nbsp;point (i.e.&nbsp;time&nbsp;value
 	 * <u>is&nbsp;positive</u> because it actually shows time remaining to

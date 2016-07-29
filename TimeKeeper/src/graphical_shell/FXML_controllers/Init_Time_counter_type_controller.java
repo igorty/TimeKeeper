@@ -45,13 +45,13 @@ public class Init_Time_counter_type_controller
 	@FXML
 	private RadioButton elapsed_from_radio_button;
 	
-	/** Обозначает выбор режима {@link Mode#M_countdown_till}. */
+	/** Means choosing {@link Mode#M_remains_till} mode. */
 	@FXML
-	private RadioButton countdown_till_radio_button;
+	private RadioButton remains_till_radio_button;
 
-	/** Переключатель группы радиокнопок {@link #stopwatch_radio_button},
-	 * {@link #countdown_radio_button}, {@link #elapsed_from_radio_button} и
-	 * {@link #countdown_till_radio_button}. */
+	/** Toggle group for {@link #stopwatch_radio_button},
+	 * {@link #countdown_radio_button}, {@link #elapsed_from_radio_button} and
+	 * {@link #remains_till_radio_button} radio&nbsp;buttons. */
 	@FXML
 	private ToggleGroup toggle_group;
 	
@@ -86,18 +86,26 @@ public class Init_Time_counter_type_controller
 		assert stopwatch_radio_button != null : "stopwatch_radio_button was not injected";
 		assert countdown_radio_button != null : "countdown_radio_button was not injected";
 		assert elapsed_from_radio_button != null : "elapsed_from_radio_button was not injected";
-		assert countdown_till_radio_button != null : "countdown_till_radio_button was not injected";
+		assert remains_till_radio_button != null : "remains_till_radio_button was not injected";
 		assert toggle_group != null : "toggle_group was not injected";
 		
 		stopwatch_radio_button.setUserData(Mode.M_stopwatch);
 		countdown_radio_button.setUserData(Mode.M_countdown);
 		elapsed_from_radio_button.setUserData(Mode.M_elapsed_from);
-		countdown_till_radio_button.setUserData(Mode.M_countdown_till);
+		remains_till_radio_button.setUserData(Mode.M_remains_till);
 		
-		stopwatch_radio_button.setGraphic(new ImageView("images/stopwatch_middle.png"));
-		countdown_radio_button.setGraphic(new ImageView("images/countdown_middle.png"));
-		elapsed_from_radio_button.setGraphic(new ImageView("images/elapsed_from_middle.png"));
-		countdown_till_radio_button.setGraphic(new ImageView("images/countdown_till_middle.png"));
+		stopwatch_radio_button.setGraphic(new ImageView(
+				Init_Time_counter_type_controller.class.getResource(
+						"/images/stopwatch_middle.png").toString()));
+		countdown_radio_button.setGraphic(new ImageView(
+				Init_Time_counter_type_controller.class.getResource(
+						"/images/countdown_middle.png").toString()));
+		elapsed_from_radio_button.setGraphic(new ImageView(
+				Init_Time_counter_type_controller.class.getResource(
+						"/images/elapsed_from_middle.png").toString()));
+		remains_till_radio_button.setGraphic(new ImageView(
+				Init_Time_counter_type_controller.class.getResource(
+						"/images/remains_till_middle.png").toString()));
 		
 		toggle_group.selectedToggleProperty().addListener(new ChangeListener<Toggle>()
 		{
@@ -125,7 +133,7 @@ public class Init_Time_counter_type_controller
 				stopwatch_radio_button.setText(resources.getString("modes.stopwatch"));
 				countdown_radio_button.setText("modes.timer");
 				elapsed_from_radio_button.setText("modes.elapsed_from");
-				countdown_till_radio_button.setText("modes.remains_till");
+				remains_till_radio_button.setText("modes.remains_till");
 			}
 		});
 	}

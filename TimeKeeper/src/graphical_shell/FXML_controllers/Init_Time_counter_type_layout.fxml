@@ -12,6 +12,6 @@
          </toggleGroup></RadioButton>
       <RadioButton fx:id="countdown_radio_button" mnemonicParsing="false" text="%modes.timer" toggleGroup="$toggle_group" />
       <RadioButton fx:id="elapsed_from_radio_button" mnemonicParsing="false" text="%modes.elapsed_from" toggleGroup="$toggle_group" />
-      <RadioButton fx:id="countdown_till_radio_button" mnemonicParsing="false" text="%modes.remains_till" toggleGroup="$toggle_group" />
+      <RadioButton fx:id="remains_till_radio_button" mnemonicParsing="false" text="%modes.remains_till" toggleGroup="$toggle_group" />
    </children>
 </VBox>
