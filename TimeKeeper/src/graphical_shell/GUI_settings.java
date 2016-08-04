@@ -45,6 +45,8 @@ public class GUI_settings implements Serializable
 		R_hints("graphical_shell/resources/GUI_elements/hints"),
 		/** Provides labels names. */
 		R_labels("graphical_shell/resources/GUI_elements/labels"),
+		/** Provides menu&nbsp;items names. */
+		R_menu_items("graphical_shell/resources/GUI_elements/menu_items"),
 		/** Provides text&nbsp;fields texts. */
 		R_text_fields("graphical_shell/resources/GUI_elements/text_fields");
 		
@@ -103,6 +105,10 @@ public class GUI_settings implements Serializable
 	/** Resource bundle representing <i>.properties</i> resource which contains
 	 * labels names. */
 	private transient ResourceBundle labels_resources;
+	// TODO: readObject() initialization
+	/** Resource bundle representing <i>.properties</i> resource which contains
+	 * menu&nbsp;items names. */
+	private transient ResourceBundle menu_items_resources;
 	// TODO: "readObject()" initialization
 	/** Resource bundle representing <i>.properties</i> resource which contains
 	 * text&nbsp;fields texts. */
@@ -125,6 +131,8 @@ public class GUI_settings implements Serializable
 				ResourceBundle.getBundle(Resource.R_buttons.file_path);
 		hints_resources = ResourceBundle.getBundle(Resource.R_hints.file_path);
 		labels_resources = ResourceBundle.getBundle(Resource.R_labels.file_path);
+		menu_items_resources =
+				ResourceBundle.getBundle(Resource.R_menu_items.file_path);
 		text_fields_resources =
 				ResourceBundle.getBundle(Resource.R_text_fields.file_path);
 		
@@ -297,6 +305,16 @@ public class GUI_settings implements Serializable
 	
 	/**
 	 * @return Resource bundle representing <i>.properties</i> resource which
+	 * contains menu&nbsp;items names.
+	 */
+	public ResourceBundle get_menu_items_resources()
+	{
+		return menu_items_resources;
+	}
+	
+	
+	/**
+	 * @return Resource bundle representing <i>.properties</i> resource which
 	 * contains text&nbsp;fields texts.
 	 */
 	public ResourceBundle get_text_fields_resources()
@@ -335,6 +353,8 @@ public class GUI_settings implements Serializable
 				ResourceBundle.getBundle(Resource.R_hints.file_path, new_locale);
 		labels_resources =
 				ResourceBundle.getBundle(Resource.R_labels.file_path, new_locale);
+		menu_items_resources =
+				ResourceBundle.getBundle(Resource.R_menu_items.file_path, new_locale);
 		text_fields_resources = ResourceBundle.getBundle(
 				Resource.R_text_fields.file_path, new_locale);
 		

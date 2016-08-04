@@ -384,13 +384,8 @@ class New_time_counter_window
 												init_time_values.duration,
 												init_time_values.days_count);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_stopwatch);
 							}
 							else
 							{
@@ -408,13 +403,8 @@ class New_time_counter_window
 												init_settings.right_displayed_edge,
 												init_settings.time_unit_layout);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_stopwatch);
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 							}
@@ -520,13 +510,8 @@ class New_time_counter_window
 										init_time_values.duration,
 										init_time_values.days_count);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_timer);
 							}
 							else
 							{
@@ -544,13 +529,8 @@ class New_time_counter_window
 										init_settings.right_displayed_edge,
 										init_settings.time_unit_layout);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_timer);
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 							}
@@ -627,13 +607,8 @@ class New_time_counter_window
 										new Instance_counter(
 												Mode.M_elapsed_from, init_date_time);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_elapsed_from);
 							}
 							else
 							{
@@ -649,13 +624,8 @@ class New_time_counter_window
 												init_settings.right_displayed_edge,
 												init_settings.time_unit_layout);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_elapsed_from);
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 							}
@@ -727,13 +697,8 @@ class New_time_counter_window
 										new Instance_counter(
 												Mode.M_remains_till, init_date_time);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_remains_till);
 							}
 							else
 							{
@@ -749,13 +714,8 @@ class New_time_counter_window
 												init_settings.right_displayed_edge,
 												init_settings.time_unit_layout);
 								
-								/* TODO: Provide necessary listeners to newly
-								 * created time counter */
-								/* TODO: Set newly created time counter's
-								 * "index_number" field according to its
-								 * position in the main window */
-								/* TODO: Place newly created time counter to 
-								 * the main window */
+								Time_counters_pane.add_time_counter_to_pane(
+										new_remains_till);
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
 							}
@@ -988,13 +948,8 @@ class New_time_counter_window
 											init_settings.right_displayed_edge,
 											init_settings.time_unit_layout);
 							
-							/* TODO: Provide necessary listeners to newly
-							 * created time counter */
-							/* TODO: Set newly created time counter's
-							 * "index_number" field according to its
-							 * position in the main window */
-							/* TODO: Place newly created time counter to 
-							 * the main window */
+							Time_counters_pane.add_time_counter_to_pane(
+									new_stopwatch);
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
@@ -1056,13 +1011,7 @@ class New_time_counter_window
 									init_settings.right_displayed_edge,
 									init_settings.time_unit_layout);
 							
-							/* TODO: Provide necessary listeners to newly
-							 * created time counter */
-							/* TODO: Set newly created time counter's
-							 * "index_number" field according to its
-							 * position in the main window */
-							/* TODO: Place newly created time counter to 
-							 * the main window */
+							Time_counters_pane.add_time_counter_to_pane(new_timer);
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
@@ -1089,13 +1038,8 @@ class New_time_counter_window
 											init_settings.right_displayed_edge,
 											init_settings.time_unit_layout);
 							
-							/* TODO: Provide necessary listeners to newly
-							 * created time counter */
-							/* TODO: Set newly created time counter's
-							 * "index_number" field according to its
-							 * position in the main window */
-							/* TODO: Place newly created time counter to 
-							 * the main window */
+							Time_counters_pane.add_time_counter_to_pane(
+									new_elapsed_from);
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
@@ -1122,13 +1066,8 @@ class New_time_counter_window
 											init_settings.right_displayed_edge,
 											init_settings.time_unit_layout);
 							
-							/* TODO: Provide necessary listeners to newly
-							 * created time counter */
-							/* TODO: Set newly created time counter's
-							 * "index_number" field according to its
-							 * position in the main window */
-							/* TODO: Place newly created time counter to 
-							 * the main window */
+							Time_counters_pane.add_time_counter_to_pane(
+									new_remains_till);
 							/* TODO: Set created time counter's value display on
 							 * title if requested */
 							
