@@ -103,6 +103,10 @@ public class Time_counter_control
 	 * {@link #instance_counters} и {@link #instance_counters_tasks}. */
 	private ReentrantLock lock;
 	
+	/** {@code true}&nbsp;&#0151; {@link #read_time_counters_from_file()} method
+	 * has&nbsp;been&nbsp;invoked already; {@code false}&nbsp;&#0151; otherwise. */
+	private boolean time_counters_are_read_from_file;
+	
 	
 	///// Нестатическая инициализация =====================================/////
 	{
@@ -173,166 +177,8 @@ public class Time_counter_control
 		file_name = "time counters.tk";
 		time_counters = new Modified_ArrayList();
 		instance_counters = new ArrayList<>();
-		
-		FileInputStream file_input = null;  // Входящий файловый поток
-		// Буферизированный входящий поток
-		BufferedInputStream buffered_input = null;
-		ObjectInputStream object_input = null;  // Входящий поток объектов
-		// Кол-во объектов "Time_counter", содержащееся в файле
-		int objects_quantity = -1;
-		/* Кол-во объектов, прочитанных из файла. Также выступает счетчиком
-		 * цикла for */
-		int objects_read = 0;
-		/* Статус десериализации объектов. true - поля десериализованных
-		 * объектов являются корректными; false - обнаружена как минимум одна
-		 * (некритическая) ошибка при десериализации полей объектов */
-		boolean deserialization_status = true;
-		
-		try
-		{
-			file_input = new FileInputStream(file_name);
-			buffered_input = new BufferedInputStream(file_input);
-			object_input = new ObjectInputStream(buffered_input);
-			object_input.skipBytes(4);  // Пропуск версии этого класса
-			objects_quantity = object_input.readInt();
-			
-			time_counters.ensureCapacity(objects_quantity);
-			
-			// Чтение объектов "Time_counter" из файла в контейнер
-			for (; objects_read < objects_quantity; ++objects_read)
-			{
-				// Временный объект для записи в контейнеры
-				Time_counter temp = null;
-				
-				try
-				{
-					temp = (Time_counter)object_input.readObject();
-				}
-				catch (final ClassNotFoundException | InvalidObjectException exc)
-				{
-					--objects_read;
-					
-					continue;
-				}
-				
-				/* Проверка статуса десериализации некритических полей объекта,
-				 * ЕСЛИ до этого десериализированные поля были корректными */
-				if (deserialization_status)
-				{
-					deserialization_status = temp.get_deserialization_status();
-				}
-				
-				time_counters.add(temp);
-				temp.index_number = objects_read;
-				
-				// Если прочитанный объект относится к типу "Instance_counter"
-				if (temp instanceof Instance_counter)
-				{
-					instance_counters.add((Instance_counter)temp);
-				}
-			}
-		}
-		catch (final FileNotFoundException exc)
-		{
-			logger.log(Level.WARNING, "Cannot find " + file_name + " file to load "
-					+ Time_counter.class.getName() + " objects from it."
-							+ " Excepton stack trace:", exc);
-			User_notification_dialog.notify_listener_and_wait(
-					new User_notification_event(this),
-					User_notification_type.UNT_IO_error,
-					file_name + message_resources.getString("time_counters_file_not_found"));
-		}
-		catch (final IOException exc)
-		{
-			logger.log(Level.SEVERE, "Cannot read from " + file_name +
-					" file. Exception stack trace:", exc);
-			User_notification_dialog.notify_listener_and_wait(
-					new User_notification_event(this),
-					User_notification_type.UNT_IO_error,
-					message_resources.getString("time_counters_file_read_error.1")
-							+ file_name
-							+ message_resources.getString("time_counters_file_read_error.2"));
-		}
-		finally
-		{
-			/* Если файл был открыт для чтения И при этом не удалось прочитать
-			 * все объекты */
-			if (objects_quantity != -1 && objects_read != objects_quantity)
-			{
-				// Строка для сообщения об ошибке
-				final StringBuilder message =
-						new StringBuilder(message_resources.getString(
-								"incorrect_time_counters_file_content.1.1"));
-				
-				// Если частично удалось прочитать объекты "Time_counter" из файла
-				if (objects_read != 0)
-				{
-					message.append(message_resources.getString(
-							"incorrect_time_counters_file_content.1.2.1.1"));
-					message.append(objects_read);
-					message.append(message_resources.getString(
-							"incorrect_time_counters_file_content.1.2.1.2"));
-					message.append(objects_quantity);
-					message.append(message_resources.getString(
-							"incorrect_time_counters_file_content.1.2.1.3"));
-					
-					/* Если десериализированные объекты содержат некритические
-					 * ошибки */
-					if (!deserialization_status)
-					{
-						message.append(message_resources.getString(
-								"incorrect_time_counters_file_content.1.2.2"));
-					}
-				}
-				else
-				{
-					message.append(message_resources.getString(
-							"incorrect_time_counters_file_content.1.3"));
-				}
-				
-				User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-						User_notification_type.UNT_file_error, message.toString());
-			}
-			else if (!deserialization_status)
-			{
-				User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
-						User_notification_type.UNT_file_error,
-						message_resources.getString(
-								"incorrect_time_counters_file_content.2"));
-			}
-			
-			try
-			{
-				///// Попытка закрытия потоков вниз по цепочке /////
-				// Если входящий поток объектов был открыт
-				if (object_input != null)
-				{
-					object_input.close();
-				}
-				// Если программа успела открыть буферизированный входящий поток
-				else if (buffered_input != null)
-				{
-					buffered_input.close();
-				}
-				// Если программа успела открыть только входящий файловый поток
-				else if (file_input != null)
-				{
-					file_input.close();
-				}
-			}
-			// При возникновении данного исключения никаких действий не предпринимается
-			catch (final IOException exc)
-			{
-				logger.log(Level.WARNING, "Cannot close " + file_name +
-						" file. Exception stack trace:", exc);
-			}
-			finally
-			{
-				instance_counters_tasks =
-						new ArrayList<>(instance_counters.size());
-				reset_instance_counters_tasks();
-			}
-		}
+		instance_counters_tasks = new ArrayList<>();
+		time_counters_are_read_from_file = false;
 	}
 	
 	
@@ -633,11 +479,20 @@ public class Time_counter_control
 			if (!instance_counters.remove(to_remove))
 			{
 				throw new IllegalArgumentException(
-						"to_remove object doesen\'t exist in the list");
+						"to_remove object doesn\'t exist in the list");
 			}
 			
 			reset_instance_counters_tasks();
-			instance_counters_barrier = new CyclicBarrier(instance_counters.size());
+			
+			// Synchronously executed objects quantity
+			final int instance_counters_quantity = instance_counters.size();
+			
+			// Cyclic barriers quantity cannot be 0
+			if (instance_counters_quantity != 0)
+			{
+				instance_counters_barrier = new CyclicBarrier(instance_counters_quantity);
+			}
+			
 			synchronous_task_executor_manager();
 		}
 		finally
@@ -863,6 +718,182 @@ public class Time_counter_control
 						+ " file after writing. Exception stack trace:", exc);
 			}
 		}
+	}
+	
+	
+	/**
+	 * Reads {@link Time_counter} objects from file and adds them to inner
+	 * time&nbsp;counters list (can be obtained using
+	 * {@link #get_time_counters()} method).<br>
+	 * <i>Note.</i> The&nbsp;method <u>does&nbsp;nothing</u> if it
+	 * has&nbsp;been&nbsp;called already and succeed.
+	 * 
+	 * @return {@code true}&nbsp;&#0151; {@link Time_counter}{@code s} are read
+	 * from file. {@code false}&nbsp;&#0151; failed to read file or method
+	 * is&nbsp;called not&nbsp;the&nbsp;first time.
+	 */
+	public boolean read_time_counters_from_file()
+	{
+		// If time counters are already read from file
+		if (time_counters_are_read_from_file)
+		{
+			return false;
+		}
+		
+		FileInputStream file_input_stream = null;
+		BufferedInputStream buffered_input_stream = null;
+		ObjectInputStream object_input_stream = null;
+		// "Time_counter" objects quantity which are stored in file
+		int objects_quantity = -1;
+		// Read from file objects quantity. Is the for-loop counter too
+		int objects_read = 0;
+		/* Deserialized objects status. true - all deserialized objects and
+		 * their fields are correct; false - at least one (non critical) error
+		 * occurred while objects fields deserialization */
+		boolean deserialization_status = true;
+		
+		try
+		{
+			file_input_stream = new FileInputStream(file_name);
+			buffered_input_stream = new BufferedInputStream(file_input_stream);
+			object_input_stream = new ObjectInputStream(buffered_input_stream);
+			// Skip this class version (float value)
+			object_input_stream.skipBytes(4);
+			objects_quantity = object_input_stream.readInt();
+			
+			time_counters.ensureCapacity(objects_quantity);
+			
+			// Read "Time_counter" objects from file to container
+			for (; objects_read < objects_quantity; ++objects_read)
+			{
+				// Temporary object to write into container
+				Time_counter temp = null;
+				
+				try
+				{
+					temp = (Time_counter)object_input_stream.readObject();
+				}
+				catch (final ClassNotFoundException | InvalidObjectException exc)
+				{
+					--objects_read;
+					
+					continue;
+				}
+				
+				/* Check object's fields deserialization status,
+				 * IF deserialized fields were correct before */
+				if (deserialization_status)
+				{
+					deserialization_status = temp.get_deserialization_status();
+				}
+				
+				time_counters.add(temp);
+				temp.index_number = objects_read;
+			}
+		}
+		catch (final FileNotFoundException exc)
+		{
+			logger.log(Level.WARNING, "Cannot find " + file_name + " file to load "
+					+ Time_counter.class.getName() + " objects from it."
+							+ " Exception stack trace:", exc);
+			User_notification_dialog.notify_listener_and_wait(
+					new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
+					file_name + message_resources.getString("time_counters_file_not_found"));
+			
+			return false;
+		}
+		catch (final IOException exc)
+		{
+			logger.log(Level.SEVERE, "Cannot read from " + file_name +
+					" file. Exception stack trace:", exc);
+			User_notification_dialog.notify_listener_and_wait(
+					new User_notification_event(this),
+					User_notification_type.UNT_IO_error,
+					message_resources.getString("time_counters_file_read_error.1")
+							+ file_name
+							+ message_resources.getString("time_counters_file_read_error.2"));
+			
+			return false;
+		}
+		finally
+		{
+			try
+			{
+				///// Attempt to close streams down the chain /////
+				// If object input stream was successfully opened
+				if (object_input_stream != null)
+				{
+					object_input_stream.close();
+				}
+				// If buffered input stream was opened
+				else if (buffered_input_stream != null)
+				{
+					buffered_input_stream.close();
+				}
+				// If file input stream was opened only
+				else if (file_input_stream != null)
+				{
+					file_input_stream.close();
+				}
+				//-------------------------------------------/////
+			}
+			// There is no actions undertaken when such exception occurred
+			catch (final IOException exc)
+			{
+				logger.log(Level.WARNING, "Cannot close " + file_name +
+						" file. Exception stack trace:", exc);
+			}
+			
+			/* If file was successfully opened for reading AND failed to read all
+			 * objects */
+			if (objects_quantity != -1 && objects_read != objects_quantity)
+			{
+				// Error message string
+				final StringBuilder message =
+						new StringBuilder(message_resources.getString(
+								"incorrect_time_counters_file_content.1.1"));
+				
+				// If "Time_counter" objects were read partially
+				if (objects_read != 0)
+				{
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.2.1.1"));
+					message.append(objects_read);
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.2.1.2"));
+					message.append(objects_quantity);
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.2.1.3"));
+					
+					// If deserialized objects contain non critical errors
+					if (!deserialization_status)
+					{
+						message.append(message_resources.getString(
+								"incorrect_time_counters_file_content.1.2.2"));
+					}
+				}
+				else
+				{
+					message.append(message_resources.getString(
+							"incorrect_time_counters_file_content.1.3"));
+				}
+				
+				User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+						User_notification_type.UNT_file_error, message.toString());
+			}
+			else if (!deserialization_status)
+			{
+				User_notification_dialog.notify_listener_and_wait(new User_notification_event(this),
+						User_notification_type.UNT_file_error,
+						message_resources.getString(
+								"incorrect_time_counters_file_content.2"));
+			}
+		}
+		
+		time_counters_are_read_from_file = true;
+		
+		return true;
 	}
 
 	

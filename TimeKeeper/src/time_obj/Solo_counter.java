@@ -582,7 +582,8 @@ public class Solo_counter extends Time_counter implements Serializable
 			duration_passed = duration_init;
 			
 			// Если ход счетчика времени сейчас приостановлен
-			if (thread_counter_executor.isShutdown())
+			if (thread_counter_executor == null ||
+					thread_counter_executor.isShutdown())
 			{
 				counting_has_started = false;
 				numeric_overflow = false;
@@ -911,7 +912,8 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * Adds specified {@code listener} to receive numeric overflow event. Same
 	 * {@code listener} <u>can</u> be&nbsp;added multiple times.<br>
 	 * <i>Notes.</i>
-	 * <ul><li>It is recommended to unsubscribe listener using
+	 * <ul><li>It is recommended to unsubscribe listener (if
+	 * it&nbsp;is&nbsp;referenced anywhere else) using
 	 * {@link #remove_Numeric_overflow_listener(Numeric_overflow_listener)} when
 	 * there&nbsp;is no&nbsp;need to receive such event. Such action reduces
 	 * resource usage and prevents resource leaks.</li>
@@ -1099,6 +1101,17 @@ public class Solo_counter extends Time_counter implements Serializable
 					+ " normalizing deserialized Period type object");
 		}
 		
+		// Stopwatch mode time value can be only positive
+		if (instance_mode.equals(Mode.M_stopwatch))
+		{
+			set_time_counter_value_sign(true);
+		}
+		
+		thread_counter_init();
+		modify_lock = new ReentrantLock();
+		event_lock = new ReentrantLock();
+		numeric_overflow_listeners = new ArrayList<>();
+		
 		/* Если счетчик времени переполнен - выясняется действительно ли это
 		 * правда а не подделка сериализованного объекта */
 		if (numeric_overflow)
@@ -1122,19 +1135,11 @@ public class Solo_counter extends Time_counter implements Serializable
 			build_time_string(
 					time_counter_resources.getString("numeric_overflow_mark"));
 		}
-		
-		/* В режиме секундомера значение счетчика времени может быть только
-		 * положительным */
-		if (instance_mode.equals(Mode.M_stopwatch))
+		else
 		{
-			set_time_counter_value_sign(true);
+			set_time_unit_values();
+			build_time_string();
 		}
-		
-		set_time_unit_values();
-		thread_counter_init();
-		modify_lock = new ReentrantLock();
-		event_lock = new ReentrantLock();
-		numeric_overflow_listeners = new ArrayList<>();
 	}
 	
 	

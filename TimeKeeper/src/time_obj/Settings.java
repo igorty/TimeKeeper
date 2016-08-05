@@ -1020,19 +1020,29 @@ public final class Settings implements Serializable
 				new_time_cunter_resources;
 		Time_unit_full_name_resource_provider.locale = locale;
 		Time_counter.time_counter_resources = new_time_cunter_resources;
+		Instance_counter.message_resources = message_resources;
 		
 		// Thread-safe snapshot of all existing time counters
 		final CopyOnWriteArrayList<Time_counter> time_counters =
 				new CopyOnWriteArrayList<>(
 						Time_counter_control.get_instance().get_time_counters());
 		final int time_counters_quantity = time_counters.size();
+		
+		// If there is no time counters to update locale on
+		if (time_counters_quantity == 0)
+		{
+			return;
+		}
+		
+		final int available_processors = Runtime.getRuntime().availableProcessors();
 		// Will update all time counters text values with new locale
 		ThreadPoolExecutor notifier = null;
 		
 		try
 		{
 			notifier = new ThreadPoolExecutor(
-					Runtime.getRuntime().availableProcessors(),
+					available_processors > time_counters_quantity ?
+							time_counters_quantity : available_processors,
 					time_counters_quantity,
 					0, TimeUnit.NANOSECONDS,
 					new ArrayBlockingQueue<>(time_counters_quantity));
@@ -1060,8 +1070,6 @@ public final class Settings implements Serializable
 				notifier.setCorePoolSize(0);
 			}
 		}
-		
-		Instance_counter.message_resources = message_resources;
 	}
 	
 	

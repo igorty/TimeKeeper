@@ -245,11 +245,13 @@ public class Instance_counter extends Time_counter implements Serializable
 			 * текущим и целевым временим в секундах имеет положительное значение */
 			if (offset_difference > 0)
 			{
+				// Calling order is significant
 				time_current_local = time_current.
 						minusSeconds(offset_difference).toLocalDateTime();
 			}
 			else
 			{
+				// Calling order is significant
 				time_current_local = time_current.toLocalDateTime().
 						minusSeconds(offset_difference);
 			}
@@ -322,9 +324,13 @@ public class Instance_counter extends Time_counter implements Serializable
 	 * time&nbsp;difference <u>will be negative</u>.
 	 */
 	private <Type1 extends Temporal>
-	void difference_calculation_sub_method(final Type1 date_time_now,
-			boolean calculation_till)
+	void difference_calculation_sub_method(
+			Type1 date_time_now, boolean calculation_till)
 	{
+		// Round time value down to have 0 nanoseconds
+		date_time_now = (Type1)date_time_now.minus(date_time_now.get(
+				ChronoField.NANO_OF_SECOND), ChronoUnit.NANOS);
+		
 		// Кол-во полных месяцев между текущей и целевой датой и временем
 		long months = date_time_now.until(time_instance, ChronoUnit.MONTHS);
 		/* Кол-во полных (не во всех случаях) дней между текущей и целевой
@@ -370,18 +376,12 @@ public class Instance_counter extends Time_counter implements Serializable
 			// Если параметром метода является класс "ZonedDateTime"
 			if (date_time_now instanceof ZonedDateTime)
 			{
-				// Буферный объект для приведения "date_time_now" к ZonedDateTime
-				final ZonedDateTime temp = (ZonedDateTime)date_time_now;
-				
-				date_now = temp.toLocalDate();
+				date_now = ((ZonedDateTime)date_time_now).toLocalDate();
 			}
 			// Если параметром метода является класс "LocalDateTime"
 			else if (date_time_now instanceof LocalDateTime)
 			{
-				// Буферный объект для приведения "date_time_now" к LocalDateTime
-				final LocalDateTime temp = (LocalDateTime)date_time_now;
-				
-				date_now = temp.toLocalDate();
+				date_now = ((LocalDateTime)date_time_now).toLocalDate();
 			}
 			else
 			{

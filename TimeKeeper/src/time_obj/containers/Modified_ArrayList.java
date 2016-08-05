@@ -605,9 +605,16 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			final Time_counter to_shutdown = (Time_counter)to_remove;
 			
 			to_shutdown.shutdown();
-			--instance_counters_quantity;
-			Time_counter_control.get_instance().remove_instance_counter(
-					(Instance_counter)to_remove);
+
+			/* If object to remove need to be removed from synchronously
+			 * executed "Instance_counter" objects list contained in
+			 * "Time_counter_control" class */
+			if (to_remove instanceof Instance_counter)
+			{
+				--instance_counters_quantity;
+				Time_counter_control.get_instance().remove_instance_counter(
+						(Instance_counter)to_remove);
+			}
 			
 			return true;			
 		}

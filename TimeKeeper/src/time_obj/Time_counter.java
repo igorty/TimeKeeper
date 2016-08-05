@@ -748,7 +748,8 @@ public abstract class Time_counter implements Serializable
 	 * time&nbsp;value <i>text change event</i>. Same {@code listener} <u>can</u>
 	 * be&nbsp;added multiple times.<br>
 	 * <i>Notes.</i>
-	 * <ul><li>It is recommended to unsubscribe listener using
+	 * <ul><li>It is recommended to unsubscribe listener (if
+	 * it&nbsp;is&nbsp;referenced anywhere else) using
 	 * {@link #remove_Time_counter_text_listener(Time_counter_text_listener)}
 	 * when there&nbsp;is no&nbsp;need to receive such event. Such action
 	 * reduces resource usage and prevents resource leaks.</li>
@@ -862,7 +863,8 @@ public abstract class Time_counter implements Serializable
 	 * Adds specified {@code listener} to receive <i>time elapsed event</i>.
 	 * Same {@code listener} <u>can</u> be&nbsp;added multiple times.<br>
 	 * <i>Notes.</i>
-	 * <ul><li>It is recommended to unsubscribe listener using
+	 * <ul><li>It is recommended to unsubscribe listener (if
+	 * it&nbsp;is&nbsp;referenced anywhere else) using
 	 * {@link #remove_Time_elapsed_listener(Time_elapsed_listener)} when
 	 * there&nbsp;is no&nbsp;need to receive such event. Such action reduces
 	 * resource usage and prevents resource leaks.</li>
@@ -1604,6 +1606,7 @@ public abstract class Time_counter implements Serializable
 		time_value_edges_lock = new ReentrantLock();
 		time_value_listeners_lock = new ReentrantLock();
 		time_elapsed_listeners_lock = new ReentrantLock();
+		time_counter_text = "";
 		time_unit_values = new EnumMap<>(Time_unit_name.class);
 		time_value_listeners = new ArrayList<>();
 		time_elapsed_listeners = new ArrayList<>();
