@@ -130,10 +130,14 @@ public class Init_Time_counter_type_controller
 				final ResourceBundle resources =
 						gui_settings.get_time_counter_resources();
 				
-				stopwatch_radio_button.setText(resources.getString("modes.stopwatch"));
-				countdown_radio_button.setText("modes.timer");
-				elapsed_from_radio_button.setText("modes.elapsed_from");
-				remains_till_radio_button.setText("modes.remains_till");
+				stopwatch_radio_button.setText(
+						resources.getString("modes.stopwatch"));
+				countdown_radio_button.setText(
+						resources.getString("modes.timer"));
+				elapsed_from_radio_button.setText(
+						resources.getString("modes.elapsed_from"));
+				remains_till_radio_button.setText(
+						resources.getString("modes.remains_till"));
 			}
 		});
 	}
