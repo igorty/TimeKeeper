@@ -931,14 +931,18 @@ public class Init_Instance_counter_controller
 			// Выбранная дата
 			final LocalDate date_picked = date_picker.getValue();
 			
-			/* Если были установлены текущие дата и время И в поле выбора даты
-			 * установлена аналогичная дата */
-			if (date_time_now != null && date_picked.equals(date_time_now.toLocalDate()))
+			date_picker_text_field.setText(null);
+			
+			/* If date picker has been used already it returns null because of
+			 * its text is set to null by this method so need to check
+			 * IF date picker returned null OR ( current date time were set AND... */
+			if (date_picked == null || (date_time_now != null &&
+					// ... date picker has same date)
+					date_picked.equals(date_time_now.toLocalDate())))
 			{
 				return;
 			}
 			
-			date_picker_text_field.setText(null);
 			year_field.setText(Integer.toString(date_picked.getYear()));
 			
 			// Picked month value
