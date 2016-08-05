@@ -39,9 +39,7 @@ import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import time_obj.Instance_counter;
 import time_obj.Mode;
-import time_obj.Settings;
 import time_obj.Solo_counter;
-import time_obj.Time_counter;
 
 
 /* TODO? If this class instance won't be used several times, provide its
@@ -238,9 +236,6 @@ class New_time_counter_window
 	private final EventHandler<ActionEvent> from_3_to_2_stage_event_handler;
 	/** Handles moving from 2nd to 1st stage event of creating time counter. */
 	private final EventHandler<ActionEvent> from_2_to_1_stage_event_handler;
-	
-	/** {@link Time_counter}'s initial layout settings. */
-	private Init_settings init_settings;
 
 	
 	///// Нестатическая инициализация =====================================/////
@@ -399,7 +394,7 @@ class New_time_counter_window
 							}
 							else
 							{
-								init_settings =
+								final Init_settings init_settings =
 										init_settings_pane_controller.get_init_settings();
 								// Newly created time counter
 								final Solo_counter new_stopwatch =
@@ -422,7 +417,6 @@ class New_time_counter_window
 								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -536,7 +530,7 @@ class New_time_counter_window
 							}
 							else
 							{
-								init_settings =
+								final Init_settings init_settings =
 										init_settings_pane_controller.get_init_settings();
 								
 								// Newly created time counter
@@ -559,7 +553,6 @@ class New_time_counter_window
 								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -644,7 +637,7 @@ class New_time_counter_window
 							}
 							else
 							{
-								init_settings =
+								final Init_settings init_settings =
 										init_settings_pane_controller.get_init_settings();
 								// Newly created time counter
 								final Instance_counter new_elapsed_from =
@@ -665,7 +658,6 @@ class New_time_counter_window
 								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -745,7 +737,7 @@ class New_time_counter_window
 							}
 							else
 							{
-								init_settings =
+								final Init_settings init_settings =
 										init_settings_pane_controller.get_init_settings();
 								// Newly created time counter
 								final Instance_counter new_remains_till =
@@ -766,7 +758,6 @@ class New_time_counter_window
 								 * the main window */
 								/* TODO: Set created time counter's value
 								 * display on title if requested */
-								overwrite_layout_settings();
 							}
 							
 							close_window();
@@ -969,7 +960,7 @@ class New_time_counter_window
 					@Override
 					public void handle(final ActionEvent event)
 					{
-						init_settings =
+						final Init_settings init_settings =
 								init_settings_pane_controller.get_init_settings();
 						
 						switch (selected_mode)
@@ -1148,7 +1139,6 @@ class New_time_counter_window
 									Mode.class, selected_mode.name());
 						}
 						
-						overwrite_layout_settings();
 						close_window();
 						back_to_initial_state();
 					}
@@ -1250,8 +1240,6 @@ class New_time_counter_window
 				hints_resources = gui_settings.get_hints_resources();
 			}
 		});
-		
-		init_settings = null;
 	}
 	
 	
@@ -1299,7 +1287,6 @@ class New_time_counter_window
 	void show_window()
 	{
 		set_root_pane_to_initial_state();
-		init_settings = null;
 		root_pane.setCenter(time_counter_type_set_pane);
 		stage.show();
 	}
@@ -1390,43 +1377,5 @@ class New_time_counter_window
 		
 		root_pane_controller.previous_button.setTooltip(null);
 		root_pane_controller.apply_button.setTooltip(null);
-	}
-	
-	
-	/**
-	 * Overwrites time&nbsp;counter user&nbsp;defined layout settings using
-	 * separate thread.<br>
-	 * <b>Warning!</b> This method <u>does&nbsp;not check</u>
-	 * {@link #init_settings} initialization, from where it takes layout settings.
-	 * 
-	 * @exception NullPointerException If {@link #init_settings_pane_controller}
-	 * is {@code null}.
-	 */
-	private void overwrite_layout_settings()
-	{
-		new Thread(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				// Application's settings
-				final Settings settings = Settings.get_instance();
-				
-				settings.set_time_unit_layout_setting(
-						init_settings.time_unit_layout);
-				settings.set_time_display_style_setting(
-						init_settings.time_display_style);
-				
-				// If time counter's displayed range is set
-				if (init_settings.left_displayed_edge != null &&
-						init_settings.right_displayed_edge != null)
-				{
-					settings.set_time_value_edges(init_settings.left_displayed_edge,
-							init_settings.right_displayed_edge);
-				}
-				
-				settings.write_to_file();
-			}
-		}).start();
 	}
 }
