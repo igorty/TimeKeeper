@@ -106,8 +106,10 @@ class New_time_counter_window
 		
 		// Строки, которые должны содержаться в контейнере "mode_img_directories"
 		final String[] mode_img_directories_strings = {
-				"/images/stopwatch_large.png", "/images/countdown_large.png",
-				"/images/elapsed_from_large.png", "/images/remains_till_large.png" };
+				"resources/images/stopwatch.png",
+				"resources/images/countdown.png",
+				"resources/images/elapsed_from.png",
+				"resources/images/remains_till.png" };
 		// Все элементы перечисления "Mode"
 		final Mode[] mode_values = Mode.values();
 		

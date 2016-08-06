@@ -25,7 +25,8 @@ import time_obj.Mode;
  * <ul><li>Root pane in <i>"Init_Time_counter_type_layout.fxml"</i> is
  * {@link VBox}.</li>
  * <li><i>"Init_Time_counter_type_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/time_counter.properties"</i> resources to be set.</li></ul>
+ * <i>"graphical_shell/resources/languages/time_counter.properties"</i>
+ * resources to be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -93,19 +94,44 @@ public class Init_Time_counter_type_controller
 		countdown_radio_button.setUserData(Mode.M_countdown);
 		elapsed_from_radio_button.setUserData(Mode.M_elapsed_from);
 		remains_till_radio_button.setUserData(Mode.M_remains_till);
+
+		// Radio buttons images size
+		final double images_size = 32;
+		// "stopwatch_radio_button" image
+		final ImageView stopwatch_image = new ImageView(
+				Init_Time_counter_type_controller.class.getResource(
+						"/graphical_shell/resources/images/stopwatch.png").toString());
 		
-		stopwatch_radio_button.setGraphic(new ImageView(
+		stopwatch_image.setFitWidth(images_size);
+		stopwatch_image.setPreserveRatio(true);
+		stopwatch_radio_button.setGraphic(stopwatch_image);
+		
+		// "countdown_radio_button" image
+		final ImageView countdown_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/images/stopwatch_middle.png").toString()));
-		countdown_radio_button.setGraphic(new ImageView(
+						"/graphical_shell/resources/images/countdown.png").toString());
+		
+		countdown_image.setFitWidth(images_size);
+		countdown_image.setPreserveRatio(true);
+		countdown_radio_button.setGraphic(countdown_image);
+		
+		// "elapsed_from_radio_button" image
+		final ImageView elapsed_from_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/images/countdown_middle.png").toString()));
-		elapsed_from_radio_button.setGraphic(new ImageView(
+						"/graphical_shell/resources/images/elapsed_from.png").toString());
+		
+		elapsed_from_image.setFitWidth(images_size);
+		elapsed_from_image.setPreserveRatio(true);
+		elapsed_from_radio_button.setGraphic(elapsed_from_image);
+		
+		// "remains_till_radio_button" image
+		final ImageView remains_till_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/images/elapsed_from_middle.png").toString()));
-		remains_till_radio_button.setGraphic(new ImageView(
-				Init_Time_counter_type_controller.class.getResource(
-						"/images/remains_till_middle.png").toString()));
+						"/graphical_shell/resources/images/remains_till.png").toString());
+		
+		remains_till_image.setFitWidth(images_size);
+		remains_till_image.setPreserveRatio(true);
+		remains_till_radio_button.setGraphic(remains_till_image);
 		
 		toggle_group.selectedToggleProperty().addListener(new ChangeListener<Toggle>()
 		{

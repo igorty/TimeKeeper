@@ -54,8 +54,8 @@ import time_obj.Settings.Locale_setting;
  * <ul><li>Root pane in <i>"Init_Instance_counter_layout.fxml"</i> is
  * {@link GridPane}.</li>
  * <li><i>"Init_Instance_counter_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/GUI_elements/labels.properties"</i> resources to
- * be set.</li></ul>
+ * <i>"graphical_shell/resources/languages/GUI_elements/labels.properties"</i>
+ * resources to be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko

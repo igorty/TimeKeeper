@@ -48,8 +48,8 @@ import time_obj.Time_unit_name;
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_settings_layout.fxml"</i> is {@link GridPane}.</li>
  * <li><i>"Init_settings_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/GUI_elements/labels.properties"</i> resources to
- * be set.</li></ul>
+ * <i>"graphical_shell/resources/languages/GUI_elements/labels.properties"</i>
+ * resources to be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko

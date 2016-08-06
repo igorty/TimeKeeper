@@ -20,8 +20,8 @@ import time_obj.Mode;
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Basic_init_layout.fxml"</i> is {@link BorderPane}.</li>
  * <li><i>"<i>Basic_init_layout.fxml</i>"</i> requires
- * <i>"graphical_shell/resources/GUI_elements/buttons.properties"</i> resources to
- * be set.</li></ul>
+ * <i>"graphical_shell/resources/languages/GUI_elements/buttons.properties"</i>
+ * resources to be set.</li></ul>
  * 
  * @version 1.0
  * @author Igor Taranenko

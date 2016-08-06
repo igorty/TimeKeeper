@@ -36,19 +36,19 @@ public class GUI_settings implements Serializable
 	private enum Resource
 	{
 		/** Provides dialog messages. */
-		R_messages("graphical_shell/resources/messages"),
+		R_messages("graphical_shell/resources/languages/messages"),
 		/** Provides specific time&nbsp;counter settings names. */
-		R_time_counter("graphical_shell/resources/time_counter"),
+		R_time_counter("graphical_shell/resources/languages/time_counter"),
 		/** Provides buttons names. */
-		R_buttons("graphical_shell/resources/GUI_elements/buttons"),
+		R_buttons("graphical_shell/resources/languages/GUI_elements/buttons"),
 		/** Provides hints and tooltips texts. */
-		R_hints("graphical_shell/resources/GUI_elements/hints"),
+		R_hints("graphical_shell/resources/languages/GUI_elements/hints"),
 		/** Provides labels names. */
-		R_labels("graphical_shell/resources/GUI_elements/labels"),
+		R_labels("graphical_shell/resources/languages/GUI_elements/labels"),
 		/** Provides menu&nbsp;items names. */
-		R_menu_items("graphical_shell/resources/GUI_elements/menu_items"),
+		R_menu_items("graphical_shell/resources/languages/GUI_elements/menu_items"),
 		/** Provides text&nbsp;fields texts. */
-		R_text_fields("graphical_shell/resources/GUI_elements/text_fields");
+		R_text_fields("graphical_shell/resources/languages/GUI_elements/text_fields");
 		
 		
 		///// Fields default-access of-instance ===========================/////

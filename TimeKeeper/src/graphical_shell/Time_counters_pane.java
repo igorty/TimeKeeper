@@ -163,6 +163,9 @@ class Time_counters_pane
 	/** <i>Time counter settings</i> {@link Button} image. */
 	private static final Image setting_image;
 	
+	/** Time counters images size. */
+	private static final double images_size;
+	
 	/** Time counter value color by default when time&nbsp;counter
 	 * <u>is&nbsp;running</u> ({@link Solo_counter} objects may be in paused
 	 * state). */
@@ -219,13 +222,13 @@ class Time_counters_pane
 		// "mode_images" container images
 		final Image[] mode_images_values = {
 				new Image(Time_counters_pane.class.getResource(
-						"/images/stopwatch_middle.png").toString()),
+						"resources/images/stopwatch.png").toString()),
 				new Image(Time_counters_pane.class.getResource(
-						"/images/countdown_middle.png").toString()),
+						"resources/images/countdown.png").toString()),
 				new Image(Time_counters_pane.class.getResource(
-						"/images/elapsed_from_middle.png").toString()),
+						"resources/images/elapsed_from.png").toString()),
 				new Image(Time_counters_pane.class.getResource(
-						"/images/remains_till_middle.png").toString()) };
+						"resources/images/remains_till.png").toString()) };
 		// All "Mode" enumeration constants
 		final Mode[] mode_values = Mode.values();
 		
@@ -247,18 +250,20 @@ class Time_counters_pane
 		//-------------------------------------------/////
 		
 		
-		start_image = new Image(
-				Time_counters_pane.class.getResource("/images/start.gif").toString());
-		resume_image = new Image(
-				Time_counters_pane.class.getResource("/images/resume.gif").toString());
-		pause_image = new Image(
-				Time_counters_pane.class.getResource("/images/pause.gif").toString());
-		restart_image = new Image(
-				Time_counters_pane.class.getResource("/images/restart.gif").toString());
-		close_image = new Image(
-				Time_counters_pane.class.getResource("/images/close.png").toString());
-		setting_image = new Image(
-				Time_counters_pane.class.getResource("/images/setting.gif").toString());
+		start_image = new Image(Time_counters_pane.class.getResource(
+				"resources/images/start.png").toString());
+		resume_image = new Image(Time_counters_pane.class.getResource(
+				"resources/images/resume.png").toString());
+		pause_image = new Image(Time_counters_pane.class.getResource(
+				"resources/images/pause.png").toString());
+		restart_image = new Image(Time_counters_pane.class.getResource(
+				"resources/images/restart.png").toString());
+		close_image = new Image(Time_counters_pane.class.getResource(
+				"resources/images/close.png").toString());
+		setting_image = new Image(Time_counters_pane.class.getResource(
+				"resources/images/settings.png").toString());
+		
+		images_size = 32;
 		
 		default_color = Color.BLACK;
 		time_elapsed_color = Color.RED;
@@ -762,6 +767,9 @@ class Time_counters_pane
 		final ImageView mode_image =
 				new ImageView(mode_images.get(time_counter.instance_mode));
 		
+		mode_image.setFitWidth(images_size);
+		mode_image.setPreserveRatio(true);
+		
 		// ImageView tooltip text
 		final StringBuilder image_tooltip = new StringBuilder(
 				hints_resources.getString("mode_image_tooltip.1"));
@@ -1046,9 +1054,14 @@ class Time_counters_pane
 		
 		
 		///// "Single time counter settings" button implementation /////
+		// "setting_button" image
+		final ImageView settings_button_image = new ImageView(setting_image);
+		
+		settings_button_image.setFitWidth(images_size);
+		settings_button_image.setPreserveRatio(true);
+		
 		// Time counter settings button
-		final Button setting_button =
-				new Button(null, new ImageView(setting_image));
+		final Button setting_button = new Button(null, settings_button_image);
 		
 		setting_button.setTooltip(new Tooltip(hints_resources.getString(
 				"time_counter_setting_button_tooltip")));
