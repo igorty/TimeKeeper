@@ -80,13 +80,15 @@ public class Solo_counter extends Time_counter implements Serializable
 	/** Логирует события в данном классе. */
 	private static final Logger logger;
 	
-	/* TODO: static final int time_counter_frequency = 100 (means time in
-	 * milliseconds in which "thread_counter" is invoked) */
+	/** Time in milliseconds representing frequency of executing
+	 * {@link #thread_counter} runnable. */
+	private static final int clock_frequency;
 	
 	
 	static
 	{
 		logger = Logger.getLogger(Solo_counter.class.getName());
+		clock_frequency = 100;
 	}
 	
 	
@@ -139,6 +141,16 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * {@code null}. При несоответствии условию генерируется исключение
 	 * {@link InvalidObjectException}. */
 	private LocalTime duration_passed;
+	
+	/** Represents tenth&#8209;of&#8209;second part for inner purposes. When
+	 * this field equals&nbsp;{@code 10}, {@link #thread_counter} runnable ticks
+	 * one&nbsp;second.
+	 * 
+	 * @serial Must be in range <u>from&nbsp;{@code 0}&nbsp;to&nbsp;{@code 9}</u>
+	 * after deserialization. If condition <u>is&nbsp;not met</u>, field is set
+	 * to&nbsp;{@code 0} and {@link Time_counter#deserialization_status} field
+	 * is set to {@code false}. */
+	private volatile int tenth_of_second;
 	
 	/** Режим подсчета времени согласно перечислению {@link Days_in_year} для
 	 * экземпляра класса.
@@ -198,6 +210,7 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	// Нестатическая инициализация ========================================/////
 	{
+		tenth_of_second = 0;
 		counting_has_started = false;
 		set_time_counter_value_sign(true);
 		thread_counter_init();
@@ -487,8 +500,8 @@ public class Solo_counter extends Time_counter implements Serializable
 			
 			thread_counter_executor =
 					Executors.newSingleThreadScheduledExecutor();
-			thread_counter_executor.scheduleAtFixedRate(
-					thread_counter, 1, 1, TimeUnit.SECONDS);
+			thread_counter_executor.scheduleAtFixedRate(thread_counter,
+					clock_frequency, clock_frequency, TimeUnit.MILLISECONDS);
 			counting_has_started = true;
 			
 			return true;
@@ -522,8 +535,8 @@ public class Solo_counter extends Time_counter implements Serializable
 		
 		try
 		{
-			// TODO: Change waiting to 1/10 second using special static field
-			thread_counter_executor.awaitTermination(1, TimeUnit.SECONDS);
+			thread_counter_executor.awaitTermination(
+					clock_frequency, TimeUnit.MILLISECONDS);
 		}
 		catch (final InterruptedException exc)
 		{
@@ -580,6 +593,7 @@ public class Solo_counter extends Time_counter implements Serializable
 			
 			period_passed = period_init;
 			duration_passed = duration_init;
+			tenth_of_second = 0;
 			
 			// Если ход счетчика времени сейчас приостановлен
 			if (thread_counter_executor == null ||
@@ -1107,6 +1121,13 @@ public class Solo_counter extends Time_counter implements Serializable
 			set_time_counter_value_sign(true);
 		}
 		
+		// Field representing split second, must have value within second
+		if (tenth_of_second < 0 || tenth_of_second > 9)
+		{
+			tenth_of_second = 0;
+			deserialization_status = false;
+		}
+		
 		thread_counter_init();
 		modify_lock = new ReentrantLock();
 		event_lock = new ReentrantLock();
@@ -1334,8 +1355,13 @@ public class Solo_counter extends Time_counter implements Serializable
 			@Override
 			public void run()
 			{
-				/* TODO: Реализовать обращение к данному потоку раз в 1/10
-				 * секунды */
+				// If there is no full second cycle passed yet
+				if (++tenth_of_second != 10)
+				{
+					return;
+				}
+				
+				tenth_of_second = 0;
 				
 				try
 				{
