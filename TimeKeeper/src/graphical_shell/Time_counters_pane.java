@@ -9,9 +9,13 @@ import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import graphical_shell.events.Locale_change_listener;
 import javafx.application.Platform;
@@ -64,18 +68,19 @@ import time_obj.events.Time_elapsed_listener;
 
 
 /**
- * Manages <i>time&nbsp;counters</i>.<br>
+ * <p>Manages <i>time&nbsp;counters</i>.
  * Each time&nbsp;counter is stored in {@link HBox}, and all these {@code HBoxes}
  * are contained in a&nbsp;vertical {@link TilePane}. Each time&nbsp;counter is
  * provided with control elements ({@link TextField} to write
  * time&nbsp;counter's description and {@link Button}{@code s} to operate
- * the&nbsp;time&nbsp;counter).<br>
- * Time counters can be dragged with the&nbsp;aim to:
+ * the&nbsp;time&nbsp;counter).
+ * <p>Time counters can be dragged with the&nbsp;aim to:
  * <ul><li>reorder them in user&#8209;convenient way;</li>
  * <li>copy time&nbsp;counter value to any text&nbsp;field.</li></ul>
- * 
- * The class is also provides time&nbsp;counters reordering by dragging them
- * into the&nbsp;convenient place within the&nbsp;{@code TilePane}.
+ * <p><b>Important!</b> It is strictly necessary to perform operations on
+ * {@link Time_counter}{@code s} using methods provided by this class (if
+ * specified operation can be performed with implemented in this class methods).
+ * Otherwise GUI&nbsp;will behave incorrectly.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -139,8 +144,78 @@ class Time_counters_pane
 	/** {@link #time_counters_pane} children nodes. */
 	private static final ObservableList<Node> time_counters_pane_children;
 	
+	/** Contains each {@link Mode}{@code 's} {@link Time_counter} objects
+	 * quantity.
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static final EnumMap<Mode, Integer> time_counters_quantity;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_stopwatch} mode and currently running.
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int running_stopwatches;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_stopwatch} mode and currently paused.
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int paused_stopwatches;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_stopwatch} mode, has&nbsp;been&nbsp;restarted and
+	 * are&nbsp;retaining their initial state, or even has&nbsp;not&nbsp;been
+	 * started yet (i.e.&nbsp;{@link Solo_counter#counting_had_started()}
+	 * returns false for these time&nbsp;counters).
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int restarted_stopwatches;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_stopwatch} mode and have overflowed state
+	 * (i.e.&nbsp;{@link Solo_counter#numeric_overflow_status()} returns
+	 * {@code true}).
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int overflowed_stopwatches;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_countdown} mode and currently running.
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int running_timers;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_countdown} mode and currently paused.
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int paused_timers;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_countdown} mode, has&nbsp;been&nbsp;restarted and
+	 * are&nbsp;retaining their initial state, or even has&nbsp;not&nbsp;been
+	 * started yet (i.e.&nbsp;{@link Solo_counter#counting_had_started()}
+	 * returns false for these time&nbsp;counters).
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int restarted_timers;
+	/** {@link Time_counter} objects quantity which are working in
+	 * {@link Mode#M_countdown} mode and have overflowed state
+	 * (i.e.&nbsp;{@link Solo_counter#numeric_overflow_status()} returns
+	 * {@code true}).
+	 * <p>Implemented to disable/enable menu&nbsp;items from <i>Actions</i>
+	 * submenu in menu&nbsp;bar. */
+	private static int overflowed_timers;
+	
 	/** Synchronizes access to {@link #time_counters_pane_children} container. */
-	private static final ReentrantLock lock;
+	private static final ReentrantLock time_counters_pane_children_lock;
+	/** Synchronizes access to fields that control {@link Time_counter} objects
+	 * types and states quantities with&nbsp;a&nbsp;view to manage
+	 * main&nbsp;window's menu&nbsp;bar.
+	 * <p>Synchronized fields list:
+	 * <ul><li>{@link #time_counters_quantity};</li>
+	 * <li>{@link #running_stopwatches};</li>
+	 * <li>{@link #paused_stopwatches};</li>
+	 * <li>{@link #restarted_stopwatches};</li>
+	 * <li>{@link #overflowed_stopwatches};</li>
+	 * <li>{@link #running_timers};</li>
+	 * <li>{@link #paused_timers};</li>
+	 * <li>{@link #restarted_timers};</li>
+	 * <li>{@link #overflowed_timers}.</li></ul> */
+	private static final ReentrantLock time_counters_quantity_lock;
 	
 	/** Images, which represent time&nbsp;counters modes.<br>
 	 * <b>Warning!</b> The&nbsp;container <u>is&nbsp;immutable</u>.
@@ -192,6 +267,13 @@ class Time_counters_pane
 	 * contained in {@link HBox}{@code es} representing {@link Solo_counter}
 	 * time&nbsp;counters. */
 	private static final String start_button_id;
+	/** {@link Node} identifier for <i>Restart</i> {@link Button} contained in
+	 * {@link HBox}{@code es} representing {@link Solo_counter}
+	 * time&nbsp;counters. */
+	private static final String restart_button_id;
+	/** {@link Node} identifier for <i>Close</i> {@link Button} contained in
+	 * {@link HBox}{@code es} representing {@link Time_counter} object. */
+	private static final String close_button_id;
 	
 	/** Common listener for all {@link Time_counter}{@code s} represented in
 	 * {@link #time_counters_pane_children}. */
@@ -199,7 +281,6 @@ class Time_counters_pane
 	/** Common listener for all {@link Solo_counter}{@code s} represented in
 	 * {@link #time_counters_pane_children}. */
 	private static final Numeric_overflow_listener numeric_overflow_listener;
-	
 	
 	
 	static
@@ -215,8 +296,13 @@ class Time_counters_pane
 		time_unit_names_resources = program_settings.get_time_counter_resources();
 		
 		time_counters_pane = new TilePane(Orientation.VERTICAL);
-		lock = new ReentrantLock();
+		time_counters_pane.setPrefRows(0);
+		time_counters_pane_children_lock = new ReentrantLock();
+		time_counters_quantity_lock = new ReentrantLock();
 		time_counters_pane_children = time_counters_pane.getChildren();
+		time_counters_quantity = new EnumMap<>(Mode.class);
+		set_time_counters_quantity_to_0();
+		disable_all_actions_menu_items();
 		
 		///// "mode_images" container initialization /////
 		// "mode_images" container images
@@ -273,6 +359,8 @@ class Time_counters_pane
 				new Background(new BackgroundFill(Color.YELLOW, null, null));
 		
 		start_button_id = "start_button";
+		restart_button_id = "restart_button";
+		close_button_id = "close_button";
 		
 		time_elapsed_listener = new Time_elapsed_listener()
 		{
@@ -286,7 +374,7 @@ class Time_counters_pane
 				
 				try
 				{
-					lock.lockInterruptibly();
+					time_counters_pane_children_lock.lockInterruptibly();
 				}
 				catch (final InterruptedException exc)
 				{
@@ -365,7 +453,7 @@ class Time_counters_pane
 				}
 				finally
 				{
-					lock.unlock();
+					time_counters_pane_children_lock.unlock();
 				}
 				
 				// TODO: Invoke alarm sound
@@ -384,7 +472,7 @@ class Time_counters_pane
 				
 				try
 				{
-					lock.lockInterruptibly();
+					time_counters_pane_children_lock.lockInterruptibly();
 				}
 				catch (final InterruptedException exc)
 				{
@@ -422,9 +510,9 @@ class Time_counters_pane
 							{
 								final Node control =
 										representative_controls.get(j);
-								final String id = control.getId();
 								
-								if (id != null && id.equals(start_button_id))
+								// Perform actions over Start/Resume/Pause button
+								if (start_button_id.equals(control.getId()))
 								{
 									Platform.runLater(new Runnable()
 									{
@@ -437,8 +525,137 @@ class Time_counters_pane
 										}
 									});
 									
+									// If event object works in stopwatch mode
+									if (event_source.instance_mode.equals(
+											Mode.M_stopwatch))
+									{
+										///// Menu bar managing section ---/////
+										time_counters_quantity_lock.lock();
+										
+										try
+										{
+											/* If the only running stopwatch
+											 * has been paused */
+											if (--running_stopwatches == 0)
+											{
+												Top_pane.set_disable_pause_stopwatches_menu_item(true);
+												
+												/* If there is no running
+												 * stopwatches and timers to be
+												 * paused after pausing the last
+												 * stopwatch */
+												if (running_timers == 0)
+												{
+													Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+												}
+											}
+											
+											/* If paused stopwatch is
+											 * the only one that can be restarted */
+											if (running_stopwatches +
+													(++paused_stopwatches) -
+													restarted_stopwatches == 1)
+											{
+												Top_pane.set_disable_restart_stopwatches_menu_item(false);
+												
+												/* If paused stopwatch is
+												 * the only one among all
+												 * existing stopwatches and
+												 * timers that can be restarted */
+												if (running_timers +
+														paused_timers -
+														restarted_timers == 0)
+												{
+													Top_pane.set_disable_restart_stopwatches_timers_menu_item(false);
+												}
+											}
+											
+											++overflowed_stopwatches;
+											
+											assert running_stopwatches >= 0 :
+												"Incorrect time counters quantity value";
+											assert paused_stopwatches >= restarted_stopwatches :
+												"Incorrect time counters quantity value";
+											assert paused_stopwatches >= overflowed_stopwatches :
+												"Incorrect time counters quantity value";
+											assert paused_stopwatches + running_stopwatches ==
+												time_counters_quantity.get(Mode.M_stopwatch) :
+													"Incorrect time counters quantity value";
+										}
+										finally
+										{
+											time_counters_quantity_lock.unlock();
+										}
+										/////------------------------------/////
+									}
+									/* Event object works in timer mode
+									 * ("Mode.M_countdown") */
+									else
+									{
+										///// Menu bar managing section ---/////
+										time_counters_quantity_lock.lock();
+										
+										try
+										{
+											/* If there are no running timers
+											 * remaining after this one has been
+											 * paused */
+											if (--running_timers == 0)
+											{
+												Top_pane.set_disable_pause_timers_menu_item(true);
+												
+												/* If there are no running
+												 * stopwatches and timers
+												 * remaining after this one
+												 * has been paused */
+												if (running_stopwatches == 0)
+												{
+													Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+												}
+											}
+											
+											/* If paused timer is the only one
+											 * that can be restarted */
+											if (running_timers + (++paused_timers) -
+													restarted_timers == 1)
+											{
+												Top_pane.set_disable_restart_timers_menu_item(false);
+												
+												/* If paused timer is
+												 * the only one among all
+												 * existing stopwatches and
+												 * timers that can be restarted */
+												if (running_stopwatches +
+														paused_stopwatches -
+														restarted_stopwatches == 0)
+												{
+													Top_pane.set_disable_restart_stopwatches_timers_menu_item(false);
+												}
+											}
+											
+											++overflowed_timers;
+											
+											assert running_timers >= 0 :
+												"Incorrect time counters quantity value";
+											assert paused_timers >= restarted_timers :
+												"Incorrect time counters quantity value";
+											assert paused_timers >= overflowed_timers :
+												"Incorrect time counters quantity value";
+											assert paused_timers + running_timers ==
+													time_counters_quantity.get(Mode.M_countdown) :
+														"Incorrect time counters quantity value";
+										}
+										finally
+										{
+											time_counters_quantity_lock.unlock();
+										}
+										/////------------------------------/////
+									}
+									
 									++actions_performed_counter;
 								}
+								/* Perform actions over label representing
+								 * time counter value */
 								else if (control instanceof Label)
 								{
 									Platform.runLater(new Runnable()
@@ -470,7 +687,7 @@ class Time_counters_pane
 				}
 				finally
 				{
-					lock.unlock();
+					time_counters_pane_children_lock.unlock();
 				}
 				
 				// TODO: Invoke alarm sound
@@ -489,7 +706,7 @@ class Time_counters_pane
 			{
 				try
 				{
-					lock.lockInterruptibly();
+					time_counters_pane_children_lock.lockInterruptibly();
 				}
 				catch (final InterruptedException exc)
 				{
@@ -542,10 +759,24 @@ class Time_counters_pane
 							time_counters_pane_children.clear();
 						}
 					});
+					
+					
+					///// Menu bar managing section -----------------------/////
+					time_counters_quantity_lock.lock();
+					
+					try
+					{
+						set_time_counters_quantity_to_0();
+					}
+					finally
+					{
+						time_counters_quantity_lock.unlock();
+					}
+					/////--------------------------------------------------/////
 				}
 				finally
 				{
-					lock.unlock();
+					time_counters_pane_children_lock.unlock();
 				}
 				
 				Platform.runLater(new Runnable()
@@ -719,21 +950,39 @@ class Time_counters_pane
 				final int dropped_object_index =
 						time_counters_pane_children.indexOf(dropped_object);
 				
-				time_counters_pane_children.remove(dropped_object);
+				try
+				{
+					time_counters_pane_children_lock.lockInterruptibly();
+				}
+				catch (final InterruptedException exc)
+				{
+					logger.log(Level.INFO,
+							"Thread interrupts. Exception stack trace:", exc);
+					Thread.currentThread().interrupt();
+				}
 				
-				// Time counter controls pane on which other pane is dropped
-				final int time_counter_unit_index =
-						time_counters_pane_children.indexOf(time_counter_unit);
-				
-				assert dropped_object_index != -1 || time_counter_unit_index != -1 :
-					"No\u00A0such time\u00A0counter controls pane(\u2011s) in "
+				try
+				{
+					time_counters_pane_children.remove(dropped_object);
+					
+					// Time counter controls pane on which other pane is dropped
+					final int time_counter_unit_index =
+							time_counters_pane_children.indexOf(time_counter_unit);
+					
+					assert dropped_object_index != -1 && time_counter_unit_index != -1 :
+						"No\u00A0such time\u00A0counter controls pane(\u2011s) in "
 						+ ObservableList.class.getName()
 						+ " \"time_counters_pane\"";
-				
-				time_counters_pane_children.add(
-						dropped_object_index <= time_counter_unit_index ?
-								time_counter_unit_index + 1 : time_counter_unit_index,
-						dropped_object);
+					
+					time_counters_pane_children.add(
+							dropped_object_index <= time_counter_unit_index ?
+									time_counter_unit_index + 1 : time_counter_unit_index,
+									dropped_object);
+				}
+				finally
+				{
+					time_counters_pane_children_lock.unlock();
+				}
 			}
 		});
 		//----------------------------------------------------/////
@@ -1028,12 +1277,13 @@ class Time_counters_pane
 		
 		
 		// Cursor to appear when hovering over time counter buttons
-		final Cursor buttons_cursor = Cursor.HAND;
+		final Cursor buttons_cursor = Cursor.DEFAULT;
 		
 		///// "Close time counter" button implementation /////
 		// Close time counter button
 		final Button close_button = new Button(null, new ImageView(close_image));
 
+		close_button.setId(close_button_id);
 		close_button.setTooltip(
 				new Tooltip(hints_resources.getString("close_button_tooltip")));
 		close_button.setCursor(buttons_cursor);
@@ -1046,8 +1296,236 @@ class Time_counters_pane
 				/* TODO: Provide confirming dialog after implementing custom
 				 * DialogPane with "Disable this checking" CheckBox */
 				
-				time_counters_pane_children.remove(time_counter_unit);
-				Time_counter_control.get_instance().get_time_counters().remove(time_counter);
+				/////-/ Menu bar managing section -------------------------/////
+				time_counters_quantity_lock.lock();
+				
+				try
+				{
+					change_time_counters_quantity(time_counter.instance_mode, true);
+					
+					// If removed time counter worked in stopwatch mode
+					if (time_counter.instance_mode.equals(Mode.M_stopwatch))
+					{
+						final Solo_counter cast_to_Solo_counter =
+								(Solo_counter)time_counter;
+						
+						// If stopwatch was running when removing
+						if (cast_to_Solo_counter.is_running())
+						{
+							// If the only running stopwatch was removed
+							if (--running_stopwatches == 0)
+							{
+								Top_pane.set_disable_pause_stopwatches_menu_item(true);
+								
+								/* If there are no running stopwatches and
+								 * timers after removing the last stopwatch */
+								if (running_timers == 0)
+								{
+									Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+								}
+							}
+							
+							assert running_stopwatches >= 0 :
+								"Incorrect time counters quantity value";
+							assert running_stopwatches + paused_stopwatches ==
+									time_counters_quantity.get(Mode.M_stopwatch) :
+										"Incorrect time counters quantity value";
+						}
+						else
+						{
+							--paused_stopwatches;
+							
+							// If removed stopwatch was in numeric overflow state
+							if (cast_to_Solo_counter.numeric_overflow_status())
+							{
+								--overflowed_stopwatches;
+								
+								assert overflowed_stopwatches >= 0 :
+									"Incorrect time counters quantity value";
+							}
+							else
+							{
+								/* If there are no paused stopwatches (with
+								 * possibility to be started) remaining after
+								 * removing this one */
+								if (paused_stopwatches == 0)
+								{
+									Top_pane.set_disable_start_stopwatches_menu_item(true);
+									
+									/* If there are no paused stopwatches and
+									 * timers (with possibility to be started)
+									 * remaining after removing the last
+									 * stopwatch */
+									if (paused_timers == 0)
+									{
+										Top_pane.set_disable_start_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								// If removed stopwatch was in its initial state
+								if (!cast_to_Solo_counter.counting_had_started())
+								{
+									--restarted_stopwatches;
+									
+									assert restarted_stopwatches >= 0 :
+										"Incorrect time counters quantity value";
+								}
+							}
+							
+							assert paused_stopwatches >= 0 :
+								"Incorrect time counters quantity value";
+							assert paused_stopwatches >= restarted_stopwatches :
+								"Incorrect time counters quantity value";
+							assert paused_stopwatches >= overflowed_stopwatches :
+								"Incorrect time counters quantity value";
+							assert paused_stopwatches + running_stopwatches ==
+									time_counters_quantity.get(Mode.M_stopwatch) :
+										"Incorrect time counters quantity value";
+						}
+						
+						/* If there are no stopwatches to restart after removing
+						 * this one */
+						if (running_stopwatches + paused_stopwatches -
+								restarted_stopwatches == 0)
+						{
+							Top_pane.set_disable_restart_stopwatches_menu_item(true);
+					
+							/* If there are no stopwatches and timers to restart
+							 * after removing this one */
+							if (running_stopwatches + running_timers +
+									paused_stopwatches + paused_timers -
+									restarted_stopwatches - restarted_timers == 0)
+							{
+								Top_pane.set_disable_restart_stopwatches_timers_menu_item(true);
+							}
+						}
+					}
+					// If removed time counter worked in timer mode
+					else if (time_counter.instance_mode.equals(Mode.M_countdown))
+					{
+						final Solo_counter cast_to_Solo_counter =
+								(Solo_counter)time_counter;
+						
+						// If removed timer was running when removing
+						if (cast_to_Solo_counter.is_running())
+						{
+							// If the only running timer was removed
+							if (--running_timers == 0)
+							{
+								Top_pane.set_disable_pause_timers_menu_item(true);
+								
+								/* If there are no running stopwatches and
+								 * timers after removing the last timer */
+								if (running_stopwatches == 0)
+								{
+									Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+								}
+							}
+							
+							assert running_timers >= 0 :
+								"Incorrect time counters quantity value";
+							assert running_timers + paused_timers ==
+									time_counters_quantity.get(Mode.M_countdown) :
+										"Incorrect time counters quantity value";
+						}
+						else
+						{
+							--paused_timers;
+							
+							// If removed timer was in numeric overflow state
+							if (cast_to_Solo_counter.numeric_overflow_status())
+							{
+								--overflowed_timers;
+								
+								assert overflowed_timers >= 0 :
+									"Incorrect time counters quantity value";
+							}
+							else
+							{
+								/* If there are no paused timers (with
+								 * possibility to be started) remaining after
+								 * removing this one */
+								if (paused_timers == 0)
+								{
+									Top_pane.set_disable_start_timers_menu_item(true);
+									
+									/* If there are no paused stopwatches and
+									 * timers (with possibility to be started)
+									 * remaining after removing the last timer */
+									if (paused_stopwatches == 0)
+									{
+										Top_pane.set_disable_start_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								// If removed timer was in its initial state
+								if (!cast_to_Solo_counter.counting_had_started())
+								{
+									--restarted_timers;
+									
+									assert restarted_timers >= 0 :
+										"Incorrect time counters quantity value";
+								}
+							}
+							
+							assert paused_timers >= 0 :
+								"Incorrect time counters quantity value";
+							assert paused_timers >= restarted_timers :
+								"Incorrect time counters quantity value";
+							assert paused_timers >= overflowed_stopwatches :
+								"Incorrect time counters quantity value";
+							assert paused_timers + running_timers ==
+									time_counters_quantity.get(Mode.M_countdown) :
+										"Incorrect time counters quantity value";
+						}
+						
+						/* If there are no timers to restart after removing
+						 * this one */
+						if (running_timers + paused_timers - restarted_timers == 0)
+						{
+							Top_pane.set_disable_restart_timers_menu_item(true);
+							
+							/* If there are no stopwatches and timers to restart
+							 * after removing this one */
+							if (running_stopwatches + running_timers +
+									paused_stopwatches + paused_timers -
+									restarted_stopwatches - restarted_timers == 0)
+							{
+								Top_pane.set_disable_restart_stopwatches_timers_menu_item(true);
+							}
+						}
+					}
+				}
+				finally
+				{
+					time_counters_quantity_lock.unlock();
+				}
+				/////-/----------------------------------------------------/////
+				
+				try
+				{
+					time_counters_pane_children_lock.lockInterruptibly();
+				}
+				catch (final InterruptedException exc)
+				{
+					logger.log(Level.INFO,
+							"Thread interrupts. Exception stack trace:", exc);
+					Thread.currentThread().interrupt();
+				}
+				
+				try
+				{
+					time_counters_pane_children.remove(time_counter_unit);
+					Time_counter_control.get_instance().get_time_counters().remove(
+							time_counter);
+				}
+				finally
+				{
+					time_counters_pane_children_lock.unlock();
+				}
+				
+				time_counters_pane.setPrefRows(
+						time_counters_pane.getPrefRows() - 1);
 			}
 		});
 		//-----------------------------------------------/////
@@ -1087,6 +1565,18 @@ class Time_counters_pane
 			}
 		});
 		//---------------------------------------------------------/////
+		
+		
+		time_counters_quantity_lock.lock();
+		
+		try
+		{
+			change_time_counters_quantity(time_counter.instance_mode, false);
+		}
+		finally
+		{
+			time_counters_quantity_lock.unlock();
+		}
 
 		
 		///// Add created controls to "time_counter_unit" pane /////
@@ -1106,53 +1596,309 @@ class Time_counters_pane
 					(Solo_counter)time_counter;
 			
 			start_button.setId(start_button_id);
+			restart_button.setId(restart_button_id);
 			restart_button.setGraphic(new ImageView(restart_image));
 			restart_button.setTooltip(new Tooltip(
 					hints_resources.getString("restart_button_tooltip")));
 			
-			// If counting had started after creating or restarting
-			if (cast_to_Solo_counter.counting_had_started())
+			/* 'true' — need to check is there "Restart all stopwatches and
+			 * timers" menu item need to be enabled after adding "Solo_counter"
+			 * object */
+			boolean check_total = false;
+			
+			time_counters_quantity_lock.lock();
+			
+			try
 			{
-				// If time counter is now running
-				if (cast_to_Solo_counter.is_running())
+				// If counting had started after creating or restarting
+				if (cast_to_Solo_counter.counting_had_started())
 				{
-					start_button.setGraphic(new ImageView(pause_image));
-					start_button.setTooltip(new Tooltip(
-							hints_resources.getString(
-									"start_button_tooltips.pause")));
-					
-					// If time counter value is negative
-					if (!time_value.is_positive)
+					// If time counter is now running
+					if (cast_to_Solo_counter.is_running())
 					{
-						time_counter_value.setTextFill(time_elapsed_color);
+						start_button.setGraphic(new ImageView(pause_image));
+						start_button.setTooltip(new Tooltip(
+								hints_resources.getString(
+										"start_button_tooltips.pause")));
+						
+						
+						/////-/ Menu bar managing section -----------------/////
+						// If time counter works in stopwatch mode
+						if (cast_to_Solo_counter.instance_mode.equals(
+								Mode.M_stopwatch))
+						{
+							/* If added stopwatch is the first stopwatch that
+							 * can be paused */
+							if (++running_stopwatches == 1)
+							{
+								Top_pane.set_disable_pause_stopwatches_menu_item(false);
+								
+								/* If added stopwatch is the first among
+								 * "Solo_counter" objects that can be paused */
+								if (running_timers == 0)
+								{
+									Top_pane.set_disable_pause_stopwatches_timers_menu_item(false);
+								}
+								
+								/* If added stopwatch is the first stopwatch
+								 * that can be restarted */
+								if (running_stopwatches + paused_stopwatches -
+										restarted_stopwatches == 1)
+								{
+									Top_pane.set_disable_restart_stopwatches_menu_item(false);
+									check_total = true;
+								}
+							}
+							
+							assert running_stopwatches + paused_stopwatches ==
+									time_counters_quantity.get(Mode.M_stopwatch) :
+										"Incorrect time counters quantity value";
+						}
+						// Time counter works in timer mode ("Mode.M_countdown")
+						else
+						{
+							/* If added timer is the first timer that can be
+							 * paused */
+							if (++running_timers == 1)
+							{
+								Top_pane.set_disable_pause_timers_menu_item(false);
+								
+								/* If added timer is the first among
+								 * "Solo_counter" objects that can be paused */
+								if (running_stopwatches == 0)
+								{
+									Top_pane.set_disable_pause_stopwatches_timers_menu_item(false);
+								}
+								
+								/* If added timer is the first timer that can be
+								 * restarted */
+								if (running_timers + paused_timers -
+										restarted_timers == 1)
+								{
+									Top_pane.set_disable_restart_timers_menu_item(false);
+									check_total = true;
+								}
+							}
+							
+							assert running_timers + paused_timers ==
+									time_counters_quantity.get(Mode.M_countdown) :
+										"Incorrect time counters quantity value";
+						}
+						/////-/--------------------------------------------/////
+						
+						
+						// If time counter value is negative
+						if (!time_value.is_positive)
+						{
+							time_counter_value.setTextFill(time_elapsed_color);
+						}
+					}
+					else
+					{
+						// If time counter is in numeric overflow status
+						if (cast_to_Solo_counter.numeric_overflow_status())
+						{
+							start_button.setDisable(true);
+							start_button.setGraphic(new ImageView(start_image));
+							time_counter_value.setTextFill(time_elapsed_color);
+							
+							
+							/////-/ Menu bar managing section -------------/////
+							// If time counter works in stopwatch mode
+							if (cast_to_Solo_counter.instance_mode.equals(
+									Mode.M_stopwatch))
+							{
+								++overflowed_stopwatches;
+							}
+							// Time counter works in timer mode ("Mode.M_countdown")
+							else
+							{
+								++overflowed_timers;
+							}
+							/////-/----------------------------------------/////
+						}
+						else
+						{
+							start_button.setGraphic(new ImageView(resume_image));
+							start_button.setTooltip(new Tooltip(
+									hints_resources.getString(
+											"start_button_tooltips.resume")));
+						}
+						
+						
+						/////-/ Menu bar managing section -----------------/////
+						// If time counter works in stopwatch mode
+						if (cast_to_Solo_counter.instance_mode.equals(
+								Mode.M_stopwatch))
+						{
+							/* If added stopwatch is the first stopwatch that
+							 * can be started/resumed */
+							if (++paused_stopwatches - overflowed_stopwatches == 1)
+							{
+								Top_pane.set_disable_start_stopwatches_menu_item(false);
+								check_total = true;
+
+								/* If added stopwatch is the first among
+								 * "Solo_counter" objects that can be
+								 * started/resumed */
+								if (paused_timers - overflowed_timers == 0)
+								{
+									Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+								}
+								
+								/* If added stopwatch is the first that can be
+								 * restarted */
+								if (running_stopwatches + paused_stopwatches -
+										restarted_stopwatches == 1)
+								{
+									Top_pane.set_disable_restart_stopwatches_menu_item(false);
+								}
+							}
+							
+							assert paused_stopwatches >= restarted_stopwatches :
+								"Incorrect time counters quantity value";
+							assert paused_stopwatches >= overflowed_stopwatches :
+								"Incorrect time counters quantity value";
+							assert paused_stopwatches + running_stopwatches ==
+									time_counters_quantity.get(Mode.M_stopwatch) :
+										"Incorrect time counters quantity value";
+						}
+						// Time counter works in timer mode ("Mode.M_countdown")
+						else
+						{
+							/* If added timer is the first timer that can be
+							 * started/resumed */
+							if (++paused_timers - overflowed_timers == 1)
+							{
+								Top_pane.set_disable_start_timers_menu_item(false);
+								check_total = true;
+								
+								/* If added timer is the first among
+								 * "Solo_counter" objects that can be
+								 * started/resumed */
+								if (paused_stopwatches - overflowed_stopwatches == 0)
+								{
+									Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+								}
+								
+								/* If added timer is the first that can be
+								 * restarted */
+								if (running_timers + paused_timers -
+										restarted_timers == 1)
+								{
+									Top_pane.set_disable_restart_timers_menu_item(false);
+								}
+							}
+							
+							assert paused_timers >= restarted_timers :
+								"Incorrect time counters quantity value";
+							assert paused_timers >= overflowed_timers :
+								"Incorrect time counters quantity value";
+							assert paused_timers + running_timers ==
+									time_counters_quantity.get(Mode.M_countdown) :
+										"Incorrect time counters quantity value";
+						}
+						/////-/--------------------------------------------/////
+						
+						
+						// If time counter value is positive
+						if (time_value.is_positive)
+						{
+							time_counter_value.setTextFill(default_disabled_color);
+						}
+						else
+						{
+							time_counter_value.setTextFill(time_elapsed_disabled_color);
+						}
 					}
 				}
 				else
 				{
-					start_button.setGraphic(new ImageView(resume_image));
+					start_button.setGraphic(new ImageView(start_image));
 					start_button.setTooltip(new Tooltip(
 							hints_resources.getString(
-									"start_button_tooltips.resume")));
+									"start_button_tooltips.start")));
+					restart_button.setDisable(true);
+					time_counter_value.setTextFill(default_disabled_color);
+					check_total = true;
 					
-					// If time counter value is positive
-					if (time_value.is_positive)
+					
+					/////-/ Menu bar managing section ---------------------/////
+					// If time counter works in stopwatch mode
+					if (cast_to_Solo_counter.instance_mode.equals(Mode.M_stopwatch))
 					{
-						time_counter_value.setTextFill(default_disabled_color);
+						/* If added stopwatch is the first stopwatch, that can
+						 * be started/resumed */
+						if (++paused_stopwatches - overflowed_stopwatches == 1)
+						{
+							Top_pane.set_disable_start_stopwatches_menu_item(false);
+							
+							/* If added stopwatch is the first among
+							 * "Solo_counter" objects that can be started/resumed */
+							if (paused_timers - overflowed_timers == 0)
+							{
+								Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+							}
+						}
+						
+						++restarted_stopwatches;
+						
+						assert paused_stopwatches >= restarted_stopwatches :
+							"Incorrect time counters quantity value";
+						assert paused_stopwatches >= overflowed_stopwatches :
+							"Incorrect time counters quantity value";
+						assert paused_stopwatches + running_stopwatches ==
+								time_counters_quantity.get(Mode.M_stopwatch) :
+									"Incorrect time counters quantity value";
 					}
+					// Time counter works in timer mode ("Mode.M_countdown")
 					else
 					{
-						time_counter_value.setTextFill(time_elapsed_disabled_color);
+						// If this is the first timer, that can be started, added
+						if (++paused_timers - overflowed_timers == 1)
+						{
+							Top_pane.set_disable_start_timers_menu_item(false);
+							
+							/* If there are no paused stopwatches that can be
+							 * started */
+							if (paused_stopwatches - overflowed_stopwatches == 0)
+							{
+								Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+							}
+						}
+						
+						++restarted_timers;
+						
+						assert paused_timers >= restarted_timers :
+							"Incorrect time counters quantity value";
+						assert paused_timers >= overflowed_timers :
+							"Incorrect time counters quantity value";
+						assert paused_timers + running_timers ==
+								time_counters_quantity.get(Mode.M_countdown) :
+									"Incorrect time counters quantity value";
 					}
+					/////-/------------------------------------------------/////
 				}
+				
+				
+				/////-/ Menu bar managing section -------------------------/////
+				/* If need to check is there "Restart all stopwatches and timers"
+				 * menu item need to be enabled AND ... */
+				if (check_total &&
+						/* ... mentioned menu item really needs to be enabled
+						 * after adding first "Solo_counter" object that can be
+						 * restarted */
+						running_stopwatches + running_timers +
+						paused_stopwatches + paused_timers -
+						restarted_stopwatches - restarted_timers == 1)
+				{
+					Top_pane.set_disable_restart_stopwatches_timers_menu_item(false);
+				}
+				/////-/----------------------------------------------------/////
 			}
-			else
+			finally
 			{
-				start_button.setGraphic(new ImageView(start_image));
-				start_button.setTooltip(new Tooltip(
-						hints_resources.getString(
-								"start_button_tooltips.start")));
-				restart_button.setDisable(true);
-				time_counter_value.setTextFill(default_disabled_color);
+				time_counters_quantity_lock.unlock();
 			}
 			
 			start_button.setOnAction(new EventHandler<ActionEvent>()
@@ -1172,10 +1918,270 @@ class Time_counters_pane
 								cast_to_Solo_counter.get_time_counter_text_value().is_positive ?
 										default_disabled_color :
 											time_elapsed_disabled_color);
+						
+						
+						/////-/ Menu bar managing section -----------------/////
+						// If time counter works in stopwatch mode
+						if (cast_to_Solo_counter.instance_mode.equals(Mode.M_stopwatch))
+						{
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								/* If there are no stopwatches to pause after
+								 * pausing this one */
+								if (--running_stopwatches == 0)
+								{
+									Top_pane.set_disable_pause_stopwatches_menu_item(true);
+									
+									/* If paused stopwatch was the last
+									 * "Solo_counter" object among running */
+									if (running_timers == 0)
+									{
+										Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								/* If paused stopwatch is the first that can be
+								 * started/resumed */
+								if ((++paused_stopwatches) -
+										overflowed_stopwatches == 1)
+								{
+									Top_pane.set_disable_start_stopwatches_menu_item(false);
+									
+									/* If paused stopwatch is the first among
+									 * all stopwatches and timers that can be
+									 * started/resumed */
+									if (paused_timers - overflowed_timers == 0)
+									{
+										Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+									}
+								}
+								
+								assert running_stopwatches >= 0 :
+									"Incorrect time counters quantity value";
+								assert paused_stopwatches >= restarted_stopwatches :
+									"Incorrect time counters quantity value";
+								assert paused_stopwatches >= overflowed_stopwatches :
+									"Incorrect time counters quantity value";
+								assert paused_stopwatches + running_stopwatches ==
+										time_counters_quantity.get(Mode.M_stopwatch) :
+											"Incorrect time counters quantity value";
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+						}
+						// Time counter works in timer mode ("Mode.M_countdown")
+						else
+						{
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								/* If there are no timers to pause after pausing
+								 * this one */
+								if (--running_timers == 0)
+								{
+									Top_pane.set_disable_pause_timers_menu_item(true);
+									
+									/* If paused timer was the last "Solo_counter"
+									 * object among running */
+									if (running_stopwatches == 0)
+									{
+										Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								/* If paused timer is the first that can be
+								 * started/resumed */
+								if ((++paused_timers) - overflowed_timers == 1)
+								{
+									Top_pane.set_disable_start_timers_menu_item(false);
+									
+									/* If paused timer is the first among all
+									 * stopwatches and timers that can be
+									 * started/resumed */
+									if (paused_stopwatches -
+											overflowed_stopwatches == 0)
+									{
+										Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+									}
+								}
+								
+								assert running_timers >= 0 :
+									"Incorrect time counters quantity value";
+								assert paused_timers >= restarted_timers :
+									"Incorrect time counters quantity value";
+								assert paused_timers >= overflowed_timers :
+									"Incorrect time counters quantity value";
+								assert running_timers + paused_timers ==
+										time_counters_quantity.get(Mode.M_countdown) :
+											"Incorrect time counters quantity value";
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+						}
+						/////-/--------------------------------------------/////
 					}
-					// Need to start time counter
+					// Need to start/resume time counter
 					else
 					{
+						/////-/ Menu bar managing section -----------------/////
+						// If time counter works in stopwatch mode
+						if (cast_to_Solo_counter.instance_mode.equals(Mode.M_stopwatch))
+						{
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								/* If stopwatch to start/resume is the last one
+								 * that can be started/resumed */
+								if (--paused_stopwatches == 0)
+								{
+									Top_pane.set_disable_start_stopwatches_menu_item(true);
+									
+									/* If stopwatch to start/resume is
+									 * the last one among "Solo_counter" objects
+									 * that can be started/resumed */
+									if (paused_timers == 0)
+									{
+										Top_pane.set_disable_start_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								/* If this is the first stopwatch that can be
+								 * paused */
+								if (++running_stopwatches == 1)
+								{
+									Top_pane.set_disable_pause_stopwatches_menu_item(false);
+									
+									/* If stopwatch to start/resume is the first
+									 * among "Solo_counter" objects that can be
+									 * paused */
+									if (running_timers == 0)
+									{
+										Top_pane.set_disable_pause_stopwatches_timers_menu_item(false);
+									}
+								}
+								
+								// If stopwatch is in its initial state
+								if (!cast_to_Solo_counter.counting_had_started())
+								{
+									/* If stopwatch to start/resume is the first
+									 * that can be restarted */
+									if (running_stopwatches + paused_stopwatches -
+											(--restarted_stopwatches) == 1)
+									{
+										Top_pane.set_disable_restart_stopwatches_menu_item(false);
+										
+										/* If stopwatch to start/resume is
+										 * the first among "Solo_counter"
+										 * objects that can be restarted */
+										if (running_timers + paused_timers -
+												restarted_timers == 0)
+										{
+											Top_pane.set_disable_restart_stopwatches_timers_menu_item(false);
+										}
+									}
+									
+									assert restarted_stopwatches >= 0 :
+										"Incorrect time counters quantity value";
+								}
+								
+								assert paused_stopwatches >= 0 :
+									"Incorrect time counters quantity value";
+								assert paused_stopwatches + running_stopwatches ==
+										time_counters_quantity.get(Mode.M_stopwatch) :
+											"Incorrect time counters quantity value";
+								assert restarted_stopwatches <= paused_stopwatches :
+									"Incorrect time counters quantity value";
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+						}
+						// Time counter works in timer mode ("Mode.M_countdown")
+						else
+						{
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								/* If timer to start/resume is the last on that
+								 * can be started/resumed */
+								if (--paused_timers == 0)
+								{
+									Top_pane.set_disable_start_timers_menu_item(true);
+									
+									/* If timer to start/resume is the last one
+									 * among "Solo_counter" objects that can be
+									 * started/resumed */
+									if (paused_stopwatches == 0)
+									{
+										Top_pane.set_disable_start_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								// If this is the first timer that can be paused
+								if (++running_timers == 1)
+								{
+									Top_pane.set_disable_pause_timers_menu_item(false);
+									
+									/* If timer to start/resume is the first
+									 * among "Solo_counter" objects that can be
+									 * paused */
+									if (running_stopwatches == 0)
+									{
+										Top_pane.set_disable_pause_stopwatches_timers_menu_item(false);
+									}
+								}
+								
+								// If timer is in its initial state
+								if (!cast_to_Solo_counter.counting_had_started())
+								{
+									/* If timer to start/resume is the first
+									 * that can be restarted */
+									if (running_timers + paused_timers -
+											(--restarted_timers) == 1)
+									{
+										Top_pane.set_disable_restart_timers_menu_item(false);
+										
+										/* If timer to start/pause is the first
+										 * among "Solo_counter" objects that can
+										 * be restarted */
+										if (running_stopwatches +
+												paused_stopwatches -
+												restarted_stopwatches == 0)
+										{
+											Top_pane.set_disable_restart_stopwatches_timers_menu_item(false);
+										}
+									}
+									
+									assert restarted_timers >= 0 :
+										"Incorrect time counters quantity value";
+								}
+								
+								assert paused_timers >= 0 :
+									"Incorrect time counters quantity value";
+								assert paused_timers + running_timers ==
+										time_counters_quantity.get(Mode.M_countdown) :
+											"Incorrect time counters quantity value";
+								assert restarted_timers <= paused_timers :
+									"Incorrect time counters quantity value";
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+						}
+						/////-/--------------------------------------------/////
+						
+						
 						cast_to_Solo_counter.start();
 						start_button.setGraphic(new ImageView(pause_image));
 						start_button.getTooltip().setText(
@@ -1197,6 +2203,10 @@ class Time_counters_pane
 					/* TODO: Provide confirming dialog after implementing custom
 					 * DialogPane with "Disable this checking" CheckBox */
 					
+					// 'true' — time counter is in numeric overflow state
+					final boolean numeric_overflow_status =
+							cast_to_Solo_counter.numeric_overflow_status();
+					
 					cast_to_Solo_counter.restart();
 					
 					// If time counter is in paused state
@@ -1207,19 +2217,125 @@ class Time_counters_pane
 						start_button.getTooltip().setText(
 								hints_resources.getString(
 										"start_button_tooltips.start"));
+						
+						
+						/////-/ Menu bar managing section -----------------/////
+						// If time counter works in stopwatch mode
+						if (cast_to_Solo_counter.instance_mode.equals(Mode.M_stopwatch))
+						{
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								/* If there are no stopwatches to restart after
+								 * restarting this one */
+								if (running_stopwatches + paused_stopwatches -
+										(++restarted_stopwatches) == 0)
+								{
+									Top_pane.set_disable_restart_stopwatches_menu_item(true);
+									
+									/* If there are no stopwatches and timers to
+									 * restart at all after restarting this
+									 * stopwatch */
+									if (running_timers + paused_timers -
+											restarted_timers == 0)
+									{
+										Top_pane.set_disable_restart_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								assert restarted_stopwatches <= paused_stopwatches :
+									"Incorrect time counters quantity value";
+								
+								/* If stopwatch had been in numeric overflow
+								 * state before it was restarted */
+								if (numeric_overflow_status)
+								{
+									/* If restarted stopwatch is the first one
+									 * that can be started/resumed */
+									if (paused_stopwatches - (--overflowed_stopwatches) == 1)
+									{
+										Top_pane.set_disable_start_stopwatches_menu_item(false);
+										
+										/* If restarted stopwatch is
+										 * the first one among "Solo_counter"
+										 * objects that can be started/resumed */
+										if (paused_timers - overflowed_timers == 0)
+										{
+											Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+										}
+									}
+									
+									assert overflowed_stopwatches >= 0 :
+										"Incorrect time counters quantity value";
+								}
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+						}
+						// Time counter works in timer mode ("Mode.M_countdown")
+						else
+						{
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								/* If there are no timers to restart after
+								 * restarting this one */
+								if (running_timers + paused_timers -
+										(++restarted_timers) == 0)
+								{
+									Top_pane.set_disable_restart_timers_menu_item(true);
+									
+									/* If there are no stopwatches and timers to
+									 * restart at all after restarting this timer */
+									if (running_stopwatches + paused_stopwatches -
+											restarted_stopwatches == 0)
+									{
+										Top_pane.set_disable_restart_stopwatches_timers_menu_item(true);
+									}
+								}
+								
+								assert restarted_timers <= paused_timers :
+									"Incorrect time counters quantity value";
+								
+								/* If timer had been in numeric overflow state
+								 * before it was restarted */
+								if (numeric_overflow_status)
+								{
+									/* If restarted timer is the first one that
+									 * can be started/resumed */
+									if (paused_timers - (--overflowed_timers) == 1)
+									{
+										Top_pane.set_disable_start_timers_menu_item(false);
+										
+										/* If restarted timer is the first one
+										 * among "Solo_counter" objects that can
+										 * be started/resumed */
+										if (paused_stopwatches -
+												overflowed_stopwatches == 0)
+										{
+											Top_pane.set_disable_start_stopwatches_timers_menu_item(false);
+										}
+									}
+									
+									assert overflowed_timers >= 0 :
+										"Incorrect time counters quantity value";
+								}
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+						}
+						/////-/--------------------------------------------/////
 					}
 					
 					time_counter_value.setTextFill(default_color);
 				}
 			});
-			
-			// If time counter is in numeric overflow status
-			if (cast_to_Solo_counter.numeric_overflow_status())
-			{
-				start_button.setDisable(true);
-				start_button.setGraphic(new ImageView(start_image));
-				time_counter_value.setTextFill(time_elapsed_color);
-			}
 			
 			cast_to_Solo_counter.add_Numeric_overflow_listener(
 					numeric_overflow_listener);
@@ -1241,15 +2357,8 @@ class Time_counters_pane
 		//-----------------------------------------------------/////
 		
 		
-		try
-		{
-			lock.lockInterruptibly();
-		}
-		catch (final InterruptedException exc)
-		{
-			logger.log(Level.INFO, "Thread interrupts. Exception stack trace:", exc);
-			Thread.currentThread().interrupt();
-		}
+		time_counters_pane.setPrefRows(time_counters_pane.getPrefRows() + 1);
+		time_counters_pane_children_lock.lock();
 		
 		try
 		{
@@ -1257,7 +2366,7 @@ class Time_counters_pane
 		}
 		finally
 		{
-			lock.unlock();
+			time_counters_pane_children_lock.unlock();
 		}
 	}
 	
@@ -1279,5 +2388,614 @@ class Time_counters_pane
 	static TilePane get_time_counters_pane()
 	{
 		return time_counters_pane;
+	}
+	
+
+	/**
+	 * Sorts existing {@link Time_counter}{@code s} according to their controls
+	 * position in {@link #time_counters_pane} and writes them to file.
+	 */
+	static void sort_and_save_time_counters()
+	{
+		// Thread-safe snapshot of "time_counters_pane" children
+		final CopyOnWriteArrayList<Node> snapshot =
+				new CopyOnWriteArrayList<>(time_counters_pane_children);
+		
+		/* Assign index to each "Time_counter" represented by HBox
+		 * panes with a view to sort them */
+		for (int i = 0, end = snapshot.size(); i < end; ++i)
+		{
+			((Time_counter)snapshot.get(i).getUserData()).index_number = i;
+		}
+		
+		Time_counter_control.get_instance().save_time_counters();
+	}
+	
+	
+	/**
+	 * Starts/resumes all {@link Solo_counter} objects which are working in
+	 * passed {@code modes}.
+	 * <p><b>Warning!</b> Since {@link Instance_counter}
+	 * does&nbsp;not&nbsp;support starting/resuming its time&nbsp;counter, it is
+	 * <u>prohibited</u> to pass {@link Mode#M_elapsed_from} and
+	 * {@link Mode#M_remains_till} enumeration constants as arguments, and may
+	 * result in runtime exception.
+	 * <p><i>Note.</i> Task is performed
+	 * <u>not&nbsp;in&nbsp;FX&nbsp;application thread</u>.
+	 * 
+	 * @param modes {@link Time_counter} objects types which are needed to be
+	 * started/resumed.
+	 * 
+	 * @exception ClassCastException {@link Mode#M_elapsed_from} and/or
+	 * {@link Mode#M_remains_till} are passed. {@link Time_counter}{@code s},
+	 * operating in these modes, <u>do&nbsp;not</u> support required by method
+	 * operation.
+	 */
+	static void start_all(final Mode... modes)
+	{
+		start_pause_all(true, modes);
+	}
+	
+	
+	/**
+	 * Pauses all {@link Solo_counter} objects which are working in passed
+	 * {@code modes}.
+	 * <p><b>Warning!</b> Since {@link Instance_counter}
+	 * does&nbsp;not&nbsp;support pausing its time&nbsp;counter, it is
+	 * <u>prohibited</u> to pass {@link Mode#M_elapsed_from} and
+	 * {@link Mode#M_remains_till} enumeration constants as arguments, and may
+	 * result in runtime exception.
+	 * <p><i>Note.</i> Task is performed
+	 * <u>not&nbsp;in&nbsp;FX&nbsp;application thread</u>.
+	 * 
+	 * @param modes {@link Time_counter} objects types which are needed to be
+	 * started/resumed.
+	 * 
+	 * @exception ClassCastException {@link Mode#M_elapsed_from} and/or
+	 * {@link Mode#M_remains_till} are passed. {@link Time_counter}{@code s},
+	 * operating in these modes, <u>do&nbsp;not</u> support required by method
+	 * operation.
+	 */
+	static void pause_all(final Mode... modes)
+	{
+		start_pause_all(false, modes);
+	}
+	
+	
+	/* There are no circumstances in which ClassCastException may be thrown
+	 * in contrast to "start_pause_all()" method */
+	/**
+	 * Restarts all {@link Solo_counter} objects which are working in passed
+	 * {@code modes}.
+	 * <p><i>Notes.</i>
+	 * <ul><li>Since {@link Instance_counter} does&nbsp;not&nbsp;support
+	 * restarting its time&nbsp;counter, the&nbsp;method <u>does&nbsp;nothing</u>
+	 * for passed {@link Mode#M_elapsed_from} and {@link Mode#M_remains_till}
+	 * arguments.</li>
+	 * <li>Method is executed <u>not&nbsp;in&nbsp;FX&nbsp;application thread</u>.</li></ul>
+	 * 
+	 * @param modes {@link Time_counter} objects types which are needed to be
+	 * restarted.
+	 */
+	static void restart_all(final Mode... modes)
+	{
+		new Thread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				get_time_counters_by_mode(modes).forEach(new Consumer<Node>()
+				{
+					@Override
+					public void accept(final Node t)
+					{
+						// Time counter representative pane children nodes
+						final ObservableList<Node> representative_controls =
+								((HBox)t).getChildren();
+						
+						// Searching for Restart button
+						for (final Node control : representative_controls)
+						{
+							// If Restart button is found
+							if (restart_button_id.equals(control.getId()))
+							{
+								Platform.runLater(new Runnable()
+								{
+									@Override
+									public void run()
+									{
+										((Button)control).fire();
+									}
+								});
+								
+								break;
+							}
+						}
+					}
+				});
+			}
+		}).start();
+	}
+	
+	
+	/**
+	 * Closes all {@link Time_counter} objects which are working in passed
+	 * {@code modes}.
+	 * <p><i>Note.</i> Method is executed
+	 * <u>not&nbsp;in&nbsp;FX&nbsp;application thread</u>.
+	 * 
+	 * @param modes {@link Time_counter} objects types which are needed to be
+	 * closed.
+	 * 
+	 * @exception NullPointerException There is {@code null} passed among
+	 * arguments.
+	 */
+	static void close_all(final Mode... modes)
+	{
+		new Thread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				// All "Mode" enumeration constants
+				final Mode[] mode_values = Mode.values();
+				
+				// Check whether need to close all time counters
+				if (modes.length == mode_values.length)
+				{
+					/* Not 'null' value for the specified mode means that
+					 * related time counters need to be closed */
+					final EnumMap<Mode, Boolean> required_modes =
+							new EnumMap<>(Mode.class);
+					
+//					// Initialize "required_modes" container
+//					for (final Mode i : mode_values)
+//					{
+//						required_modes.put(i, false);
+//					}
+					
+					// Search for time counters types that need to be closed
+					for (final Mode i : modes)
+					{
+						required_modes.put(i, true);
+					}
+					
+					/* 'true' - all time counters need to be removed */
+					boolean need_to_remove_all = true;
+					
+					/* Check whether need to close all time counters. This
+					 * happens when all "required_modes" container values are
+					 * not 'null' */
+					for (final Mode i : mode_values)
+					{
+						if (required_modes.get(i) == null)
+						{
+							need_to_remove_all = false;
+							
+							break;
+						}
+					}
+					
+					// If all time counters need to be removed
+					if (need_to_remove_all)
+					{
+						try
+						{
+							time_counters_pane_children_lock.lockInterruptibly();
+						}
+						catch (final InterruptedException exc)
+						{
+							logger.log(
+									Level.INFO,
+									"Thread interrupts. Exception stack trace:",
+									exc);
+							Thread.currentThread().interrupt();
+						}
+						
+						try
+						{
+							Platform.runLater(new Runnable()
+							{
+								@Override
+								public void run()
+								{
+									time_counters_pane_children.clear();
+								}
+							});
+							
+							Time_counter_control.get_instance().get_time_counters().clear();
+							
+							///// Menu bar managing section ---------------/////
+							time_counters_quantity_lock.lock();
+							
+							try
+							{
+								set_time_counters_quantity_to_0();
+								disable_all_actions_menu_items();
+							}
+							finally
+							{
+								time_counters_quantity_lock.unlock();
+							}
+							/////------------------------------------------/////
+						}
+						finally
+						{
+							time_counters_pane_children_lock.unlock();
+						}
+						
+						return;
+					}
+				}
+				
+				get_time_counters_by_mode(modes).forEach(new Consumer<Node>()
+				{
+					@Override
+					public void accept(final Node t)
+					{
+						// Time counter representative pane children nodes
+						final ObservableList<Node> representative_controls =
+								((HBox)t).getChildren();
+						
+						// Searching for Close button
+						for (final Node control : representative_controls)
+						{
+							// If Restart button is found
+							if (close_button_id.equals(control.getId()))
+							{
+								Platform.runLater(new Runnable()
+								{
+									@Override
+									public void run()
+									{
+										((Button)control).fire();
+									}
+								});
+								
+								break;
+							}
+						}
+					}
+				});
+			}
+		}).start();
+	}
+	
+	
+	//**************************************************************************
+	//                                                                         *
+	// Methods private static                                                  *
+	//                                                                         *
+	//**************************************************************************
+	/**
+	 * Auxiliary for {@link #start_all(Mode...)} and {@link #pause_all(Mode...)}
+	 * methods.
+	 * <p>Starts or pauses all {@link Solo_counter} objects which are
+	 * working in passed {@code modes}, depending on {@code start} argument value.
+	 * <p><b>Warning!</b> Since {@link Instance_counter}
+	 * does&nbsp;not&nbsp;support starting/pausing its time&nbsp;counter, it is
+	 * <u>prohibited</u> to pass {@link Mode#M_elapsed_from} and
+	 * {@link Mode#M_remains_till} enumeration constants as arguments, and may
+	 * result in runtime exception.
+	 * <p><i>Note.</i> The&nbsp;method is executed
+	 * <u>not&nbsp;in&nbsp;FX&nbsp;application thread</u>.
+	 * 
+	 * @param start {@code true} &#0151; the&nbsp;method starts all
+	 * {@link Solo_counter}{@code s}; {@code false}&nbsp;&#0151; pauses all.
+	 * 
+	 * @param modes {@link Time_counter} objects types which are needed to be
+	 * started or paused.
+	 * 
+	 * @exception ClassCastException {@link Mode#M_elapsed_from} and/or
+	 * {@link Mode#M_remains_till} are passed. {@link Time_counter}{@code s},
+	 * operating in these modes, <u>do&nbsp;not</u> support required by method
+	 * operation.
+	 */
+	private static void start_pause_all(
+			final boolean start, final Mode... modes)
+	{
+		new Thread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				get_time_counters_by_mode(modes).forEach(new Consumer<Node>()
+				{
+					@Override
+					public void accept(final Node t)
+					{
+						// Time counter represented by "t" controls pane
+						final Time_counter time_counter =
+								(Time_counter)t.getUserData();
+						
+						/* true - time counter is currently running;
+						 * false - is paused */
+						final boolean is_runnging =
+								((Solo_counter)time_counter).is_running();
+						
+						// If need to start all AND time counter is paused
+						if (start && !is_runnging)
+						{
+							fire_start_button((HBox)t);
+						}
+						// If need to pause all AND time counter is running
+						else if (!start && is_runnging)
+						{
+							fire_start_button((HBox)t);
+						}
+					}
+				});
+			}
+		}).start();
+	}
+	
+	
+	/**
+	 * Auxiliary for {@link #start_pause_all(boolean, Mode...)},
+	 * {@link #restart_all(Mode...)} and {@link #close_all(Mode...)} methods.
+	 * <p>Filters {@link #time_counters_pane_children} to find
+	 * {@link HBox}{@code es} that represent {@link Time_counter}{@code s}
+	 * working in specified {@code modes}.
+	 * 
+	 * @param modes {@link Time_counter} objects types which need to be found.
+	 * 
+	 * @return {@link Time_counter} representatives ({@link HBox} panes).
+	 */
+	private static Stream<Node> get_time_counters_by_mode(final Mode... modes)
+	{
+		// Thread-safe snapshot of "time_counters_pane" children
+		final CopyOnWriteArrayList<Node> snapshot =
+				new CopyOnWriteArrayList<>(time_counters_pane_children);
+		
+		return snapshot.stream().filter(new Predicate<Node>()
+		{
+			@Override
+			public boolean test(final Node t)
+			{
+				// Time counter represented by "t" controls pane
+				final Time_counter time_counter = (Time_counter)t.getUserData();
+				
+				// Compare "time_counter" object mode with required
+				for (int i = 0; i < modes.length; ++i)
+				{
+					// If required mode is found
+					if (time_counter.instance_mode.equals(modes[i]))
+					{
+						return true;
+					}
+				}
+				
+				return false;
+			}
+		});
+	}
+	
+	
+	/**
+	 * {@link #start_pause_all(boolean, Mode...)} method auxiliary.
+	 * <p>Searches and
+	 * fires <i>Start/Resume/Pause</i> button on the&nbsp;given
+	 * {@code time_counter_representative} pane.
+	 * 
+	 * @param time_counter_representative Pane to fire <i>Start/Resume/Pause</i>
+	 * button on.
+	 * 
+	 * @exception NullPointerException Passed argument is {@code null}.
+	 */
+	private static void fire_start_button(final HBox time_counter_representative)
+	{
+		// Time counter representative pane children nodes
+		final ObservableList<Node> representative_controls =
+				((HBox)time_counter_representative).getChildren();
+		
+		// Searching for Start/Resume/Pause button
+		for (final Node control : representative_controls)
+		{
+			// If Start/Resume/Pause button is found
+			if (start_button_id.equals(control.getId()))
+			{
+				Platform.runLater(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						((Button)control).fire();
+					}
+				});
+				
+				break;
+			}
+		}
+	}
+	
+	
+	/**
+	 * Auxiliary for {@link #add_time_counter_to_pane(Time_counter)} method and
+	 * {@link EventHandler} for <i>Close</i> button
+	 * ({@link Button#setOnAction(EventHandler)}).
+	 * <p>Adds/subtracts one time&nbsp;counter in {@link #time_counters_quantity}
+	 * container using {@code mode} key argument for mapping. Performs
+	 * <i>menu&nbsp;items</i> from <i>menu&nbsp;bar</i> managing depending on
+	 * changed values.
+	 * 
+	 * @param mode Key for {@link #time_counters_quantity} container to change
+	 * value in.
+	 * 
+	 * @param subtract {@code true} &#0151; time&nbsp;counters quantity will be
+	 * subtracted; {@code false}&nbsp;&#0151; added.
+	 * 
+	 * @exception NullPointerException {@code mode} argument is {@code null}.
+	 */
+	private static void change_time_counters_quantity(
+			final Mode mode, final boolean subtract)
+	{
+		// Old value in the specified mapping
+		final int old_value = time_counters_quantity.get(mode);
+		
+		assert old_value >= 0 : "Incorrect time counters quantity value";
+		
+		time_counters_quantity.put(
+				mode,
+				(subtract ? old_value - 1 : old_value + 1));
+		
+		/* If (the resulting value became 0 after subtraction) OR (the resulting
+		 * value became non zero after addition) */
+		if ((subtract && old_value == 1) || (!subtract && old_value == 0))
+		{
+			/* 'true' — need to check sum of all existing time counters working
+			 * in different modes to determine whether the removed/added
+			 * time counter was the last/first existing at all */
+			boolean check_total = false;
+			
+			// Disable/enable related menu bar submenus
+			switch (mode)
+			{
+			case M_stopwatch:
+				Top_pane.set_disable_stopwatches_submenu(subtract);
+				
+				// If there are no existing timers
+				if (time_counters_quantity.get(Mode.M_countdown) == 0)
+				{
+					Top_pane.set_disable_stopwatches_timers_submenu(
+							subtract ? true : false);
+					check_total = true;
+				}
+				
+				break;
+				
+				
+			case M_countdown:
+				Top_pane.set_disable_timers_submenu(subtract);
+				
+				// If there are no existing stopwatches
+				if (time_counters_quantity.get(Mode.M_stopwatch) == 0)
+				{
+					Top_pane.set_disable_stopwatches_timers_submenu(
+							subtract ? true : false);
+					check_total = true;
+				}
+				
+				break;
+				
+				
+			case M_elapsed_from:
+				Top_pane.set_disable_elapsed_from_submenu(subtract);
+				
+				// If there are no existing "Remains till" time counters
+				if (time_counters_quantity.get(Mode.M_remains_till) == 0)
+				{
+					Top_pane.set_disable_elapsed_from_remains_till_submenu(
+							subtract ? true : false);
+					check_total = true;
+				}
+				
+				break;
+				
+				
+			case M_remains_till:
+				Top_pane.set_disable_remains_till_submenu(subtract);
+				
+				// If there are no existing "Elapsed from" time counters
+				if (time_counters_quantity.get(Mode.M_elapsed_from) == 0)
+				{
+					Top_pane.set_disable_elapsed_from_remains_till_submenu(
+							subtract ? true : false);
+					check_total = true;
+				}
+				
+				break;
+			
+			
+			default:
+				throw new EnumConstantNotPresentException(Mode.class, mode.name());
+			}
+			
+			
+			/* If need to determine whether the removed/added time counter was
+			 * the last/first existing at all */
+			if (check_total)
+			{
+				// All existing time counters working in different modes sum
+				int all_time_counters_quantity = 0;
+				
+				// Finding all time counters sum
+				for (final Mode i : Mode.values())
+				{
+					all_time_counters_quantity += time_counters_quantity.get(i);
+				}
+				
+				// If (the resulting value became 0 after subtraction) OR ...
+				if ((subtract && all_time_counters_quantity == 0) ||
+						// ... (the resulting value became non zero after addition)
+						(!subtract && all_time_counters_quantity == 1))
+				{
+					Top_pane.set_disable_close_all_time_counters_menu_item(subtract);
+					Top_pane.set_disable_save_menu_item(subtract);
+				}
+			}
+		}
+	}
+	
+	
+	/**
+	 * Sets {@code 0}&nbsp;value to all fields responsible for managing
+	 * <i>Actions</i> menu&nbsp;items from menu&nbsp;bar:
+	 * <ul><li>all {@link #time_counters_quantity} container values;</li>
+	 * <li>{@link #running_stopwatches};</li>
+	 * <li>{@link #paused_stopwatches};</li>
+	 * <li>{@link #restarted_stopwatches};</li>
+	 * <li>{@link #overflowed_stopwatches};</li>
+	 * <li>{@link #running_timers};</li>
+	 * <li>{@link #paused_timers};</li>
+	 * <li>{@link #restarted_timers};</li>
+	 * <li>{@link #overflowed_timers}.</li></ul>
+	 */
+	private static void set_time_counters_quantity_to_0()
+	{
+		for (final Mode i : Mode.values())
+		{
+			time_counters_quantity.put(i, 0);
+		}
+		
+		running_stopwatches = 0;
+		paused_stopwatches = 0;
+		restarted_stopwatches = 0;
+		overflowed_stopwatches = 0;
+		running_timers = 0;
+		paused_timers = 0;
+		restarted_timers = 0;
+		overflowed_timers = 0;
+	}
+	
+	
+	/**
+	 * Disables all <i>Actions</i> menu&nbsp;items from menu&nbsp;bar and
+	 * possibility to save time&nbsp;counters to file, using methods provided by
+	 * {@link Top_pane} class.
+	 */
+	private static void disable_all_actions_menu_items()
+	{
+		Top_pane.set_disable_save_menu_item(true);
+		
+		Top_pane.set_disable_stopwatches_submenu(true);
+		Top_pane.set_disable_start_stopwatches_menu_item(true);
+		Top_pane.set_disable_pause_stopwatches_menu_item(true);
+		Top_pane.set_disable_restart_stopwatches_menu_item(true);
+		
+		Top_pane.set_disable_timers_submenu(true);
+		Top_pane.set_disable_start_timers_menu_item(true);
+		Top_pane.set_disable_pause_timers_menu_item(true);
+		Top_pane.set_disable_restart_timers_menu_item(true);
+		
+		Top_pane.set_disable_stopwatches_timers_submenu(true);
+		Top_pane.set_disable_start_stopwatches_timers_menu_item(true);
+		Top_pane.set_disable_pause_stopwatches_timers_menu_item(true);
+		Top_pane.set_disable_restart_stopwatches_timers_menu_item(true);
+		
+		Top_pane.set_disable_elapsed_from_submenu(true);
+		Top_pane.set_disable_remains_till_submenu(true);
+		Top_pane.set_disable_elapsed_from_remains_till_submenu(true);
+		
+		Top_pane.set_disable_close_all_time_counters_menu_item(true);
 	}
 }

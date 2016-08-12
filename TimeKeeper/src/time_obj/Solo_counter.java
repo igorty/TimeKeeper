@@ -207,6 +207,10 @@ public class Solo_counter extends Time_counter implements Serializable
 	/** Contains listeners subscribed for numeric overflow event. */
 	private transient ArrayList<Numeric_overflow_listener> numeric_overflow_listeners;
 	
+	/** {@code true} &#0151; {@link #shutdown()} method
+	 * has&nbsp;been&nbsp;invoked; {@code false}&nbsp;&#0151; otherwise. */
+	private transient volatile boolean is_shutdown;
+	
 	
 	// Нестатическая инициализация ========================================/////
 	{
@@ -218,6 +222,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		modify_lock = new ReentrantLock();
 		event_lock = new ReentrantLock();
 		numeric_overflow_listeners = new ArrayList<>();
+		is_shutdown = false;
 	}
 
 
@@ -473,10 +478,17 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * time&nbsp;counting <u>was&nbsp;not</u>&nbsp;started (resumed). This may
 	 * occur due&nbsp;to following reasons:
 	 * <ul><li>time&nbsp;counter is already running;</li>
-	 * <li>numeric overflow occurred.</li></ul>
+	 * <li>numeric overflow occurred;</li>
+	 * <li>{@link #shutdown()} method has&nbsp;been&nbsp;invoked.</li></ul>
 	 */
 	public boolean start()
 	{
+		// If "shutdown()" method has been invoked already
+		if (is_shutdown)
+		{
+			return false;
+		}
+		
 		try
 		{
 			modify_lock.lockInterruptibly();
@@ -518,13 +530,20 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * 
 	 * @return {@code true}&nbsp;&#0151; time&nbsp;counting
 	 * <u>was</u>&nbsp;successfully paused. {@code false}&nbsp;&#0151;
-	 * time&nbsp;counting <u>was&nbsp;not</u>&nbsp;paused. This may occur if
-	 * time&nbsp;counter is already in paused state (whether after calling this
-	 * method, due&nbsp;to numeric overflow or if it was&nbsp;not&nbsp;started
-	 * yet).
+	 * time&nbsp;counting <u>was&nbsp;not</u>&nbsp;paused. This may occur
+	 * due&nbsp;to following reasons:
+	 * <ul><li>time&nbsp;counter is already in paused state because of:
+	 * <ul><li>the method has&nbsp;been&nbsp;invoked previously and
+	 * {@link #start()} method has&nbsp;not&nbsp;been called after that;</li>
+	 * <li>numeric overflow;</li>
+	 * <li>time counter simply has&nbsp;not&nbsp;been&nbsp;started yet;</li></ul></li>
+	 * <li>{@link #shutdown()} method has&nbsp;been&nbsp;invoked.</li></ul>
 	 */
 	public boolean pause()
 	{
+		/* I didn't forget to check "is_shutdown" field value here. In this
+		 * implementation it's not needed */
+		
 		// Если отсчет времени ни разу не запускался
 		if (thread_counter_executor == null)
 		{
@@ -564,8 +583,9 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * counting if time&nbsp;counter was&nbsp;paused (whether by calling
 	 * {@link #pause()} or due&nbsp;to numeric overflow).<br>
 	 * <i>Notes.</i>
-	 * <ul><li>If time&nbsp;counter is already (or yet) in its initial state,
-	 * this method <u>does&nbsp;nothing.</u></li>
+	 * <ul><li>This method <u>does&nbsp;nothing</u> in next cases:
+	 * <ul><li>time&nbsp;counter is already (or yet) in its initial state;</li>
+	 * <li>{@link #shutdown()} method has&nbsp;been&nbsp;invoked.</li></ul></li>
 	 * <li>Subsequent time correction
 	 * (using {@link #time_values_correction(long, boolean)}) after instance
 	 * creation <u>does&nbsp;not</u> affect to its initial time&nbsp;set.</li></ul>
@@ -573,6 +593,12 @@ public class Solo_counter extends Time_counter implements Serializable
 	 */
 	public void restart()
 	{
+		// If "shutdown()" method has been invoked already
+		if (is_shutdown)
+		{
+			return;
+		}
+		
 		try
 		{
 			modify_lock.lockInterruptibly();
@@ -1024,6 +1050,11 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	
 	/**
+	 * <i>Note.</i> Next methods are guaranteed <u>not&nbsp;to&nbsp;cause
+	 * exceptions</u> after this method calling:
+	 * <ul><li>{@link #start()};</li>
+	 * <li>{@link #pause()};</li>
+	 * <li>{@link #restart()}.</li></ul>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized
 	 * with (private methods <u>are&nbsp;not</u> listed):
 	 * <ul><li>{@link #add_Numeric_overflow_listener(Numeric_overflow_listener)}</li>
@@ -1045,6 +1076,19 @@ public class Solo_counter extends Time_counter implements Serializable
 		}
 		
 		super.shutdown();
+	}
+	
+	
+	/**
+	 * Informs whether time&nbsp;counter has&nbsp;been&nbsp;shutdown by calling
+	 * {@link #shutdown()} method.
+	 * 
+	 * @return {@code true} &#0151; time&nbsp;counter is&nbsp;shutdown;
+	 * {@code false}&nbsp;&#0151; is working in normal state.
+	 */
+	public boolean is_shutdown()
+	{
+		return is_shutdown;
 	}
 	
 	
@@ -1132,6 +1176,7 @@ public class Solo_counter extends Time_counter implements Serializable
 		modify_lock = new ReentrantLock();
 		event_lock = new ReentrantLock();
 		numeric_overflow_listeners = new ArrayList<>();
+		is_shutdown = false;
 		
 		/* Если счетчик времени переполнен - выясняется действительно ли это
 		 * правда а не подделка сериализованного объекта */
