@@ -1,4 +1,19 @@
-﻿package graphical_shell.FXML_controllers;
+﻿/**
+ * Copyright 2016 Igor Taranenko
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package graphical_shell.FXML_controllers;
 
 import java.text.DecimalFormat;
 import java.text.ParsePosition;
@@ -138,9 +153,6 @@ public class Init_Instance_counter_controller
 	 * {@link #year_field} не&nbsp;содержит значения&nbsp;&#0151; данному полю
 	 * присваивается значение&nbsp;{@link Integer#MIN_VALUE}. */
 	private int year_value;
-	/* TODO: ? Вероятность исключения при нахождении поля "month_field" в фокусе
-	 * и нажатии кнопки подтверждения создания указанных даты и времени, либо
-	 * нажатия кнопки Next */
 	/** Числовое значение месяца, полученное из {@link #month_field}. Если
 	 * {@link #month_field} не&nbsp;содержит значения&nbsp;&#0151; данному полю
 	 * присваивается значение&nbsp;{@link Integer#MIN_VALUE}. */
@@ -319,6 +331,11 @@ public class Init_Instance_counter_controller
 	 */
 	public ZonedDateTime get_date_time()
 	{
+		if (month_field.isFocused())
+		{
+			parse_month_field();
+		}
+		
 		// Если были выставлены текущие дата и время
 		if (date_time_now != null)
 		{
@@ -378,6 +395,8 @@ public class Init_Instance_counter_controller
 			error.setTitle(null);
 			error.setContentText(messages_resources.getString("error.time_zone"));
 			error.showAndWait();
+			/* TODO: Send turn off alarm sound command after implementing class
+			 * responsible for sound notification */
 		}
 		
 		// Список валидных временных зон для устанавливаемых даты и времени
@@ -398,6 +417,8 @@ public class Init_Instance_counter_controller
 			notification.setContentText(messages_resources.getString(
 					"notification.time_zone.nonexistent.content"));
 			notification.showAndWait();
+			/* TODO: Send turn off alarm sound command after implementing class
+			 * responsible for sound notification */
 			warning_label.setText(
 					labels_resources.getString("warning.incorrect_date_time"));
 			
@@ -617,97 +638,7 @@ public class Init_Instance_counter_controller
 				// Если поле для ввода месяца потеряло фокус
 				if (!new_value)
 				{
-					// Содержимое поля для ввода месяца
-					String text = month_field.getText();
-					
-					// Если поле для ввода месяца пустое
-					if (text == null || text.length() == 0)
-					{
-						month_value = Integer.MIN_VALUE;
-						date_time_now = null;
-						
-						return;
-					}
-					
-					text = text.trim();
-					
-					/* true - месяц прочитан, дальнейшее выполнение цикла
-					 * не нужно; false - парсинг месяца необходимо продолжать */
-					boolean month_parsed = false;
-					// Кол-во используемых шаблонов для парсинга месяца
-					final int parse_patterns = 4;
-					
-					/* Парсинг месяца. Выполняется попытка парсинга по шаблонах
-					 * в указанном порядке: "LLLL" и "MMMM"; "LLL" и "MMM";
-					 * "LL" и "MM"; "L" и "M" */
-					for (int parse_attempt = 1; parse_attempt <= parse_patterns;
-							++parse_attempt)
-					{
-						// Если месяц прочитан
-						if (month_parsed)
-						{
-							return;
-						}
-						
-						// Шаблон парсинга специфических представлений месяца
-						final StringBuilder l_pattern = new StringBuilder(4);
-						// Шаблон парсинга базовых представлений месяца
-						final StringBuilder m_pattern = new StringBuilder(4);
-						
-						/* Приведение шаблонов парсинга к виду согласно текущей
-						 * попытке */
-						for (int i = 0, end = parse_patterns - parse_attempt;
-								i <= end; ++i)
-						{
-							l_pattern.append('L');
-							m_pattern.append('M');
-						}
-						
-						// Форматировщик специфических представлений месяца
-						DateTimeFormatter l_date_formatter =
-								DateTimeFormatter.ofPattern(
-										l_pattern.toString(), Locale.ENGLISH);
-						
-						month_parsed = parse(text, l_date_formatter);
-						
-						// Форматировщик базовых представлений месяца
-						DateTimeFormatter m_date_formatter = null;
-						
-						// Если месяц еще не прочитан
-						if (!month_parsed)
-						{
-							m_date_formatter = DateTimeFormatter.ofPattern(
-									m_pattern.toString(), Locale.ENGLISH);
-							month_parsed = parse(text, m_date_formatter);
-						}
-						
-						// Если месяц еще не прочитан
-						if (!month_parsed)
-						{
-							l_date_formatter =
-									l_date_formatter.withLocale(Locale.getDefault());
-							month_parsed = parse(text, l_date_formatter);
-						}
-						
-						// Если месяц еще не прочитан
-						if (!month_parsed)
-						{
-							m_date_formatter =
-									m_date_formatter.withLocale(Locale.getDefault());
-							month_parsed = parse(text, m_date_formatter);
-						}
-					}
-					
-					// Если месяц так и не был прочитан
-					if (!month_parsed)
-					{
-						month_field.setStyle("-fx-text-fill: red");
-						month_field.setText(
-								gui_settings.get_text_fields_resources().getString(
-										"month_field_incorrect"));
-						month_value = Integer.MIN_VALUE;
-						date_time_now = null;
-					}
+					parse_month_field();
 				}
 				// Поле для ввода получило фокус
 				else
@@ -722,47 +653,6 @@ public class Init_Instance_counter_controller
 					}
 					
 					month_field.setStyle("-fx-text-fill: black");
-				}
-			}
-			
-			
-			/**
-			 * Парсит полученную строку указанным форматировщиком. При успешном
-			 * парсинге устанавливает номер месяца в текстовое поле
-			 * {@link #month_field}.
-			 * 
-			 * @param text Текст, который необходимо парсить.
-			 * 
-			 * @param date_formatter Форматировщик, применяемый к тексту.
-			 * 
-			 * @return {@code true}&nbsp;&#0151; месяц успешно обнаружен;
-			 * {@code false}&nbsp;&#0151; парсинг завершился исключением.
-			 * 
-			 * @exception NullPointerException В&nbsp;качестве одного из
-			 * аргументов передан {@code null}.
-			 */
-			boolean parse(final String text, final DateTimeFormatter date_formatter)
-			{
-				try
-				{
-					// Получившееся в результате парсинга число
-					final int parsed_value =
-							date_formatter.parse(text).get(ChronoField.MONTH_OF_YEAR);
-					
-					month_field.setText(Integer.toString(parsed_value));
-
-					// Если уже существующее значение отличается от введенного
-					if (month_value != parsed_value)
-					{
-						month_value = parsed_value;
-						date_time_now = null;
-					}
-					
-					return true;
-				}
-				catch (final DateTimeException exc)
-				{
-					return false;
 				}
 			}
 		});
@@ -1069,5 +959,152 @@ public class Init_Instance_counter_controller
 		hint.setCornerRadius(0);
 		hint.setArrowSize(0);
 		hint.show(hint_button);
+	}
+	
+	
+	/**
+	 * Parses {@link #month_field} text property to determine whether month
+	 * value, set by user, is correct.
+	 * <p>If month value is&nbsp;<u>correct</u>, it is assigned to
+	 * {@link #month_value} field. If month value is&nbsp;<u>incorrect</u>,
+	 * {@link #month_value} field is assigned with {@link Integer#MIN_VALUE} and
+	 * GUI notifies user about incorrect input.
+	 */
+	private void parse_month_field()
+	{
+		// Month field text property
+		String text = month_field.getText();
+		
+		// If month field is empty
+		if (text == null || text.length() == 0)
+		{
+			month_value = Integer.MIN_VALUE;
+			date_time_now = null;
+			
+			return;
+		}
+		
+		text = text.trim();
+		
+		// Program locale settings which are used to retrieve appropriate locale
+		final Locale_setting locale_setting =
+				Settings.get_instance().get_locale_setting();
+		// Locale appropriate to program
+		final Locale program_locale = new Locale(locale_setting.language_code,
+				locale_setting.country_code, locale_setting.variant_code);
+		/* 'true' — month value has been read, so further loop execution isn't
+		 * needed; 'false' — need to try other parsing ways to determine
+		 * the month */
+		boolean month_parsed = false;
+		// Month value parse patterns quantity (is a loop condition)
+		final int parse_patterns = 4;
+		
+		/* Month value parsing.
+		 * Next parse templates are applied to month value in the specified
+		 * order: "LLLL" and "MMMM"; "LLL" and "MMM"; "LL" and "MM"; "L" and "M" */
+		for (int parse_attempt = 1;
+				parse_attempt <= parse_patterns && !month_parsed;
+				++parse_attempt)
+		{
+			// Specific month names parsing template
+			final StringBuilder l_pattern = new StringBuilder(4);
+			// Basic month names parsing template
+			final StringBuilder m_pattern = new StringBuilder(4);
+			
+			// Provide parsing template for current iteration
+			for (int i = 0, end = parse_patterns - parse_attempt; i <= end; ++i)
+			{
+				l_pattern.append('L');
+				m_pattern.append('M');
+			}
+			
+			// Specific month name parsing templates formatter
+			DateTimeFormatter l_date_formatter = DateTimeFormatter.ofPattern(
+					l_pattern.toString(), program_locale);
+			
+			month_parsed = parse_month_field_auxiliary(text, l_date_formatter);
+			
+			// Basic month name parsing templates formatter
+			DateTimeFormatter m_date_formatter = null;
+			
+			if (!month_parsed)
+			{
+				m_date_formatter = DateTimeFormatter.ofPattern(
+						m_pattern.toString(), program_locale);
+				month_parsed = parse_month_field_auxiliary(text, m_date_formatter);
+			}
+			
+			if (!month_parsed)
+			{
+				l_date_formatter = l_date_formatter.withLocale(Locale.getDefault());
+				month_parsed = parse_month_field_auxiliary(text, l_date_formatter);
+			}
+			
+			if (!month_parsed)
+			{
+				m_date_formatter = m_date_formatter.withLocale(Locale.getDefault());
+				month_parsed = parse_month_field_auxiliary(text, m_date_formatter);
+			}
+		}
+		
+		// If month has not been read
+		if (!month_parsed)
+		{
+			month_field.setStyle("-fx-text-fill: red");
+			
+			// If month field isn't focused
+			if (!month_field.isFocused())
+			{
+				month_field.setText(
+						gui_settings.get_text_fields_resources().getString(
+								"month_field_incorrect"));
+			}
+			
+			month_value = Integer.MIN_VALUE;
+			date_time_now = null;
+		}
+	}
+	
+	
+	/**
+	 * {@link #parse_month_field()} method auxiliary.
+	 * <p>Performs {@code text} argument parsing using obtained
+	 * {@code date_formatter} argument.
+	 * 
+	 * @param text Text to be parsed.
+	 * 
+	 * @param date_formatter Formatter to apply to {@code text}.
+	 * 
+	 * @return {@code true} &#0151; month has&nbsp;been&nbsp;successfully read;
+	 * {@code false}&nbsp;&#0151; parsing resulted in {@link DateTimeException}
+	 * exception.
+	 * 
+	 * @exception NullPointerException At least one of passed arguments is
+	 * {@code null}.
+	 */
+	private boolean parse_month_field_auxiliary(
+			final String text, final DateTimeFormatter date_formatter)
+	{
+		try
+		{
+			// Value obtained from month parsing
+			final int parsed_value =
+					date_formatter.parse(text).get(ChronoField.MONTH_OF_YEAR);
+			
+			month_field.setText(Integer.toString(parsed_value));
+
+			// If existing month value differs from obtained one
+			if (month_value != parsed_value)
+			{
+				month_value = parsed_value;
+				date_time_now = null;
+			}
+			
+			return true;
+		}
+		catch (final DateTimeException exc)
+		{
+			return false;
+		}
 	}
 }

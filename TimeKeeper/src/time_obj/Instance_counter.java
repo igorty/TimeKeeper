@@ -1,4 +1,19 @@
-﻿package time_obj;
+﻿/**
+ * Copyright 2016 Igor Taranenko
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package time_obj;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -401,15 +416,24 @@ public class Instance_counter extends Time_counter implements Serializable
 			// Число месяца целевой даты
 			final int date_instance_month_day = time_instance.getDayOfMonth();
 			
-			/* Определение кол-ва оставшихся/прошедших дней.
-			 * Постановка условия зависит от знака кол-ва полных секунд между
-			 * текущей и целевой датой и временем. Если кол-во полных секунд
-			 * имеет ПОЛОЖИТЕЛЬНЫЙ знак, условие сработает когда день целевого
-			 * месяца БОЛЬШЕ дня текущего месяца. Если же кол-во полных секунд
-			 * имеет ОТРИЦАТЕЛЬНЫЙ знак, условие сработает когда день целевого
-			 * месяца МЕНЬШЕ дня текущего месяца */
-			if (seconds > 0 ? date_instance_month_day > date_now_month_day :
-				date_instance_month_day < date_now_month_day)
+			/* 'true' — difference between current and target date time is
+			 * positive (i.e. current date time is EARLIER than target one);
+			 * 'false' — negative (i.e. current date time is LATER than target
+			 * one).
+			 * Note. Seconds value cannot be exactly 0 in this scope,
+			 * so statement is correct */
+			final boolean time_difference_is_positive = seconds > 0;
+			
+			/* Determine remaining/passed days quantity.
+			 * If-statement setting depends on time value difference sign
+			 * between current and target date time.
+			 * • If the difference is POSITIVE, statement evaluates to 'true'
+			 *   only if target day-of-month is BIGGER than current one.
+			 * • If the difference is NEGATIVE, statement evaluates to 'true'
+			 *   only if target day-of-month is LESS than current one */
+			if (time_difference_is_positive ?
+					date_instance_month_day > date_now_month_day :
+						date_instance_month_day < date_now_month_day)
 			{
 				/* Если кол-во полных дней между текущей и целевой датой с
 				 * учетом часов, минут, секунд совпадает с кол-вом полных дней
@@ -420,7 +444,8 @@ public class Instance_counter extends Time_counter implements Serializable
 				}
 				else
 				{
-					days = date_instance_month_day - date_now_month_day - 1;
+					days = date_instance_month_day - date_now_month_day +
+							(time_difference_is_positive ? -1 : 1);
 				}
 			}
 			else
@@ -452,7 +477,7 @@ public class Instance_counter extends Time_counter implements Serializable
 					 * Переменной "current_month" присваивается месяц ЦЕЛЕВОЙ
 					 * даты; значение "days_in_month_before" будет
 					 * ПОЛОЖИТЕЛЬНЫМ */
-					if (seconds > 0)
+					if (time_difference_is_positive)
 					{
 						// Присваивается месяц ЦЕЛЕВОЙ даты
 						current_month = time_instance.getMonthValue();
@@ -507,7 +532,8 @@ public class Instance_counter extends Time_counter implements Serializable
 					else
 					{
 						days = days_in_month_before - date_now_month_day +
-								date_instance_month_day - 1;
+								date_instance_month_day +
+								(time_difference_is_positive ? -1 : 1);
 					}
 				}
 			}
