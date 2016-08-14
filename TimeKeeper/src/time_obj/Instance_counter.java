@@ -54,6 +54,10 @@ import time_obj.events.User_notification_event;
  */
 public class Instance_counter extends Time_counter implements Serializable
 {
+	/** Serializable class version number. */
+	private static final long serialVersionUID = 2878683840155077705L;
+
+	
 	///// Fields default-access static ====================================/////
 	/** Барьер всех экземпляров данного класса для синхронного выполнения
 	 * метода {@link #difference_calculation(boolean)}. Устанавливается из

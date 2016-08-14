@@ -1,10 +1,24 @@
+/**
+ * Copyright 2016 Igor Taranenko
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package time_obj.events;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.EventObject;
 
 import time_obj.Solo_counter;
 
@@ -17,7 +31,7 @@ import time_obj.Solo_counter;
  * @author Igor Taranenko
  */
 @SuppressWarnings("serial")
-public class Numeric_overflow_event extends EventObject
+public class Numeric_overflow_event extends Time_counter_event<Solo_counter>
 {
 	///// Constructors public =============================================/////
 	/**
@@ -39,7 +53,7 @@ public class Numeric_overflow_event extends EventObject
 	 * @exception NotSerializableException When this method called.
 	 */
 	@SuppressWarnings("javadoc")
-	private void writeObject(ObjectOutputStream output_stream)
+	private void writeObject(final ObjectOutputStream output_stream)
 			throws IOException
 	{
 		throw new NotSerializableException(Numeric_overflow_event.class.getName());
@@ -52,7 +66,7 @@ public class Numeric_overflow_event extends EventObject
 	 * @exception NotSerializableException When this method called.
 	 */	
 	@SuppressWarnings("javadoc")
-	private void readObject(ObjectInputStream input_stream)
+	private void readObject(final ObjectInputStream input_stream)
 			throws IOException, ClassNotFoundException
 	{
 		throw new NotSerializableException(Numeric_overflow_event.class.getName());
