@@ -1,4 +1,19 @@
-﻿package graphical_shell;
+﻿/**
+ * Copyright 2016 Igor Taranenko
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package graphical_shell;
 
 import java.io.IOException;
 import java.time.LocalTime;
@@ -18,6 +33,7 @@ import graphical_shell.FXML_controllers.Init_settings_controller;
 import graphical_shell.FXML_controllers.Init_Solo_counter_controller.Time_values;
 import graphical_shell.FXML_controllers.Init_settings_controller.Init_settings;
 import graphical_shell.dialog.Error_dialog;
+import graphical_shell.dialog.Error_dialog.Error_type;
 import graphical_shell.dialog.Error_dialog.Template_message;
 import graphical_shell.events.Locale_change_listener;
 import javafx.collections.ObservableMap;
@@ -30,6 +46,8 @@ import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -42,11 +60,6 @@ import time_obj.Mode;
 import time_obj.Solo_counter;
 
 
-/* TODO? If this class instance won't be used several times, provide its
- * unsubscribing from receiving locale change events
- * ("graphical_shell.GUI_settings.remove_Locale_change_listener()" method) when
- * the class instance is going out of scope. Also unsubscribe listening in
- * controller objects used by this class. */
 /**
  * Реализует окно создания счетчика времени. Экземпляр данного класса можно
  * использовать повторно.
@@ -290,6 +303,10 @@ class New_time_counter_window
 		init_settings_pane_controller = null;
 		
 		stage = new Stage();
+		stage.addEventFilter(KeyEvent.ANY, Main_class.window_input_filter);
+		stage.addEventFilter(
+				MouseEvent.MOUSE_CLICKED, Main_class.window_input_filter);
+		
 		
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>()
 		{
@@ -344,7 +361,7 @@ class New_time_counter_window
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
 									+ " fxml layout. Exception stack trace:", exc);
-							Error_dialog.show_IO_error_message(
+							Error_dialog.show_message(
 									Template_message.TM_layout_build);
 							close_window();
 							back_to_initial_state();
@@ -437,7 +454,7 @@ class New_time_counter_window
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
 									+ " fxml layout. Exception stack trace:", exc);
-							Error_dialog.show_IO_error_message(
+							Error_dialog.show_message(
 									Template_message.TM_layout_build);
 							close_window();
 							back_to_initial_state();
@@ -563,7 +580,7 @@ class New_time_counter_window
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
 									+ " fxml layout. Exception stack trace:", exc);
-							Error_dialog.show_IO_error_message(
+							Error_dialog.show_message(
 									Template_message.TM_layout_build);
 							close_window();
 							back_to_initial_state();
@@ -658,7 +675,7 @@ class New_time_counter_window
 						{
 							logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
 									+ " fxml layout. Exception stack trace:", exc);
-							Error_dialog.show_IO_error_message(
+							Error_dialog.show_message(
 									Template_message.TM_layout_build);
 							close_window();
 							back_to_initial_state();
@@ -894,7 +911,8 @@ class New_time_counter_window
 					{
 						logger.log(Level.SEVERE, "Fatal error. Cannot obtain"
 								+ " fxml layout. Exception stack trace:", exc);
-						Error_dialog.show_IO_error_message(
+						Error_dialog.show_message(
+								Error_type.ET_IO,
 								messages_resources.getString(
 										"error.cannot_show_settings_pane"));
 						/* Окно создания счетчика времени умышленно

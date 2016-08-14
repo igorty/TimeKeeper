@@ -1,4 +1,19 @@
-﻿package graphical_shell.dialog;
+﻿/**
+ * Copyright 2016 Igor Taranenko
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package graphical_shell.dialog;
 
 import java.util.ResourceBundle;
 
@@ -9,8 +24,7 @@ import javafx.scene.control.Alert.AlertType;
 
 
 /**
- * Содержит статические методы вывода диалогового окна с сообщением
- * об&nbsp;ошибке ввода&#8209;вывода.
+ * Provides error dialog window.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -28,6 +42,22 @@ public class Error_dialog
 	{
 		/** Window layout component&nbsp;build error&nbsp;message is shown. */
 		TM_layout_build
+	}
+	
+	
+	/**
+	 * Error types, according to which title&nbsp;text will be provided.
+	 * 
+	 * @version 1.0
+	 */
+	public enum Error_type
+	{
+		/** Input-output error. */
+		ET_IO,
+		/** Deserialized file contains incorrect values. */
+		ET_file_content_error,
+		/** Error related to time&nbsp;zones. */
+		ET_time_zone_error
 	}
 	
 	
@@ -57,7 +87,6 @@ public class Error_dialog
 	
 	
 	///// Методы public статические =======================================/////
-	// TODO? Optimize
 	/**
 	 * Выводит шаблонный текст сообщения об&nbsp;ошибке.
 	 * 
@@ -66,19 +95,13 @@ public class Error_dialog
 	 * @exception NullPointerException В&nbsp;качестве аргумента передан
 	 * {@code null}.
 	 */
-	public static void show_IO_error_message(final Template_message message)
+	public static void show_message(final Template_message message)
 	{
-		// Аргумент не должен быть null
-		if (message == null)
-		{
-			throw new NullPointerException(
-					Template_message.class.getName() + " argument is null");
-		}
-		
 		switch (message)
 		{
 		case TM_layout_build:
-			show_IO_error_message(
+			show_message(
+					Error_type.ET_IO,
 					messages_resources.getString("error.window_layout"));
 			
 			break;
@@ -91,18 +114,58 @@ public class Error_dialog
 	
 	
 	/**
-	 * Выводит диалоговое окно с сообщением об&nbsp;ошибке ввода&#8209;вывода.
+	 * Shows error dialog window.
 	 * 
-	 * @param message_text Текст сообщения об&nbsp;ошибке.
+	 * @param error_type Error type, according to which title&nbsp;text
+	 * will&nbsp;be displayed. <u>Can</u> be {@code null}. In this case
+	 * no&nbsp;title will&nbsp;be displayed.
+	 * 
+	 * @param message_text Error message text.
 	 */
-	public static void show_IO_error_message(final String message_text)
+	public static void show_message(
+			final Error_type error_type, final String message_text)
 	{
 		// Диалоговое окно сообщения об ошибке
 		final Alert error_dialog = new Alert(AlertType.ERROR);
 		
-		error_dialog.setTitle(messages_resources.getString("error.title.IO"));
+		// If need to provide dialog window title text
+		if (error_type != null)
+		{
+			switch (error_type)
+			{
+			case ET_IO:
+				error_dialog.setTitle(
+						messages_resources.getString("error.title.IO"));
+				
+				break;
+				
+			case ET_file_content_error:
+				error_dialog.setTitle(
+						messages_resources.getString("error.title.file_content"));
+				
+				break;
+				
+			case ET_time_zone_error:
+				error_dialog.setTitle(
+						messages_resources.getString("error.title.time_zone"));
+				
+				break;
+			
+			default:
+				throw new EnumConstantNotPresentException(
+						Error_type.class, error_type.name());
+			}
+		}
+		// Dialog window title text is not needed
+		else
+		{
+			error_dialog.setTitle(null);
+		}
+		
 		error_dialog.setHeaderText(null);
 		error_dialog.setContentText(message_text);
 		error_dialog.showAndWait();
+		/* TODO: Send turn off alarm sound command after implementing class
+		 * responsible for sound notification */
 	}
 }

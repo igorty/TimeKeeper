@@ -1,3 +1,18 @@
+/**
+ * Copyright 2016 Igor Taranenko
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package graphical_shell;
 
 import java.time.format.DateTimeFormatter;
@@ -29,6 +44,8 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -81,6 +98,8 @@ import time_obj.events.Time_elapsed_listener;
  * {@link Time_counter}{@code s} using methods provided by this class (if
  * specified operation can be performed with implemented in this class methods).
  * Otherwise GUI&nbsp;will behave incorrectly.
+ * <p><i>Note.</i> To provide full class's functionality
+ * {@link #apply_scene(Scene)} need to be called.
  * 
  * @version 1.0
  * @author Igor Taranenko
@@ -133,10 +152,6 @@ class Time_counters_pane
 	 * time&nbsp;unit names. */
 	private static ResourceBundle time_unit_names_resources;
 	
-	/* TODO: Provide resize when parent node width changed (after placing to
-	 * parent node) */
-	/* TODO: Provide the pane's scene listener to set default background for
-	 * the pane */
 	/** Contains {@link HBox}{@code es}. Each {@code HBox} has single
 	 * <i>time&nbsp;counter</i> with related controls. */
 	private static final TilePane time_counters_pane;
@@ -262,7 +277,13 @@ class Time_counters_pane
 	 * background&nbsp;color when user attention needed for
 	 * the&nbsp;time&nbsp;counter. */
 	private static final Background notify_background;
+	/** {@link HBox} pane (which encloses single time&nbsp;counter controls)
+	 * background&nbsp;color by default. */
+	private static Background default_background;
 	
+	/** {@link HBox} pane (which encloses single time&nbsp;counter controls)
+	 * identifier. */
+	private static final String time_counter_unit_id;
 	/** {@link Node} identifier for <i>Start/Resume/Pause</i> {@link Button}
 	 * contained in {@link HBox}{@code es} representing {@link Solo_counter}
 	 * time&nbsp;counters. */
@@ -358,6 +379,7 @@ class Time_counters_pane
 		notify_background =
 				new Background(new BackgroundFill(Color.YELLOW, null, null));
 		
+		time_counter_unit_id = "time_counter";
 		start_button_id = "start_button";
 		restart_button_id = "restart_button";
 		close_button_id = "close_button";
@@ -832,6 +854,7 @@ class Time_counters_pane
 		time_counter_unit.setUserData(time_counter);
 		time_counter_unit.setAlignment(Pos.CENTER);
 		time_counter_unit.setPadding(new Insets(5));
+		time_counter_unit.setId(time_counter_unit_id);
 		
 		/* Cursor when hovering over "time_counter_unit" to show user that
 		 * it can be dragged */
@@ -855,9 +878,13 @@ class Time_counters_pane
 			}
 		});
 		
-		/* "time_counter_unit" pane background color in normal state */
-		final Background time_counter_unit_default_background =
-				time_counter_unit.getBackground();
+		
+		// If 'time_counter_unit' default background hasn't been initialized yet
+		if (default_background == null)
+		{
+			default_background = time_counter_unit.getBackground();
+		}
+		
 		
 		time_counter_unit.addEventFilter(MouseEvent.MOUSE_CLICKED,
 				new EventHandler<MouseEvent>()
@@ -867,8 +894,7 @@ class Time_counters_pane
 			{
 				/* Restore default node background in case of it was changed to
 				 * notify user and turn off alarm sound */
-				time_counter_unit.setBackground(
-						time_counter_unit_default_background);
+				time_counter_unit.setBackground(default_background);
 				// TODO: Turn off alarm sound
 			}
 		});
@@ -2377,8 +2403,8 @@ class Time_counters_pane
 	 * <ul><li>add nodes;</li>
 	 * <li>call {@link Node#setUserData(Object)} on
 	 * the&nbsp;{@link Node}{@code s} contained in the&nbsp;returned pane;</li>
-	 * <li>call {@link Node#setId(String)} on the&nbsp;returned pane
-	 * {@link Node}{@code s} children.</li>
+	 * <li>call {@link Node#setId(String)} on the&nbsp;returned pane and its
+	 * children.</li>
 	 * <li>add or remove returned pane {@link Node}{@code s} children;</li>
 	 * <li>set <i>Start/Resume/Pause</i>&nbsp;buttons tooltips to {@code null}.</li></ul>
 	 * Otherwise it may result in <i>runtime exception</i>.
@@ -2388,6 +2414,50 @@ class Time_counters_pane
 	static TilePane get_time_counters_pane()
 	{
 		return time_counters_pane;
+	}
+	
+
+	/**
+	 * This class subscribes to {@code scene's} <i>focus owner property</i> to
+	 * determine {@link Node} that has&nbsp;obtained focus.
+	 * <p>When time&nbsp;counter time is elapsed, its representative
+	 * node's background is set to <i>notification</i> color. It is set back to
+	 * default background after clicking on it (or its children). After calling
+	 * this method a&nbsp;keyboard navigation is listened too with the&nbsp;aim
+	 * to set default background color.
+	 * <p><b>Warning!</b> It is <u>strictly prohibited</u> to set
+	 * <i>"time_counter"</i>&nbsp;id to any {@code scene's} node. Otherwise
+	 * {@link ClassCastException} may be thrown.
+	 * 
+	 * @param scene Scene which contains {@link TilePane} returned by
+	 * {@link #get_time_counters_pane()} method.
+	 * 
+	 * @exception NullPointerException Passed argument is {@code null}.
+	 */
+	static void apply_scene(final Scene scene)
+	{
+		scene.focusOwnerProperty().addListener(new ChangeListener<Node>()
+		{
+			@Override
+			public void changed(final ObservableValue<? extends Node> observable,
+					final Node oldValue, final Node newValue)
+			{
+				if (newValue == null)
+				{
+					return;
+				}
+				
+				// Focus owner's parent node
+				final Parent parent = newValue.getParent();
+				
+				/* If focused Node stands on HBox pane which encloses single
+				 * time counter controls identifier */
+				if (parent != null && time_counter_unit_id.equals(parent.getId()))
+				{
+					((HBox)parent).setBackground(default_background);
+				}
+			}
+		});
 	}
 	
 
