@@ -2,6 +2,8 @@
 
 **TimeKeeper** is intended to monitor a bunch of things which are dependent on time; is some kind of flexible time organizer.
 
+![timekeeper_sample](https://cloud.githubusercontent.com/assets/19972519/18230301/483f1e38-729f-11e6-86e3-dcfdbce738cb.png)
+
 It provides so-called *time counters* which can work in four different modes. Two of them are rather spread: these are *Stopwatch* and *Timer* modes. *Stopwatch* may be initialized not only with 0 time unit values: its initial value may be any positive time value. Of course *Timer* may have any initial value too. When *timer* reaches zero, it continues counting showing negative time value.
 
 Time value may be edited after *Stopwatch* or *Timer* *time counter* is created, no matter it is running or paused. Time value editing has form of adding/subtracting specified time amount. *Timer* time value may be even turned to elapsed (negative) after this operation, while *Stopwatch* may not: minimal value for it is just zero. Restart possibility is supported for mentioned time counters too.
@@ -51,14 +53,14 @@ User can provide convenient explanation text to each time counter. There is a�
 
 Project is not fully completed and there are several tasks to do (basically with GUI). Its documentation is rich, but a lot of Javadocs and comments are in Russian. I made it locally and didn't expect it to grow up, but will translate all remaining marks to English.
 
-Program logic and GUI are separated. [time_obj](https://github.com/Cryptor1/TimeKeeper/tree/master/TimeKeeper/src/time_obj) package represents program logic and
-[graphical_shell](https://github.com/Cryptor1/TimeKeeper/tree/master/TimeKeeper/src/graphical_shell) represents GUI.
+Program logic and GUI are separated. [time_obj](TimeKeeper/src/time_obj) package represents program logic and
+[graphical_shell](TimeKeeper/src/graphical_shell) represents GUI.
 
 There are three languages are provided: English, Russian and Ukrainian. Project is made with an opportunity to easily implement additional languages.
 
 Time counting is based on [java.time](https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html). GUI is based on [JavaFX](https://docs.oracle.com/javase/8/javafx/api/toc.htm). Additionally [ControlsFX](http://fxexperience.com/controlsfx/) are used ([Bitbucket link](https://bitbucket.org/controlsfx/controlsfx/)).
 
-Initial class is [graphical_shell.Main_class](https://github.com/Cryptor1/TimeKeeper/blob/master/TimeKeeper/src/graphical_shell/Main_class.java).
+Initial class is [graphical_shell.Main_class](TimeKeeper/src/graphical_shell/Main_class.java).
 
 ## Additional resources ##
 
