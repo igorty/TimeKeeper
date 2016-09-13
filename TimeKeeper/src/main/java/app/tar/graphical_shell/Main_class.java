@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell;
+package app.tar.graphical_shell;
 
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -21,9 +21,14 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-import graphical_shell.dialog.Error_dialog;
-import graphical_shell.dialog.Error_dialog.Error_type;
-import graphical_shell.dialog.Notification_dialog;
+import app.tar.graphical_shell.dialog.Error_dialog;
+import app.tar.graphical_shell.dialog.Notification_dialog;
+import app.tar.graphical_shell.dialog.Error_dialog.Error_type;
+import app.tar.time_obj.Time_counter_control;
+import app.tar.time_obj.dialog.User_notification_dialog;
+import app.tar.time_obj.dialog.User_notification_type;
+import app.tar.time_obj.events.User_notification_event;
+import app.tar.time_obj.events.User_notification_listener;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -38,11 +43,6 @@ import javafx.scene.layout.TilePane;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
-import time_obj.Time_counter_control;
-import time_obj.dialog.User_notification_dialog;
-import time_obj.dialog.User_notification_type;
-import time_obj.events.User_notification_event;
-import time_obj.events.User_notification_listener;
 
 
 /**
@@ -92,7 +92,7 @@ public class Main_class extends Application
 		{
 			LogManager.getLogManager().readConfiguration(
 					Main_class.class.getResourceAsStream(
-							"resources/logging/logging.properties"));
+							"logging/logging.properties"));
 		}
 		catch (final SecurityException | IOException exc)
 		{

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell;
+package app.tar.graphical_shell;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
@@ -32,7 +32,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-import graphical_shell.events.Locale_change_listener;
+import app.tar.graphical_shell.events.Locale_change_listener;
+import app.tar.time_obj.Instance_counter;
+import app.tar.time_obj.Mode;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Solo_counter;
+import app.tar.time_obj.Time_counter;
+import app.tar.time_obj.Time_counter_control;
+import app.tar.time_obj.Settings.Locale_setting;
+import app.tar.time_obj.Solo_counter.Initial_time_values;
+import app.tar.time_obj.Time_counter.Time_counter_text_value;
+import app.tar.time_obj.containers.Modified_ArrayList;
+import app.tar.time_obj.events.Numeric_overflow_event;
+import app.tar.time_obj.events.Numeric_overflow_listener;
+import app.tar.time_obj.events.Time_counter_event;
+import app.tar.time_obj.events.Time_counter_text_listener;
+import app.tar.time_obj.events.Time_elapsed_listener;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -67,21 +82,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.TilePane;
 import javafx.scene.paint.Color;
-import time_obj.Instance_counter;
-import time_obj.Mode;
-import time_obj.Settings;
-import time_obj.Settings.Locale_setting;
-import time_obj.Solo_counter;
-import time_obj.Time_counter;
-import time_obj.Time_counter.Time_counter_text_value;
-import time_obj.Time_counter_control;
-import time_obj.Solo_counter.Initial_time_values;
-import time_obj.containers.Modified_ArrayList;
-import time_obj.events.Numeric_overflow_event;
-import time_obj.events.Numeric_overflow_listener;
-import time_obj.events.Time_counter_event;
-import time_obj.events.Time_counter_text_listener;
-import time_obj.events.Time_elapsed_listener;
 
 
 /**
@@ -329,13 +329,13 @@ class Time_counters_pane
 		// "mode_images" container images
 		final Image[] mode_images_values = {
 				new Image(Time_counters_pane.class.getResource(
-						"resources/images/stopwatch.png").toString()),
+						"images/stopwatch.png").toString()),
 				new Image(Time_counters_pane.class.getResource(
-						"resources/images/countdown.png").toString()),
+						"images/countdown.png").toString()),
 				new Image(Time_counters_pane.class.getResource(
-						"resources/images/elapsed_from.png").toString()),
+						"images/elapsed_from.png").toString()),
 				new Image(Time_counters_pane.class.getResource(
-						"resources/images/remains_till.png").toString()) };
+						"images/remains_till.png").toString()) };
 		// All "Mode" enumeration constants
 		final Mode[] mode_values = Mode.values();
 		
@@ -358,17 +358,17 @@ class Time_counters_pane
 		
 		
 		start_image = new Image(Time_counters_pane.class.getResource(
-				"resources/images/start.png").toString());
+				"images/start.png").toString());
 		resume_image = new Image(Time_counters_pane.class.getResource(
-				"resources/images/resume.png").toString());
+				"images/resume.png").toString());
 		pause_image = new Image(Time_counters_pane.class.getResource(
-				"resources/images/pause.png").toString());
+				"images/pause.png").toString());
 		restart_image = new Image(Time_counters_pane.class.getResource(
-				"resources/images/restart.png").toString());
+				"images/restart.png").toString());
 		close_image = new Image(Time_counters_pane.class.getResource(
-				"resources/images/close.png").toString());
+				"images/close.png").toString());
 		setting_image = new Image(Time_counters_pane.class.getResource(
-				"resources/images/settings.png").toString());
+				"images/settings.png").toString());
 		
 		images_size = 32;
 		

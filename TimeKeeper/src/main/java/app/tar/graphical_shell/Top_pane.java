@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell;
+package app.tar.graphical_shell;
 
 import java.io.IOException;
 import java.util.ResourceBundle;
@@ -23,9 +23,13 @@ import java.util.logging.Logger;
 import org.controlsfx.control.PopOver;
 import org.controlsfx.control.PopOver.ArrowLocation;
 
-import graphical_shell.dialog.Error_dialog;
-import graphical_shell.dialog.Error_dialog.Template_message;
-import graphical_shell.events.Locale_change_listener;
+import app.tar.graphical_shell.dialog.Error_dialog;
+import app.tar.graphical_shell.dialog.Error_dialog.Template_message;
+import app.tar.graphical_shell.events.Locale_change_listener;
+import app.tar.time_obj.Mode;
+import app.tar.time_obj.Time_counter;
+import app.tar.time_obj.Time_counter_control;
+import app.tar.time_obj.containers.Modified_ArrayList;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -45,10 +49,6 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import time_obj.Mode;
-import time_obj.Time_counter;
-import time_obj.Time_counter_control;
-import time_obj.containers.Modified_ArrayList;
 
 
 /**
@@ -179,7 +179,7 @@ class Top_pane
 		
 		// Image for controls that create new time counter
 		final Image new_time_counter_image = new Image(
-				Top_pane.class.getResource("resources/images/new.png").toString());
+				Top_pane.class.getResource("images/new.png").toString());
 		
 
 		///// Menu bar implementation -------------------------------------/////
@@ -219,7 +219,7 @@ class Top_pane
 		save_menu_item = new MenuItem(
 				menu_items_resources.getString("save"),
 				new ImageView(Top_pane.class.getResource(
-						"resources/images/save.png").toString()));
+						"images/save.png").toString()));
 		
 		save_menu_item.setAccelerator(
 				new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN));
@@ -300,7 +300,7 @@ class Top_pane
 		/////-/ Options menu from menu bar implementation -----------------/////
 		// "settings_menu_item" image
 		final ImageView settings_menu_item_image = new ImageView(
-				Top_pane.class.getResource("resources/images/settings.png").toString());
+				Top_pane.class.getResource("images/settings.png").toString());
 		
 		settings_menu_item_image.setFitWidth(menu_items_image_size);
 		settings_menu_item_image.setPreserveRatio(true);
@@ -332,16 +332,16 @@ class Top_pane
 		/////-/ Actions menu from menu bar implementation -----------------/////
 		// Represents start image
 		final Image start_image = new Image(Top_pane.class.getResource(
-				"resources/images/start.png").toString());
+				"images/start.png").toString());
 		// Represents pause image
 		final Image pause_image = new Image(Top_pane.class.getResource(
-				"resources/images/pause.png").toString());
+				"images/pause.png").toString());
 		// Represents restart image
 		final Image restart_image = new Image(Top_pane.class.getResource(
-				"resources/images/restart.png").toString());
+				"images/restart.png").toString());
 		// Represents close image
 		final Image close_image = new Image(Top_pane.class.getResource(
-				"resources/images/close.png").toString());
+				"images/close.png").toString());
 		
 		
 		/////-// Stopwatches submenu implementation -----------------------/////
@@ -447,7 +447,7 @@ class Top_pane
 		
 		// "stopwatches_submenu" image
 		final ImageView stopwatch_image = new ImageView(
-				Top_pane.class.getResource("resources/images/stopwatch.png").toString());
+				Top_pane.class.getResource("images/stopwatch.png").toString());
 		
 		stopwatch_image.setFitWidth(menu_items_image_size);
 		stopwatch_image.setPreserveRatio(true);
@@ -560,7 +560,7 @@ class Top_pane
 		
 		// "timers_submenu" image
 		final ImageView timer_image = new ImageView(
-				Top_pane.class.getResource("resources/images/countdown.png").toString());
+				Top_pane.class.getResource("images/countdown.png").toString());
 		
 		timer_image.setFitWidth(menu_items_image_size);
 		timer_image.setPreserveRatio(true);
@@ -732,7 +732,7 @@ class Top_pane
 		
 		// "elapsed_from_submenu" image
 		final ImageView elapsed_from_submenu_image = new ImageView(
-				Top_pane.class.getResource("resources/images/elapsed_from.png").toString());
+				Top_pane.class.getResource("images/elapsed_from.png").toString());
 		
 		elapsed_from_submenu_image.setFitWidth(menu_items_image_size);
 		elapsed_from_submenu_image.setPreserveRatio(true);
@@ -777,7 +777,7 @@ class Top_pane
 		
 		// "remains_till_submenu" image
 		final ImageView remains_till_submenu_image = new ImageView(
-				Top_pane.class.getResource("resources/images/remains_till.png").toString());
+				Top_pane.class.getResource("images/remains_till.png").toString());
 		
 		remains_till_submenu_image.setFitWidth(menu_items_image_size);
 		remains_till_submenu_image.setPreserveRatio(true);
@@ -877,7 +877,7 @@ class Top_pane
 		final MenuItem helpful_info_menu_item = new MenuItem(
 				menu_items_resources.getString("helpful_info"),
 				new ImageView(Top_pane.class.getResource(
-						"resources/images/info.png").toString()));
+						"images/info.png").toString()));
 		
 		helpful_info_menu_item.setAccelerator(new KeyCodeCombination(KeyCode.F1));
 		

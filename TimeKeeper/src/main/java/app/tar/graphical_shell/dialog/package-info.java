@@ -19,4 +19,4 @@
  * @since 1.0
  * @author Igor Taranenko
  */
-package graphical_shell.dialog;
+package app.tar.graphical_shell.dialog;

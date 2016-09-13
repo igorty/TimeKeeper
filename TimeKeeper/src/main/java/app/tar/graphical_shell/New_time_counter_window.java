@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell;
+package app.tar.graphical_shell;
 
 import java.io.IOException;
 import java.time.LocalTime;
@@ -25,17 +25,20 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import graphical_shell.FXML_controllers.Basic_init_controller;
-import graphical_shell.FXML_controllers.Init_Instance_counter_controller;
-import graphical_shell.FXML_controllers.Init_Solo_counter_controller;
-import graphical_shell.FXML_controllers.Init_Time_counter_type_controller;
-import graphical_shell.FXML_controllers.Init_settings_controller;
-import graphical_shell.FXML_controllers.Init_Solo_counter_controller.Time_values;
-import graphical_shell.FXML_controllers.Init_settings_controller.Init_settings;
-import graphical_shell.dialog.Error_dialog;
-import graphical_shell.dialog.Error_dialog.Error_type;
-import graphical_shell.dialog.Error_dialog.Template_message;
-import graphical_shell.events.Locale_change_listener;
+import app.tar.graphical_shell.FXML_controllers.Basic_init_controller;
+import app.tar.graphical_shell.FXML_controllers.Init_Instance_counter_controller;
+import app.tar.graphical_shell.FXML_controllers.Init_Solo_counter_controller;
+import app.tar.graphical_shell.FXML_controllers.Init_Time_counter_type_controller;
+import app.tar.graphical_shell.FXML_controllers.Init_settings_controller;
+import app.tar.graphical_shell.FXML_controllers.Init_Solo_counter_controller.Time_values;
+import app.tar.graphical_shell.FXML_controllers.Init_settings_controller.Init_settings;
+import app.tar.graphical_shell.dialog.Error_dialog;
+import app.tar.graphical_shell.dialog.Error_dialog.Error_type;
+import app.tar.graphical_shell.dialog.Error_dialog.Template_message;
+import app.tar.graphical_shell.events.Locale_change_listener;
+import app.tar.time_obj.Instance_counter;
+import app.tar.time_obj.Mode;
+import app.tar.time_obj.Solo_counter;
 import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -55,9 +58,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
-import time_obj.Instance_counter;
-import time_obj.Mode;
-import time_obj.Solo_counter;
 
 
 /**
@@ -119,10 +119,10 @@ class New_time_counter_window
 		
 		// Строки, которые должны содержаться в контейнере "mode_img_directories"
 		final String[] mode_img_directories_strings = {
-				"resources/images/stopwatch.png",
-				"resources/images/countdown.png",
-				"resources/images/elapsed_from.png",
-				"resources/images/remains_till.png" };
+				"images/stopwatch.png",
+				"images/countdown.png",
+				"images/elapsed_from.png",
+				"images/remains_till.png" };
 		// Все элементы перечисления "Mode"
 		final Mode[] mode_values = Mode.values();
 		

@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell.FXML_controllers;
+package app.tar.graphical_shell.FXML_controllers;
 
 import java.util.ResourceBundle;
 
-import graphical_shell.GUI_settings;
-import graphical_shell.events.Locale_change_listener;
+import app.tar.graphical_shell.GUI_settings;
+import app.tar.graphical_shell.events.Locale_change_listener;
+import app.tar.time_obj.Mode;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
@@ -28,19 +29,18 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
-import time_obj.Mode;
 
 
 /**
  * Time counter type choosing layout&nbsp;pane controller. Called by
  * {@link FXMLLoader} for
- * <i>"graphical_shell/FXML_controllers/Init_Time_counter_type_layout.fxml"</i>
+ * <i>"app.tar.graphical_shell/FXML_controllers/Init_Time_counter_type_layout.fxml"</i>
  * file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_Time_counter_type_layout.fxml"</i> is
  * {@link VBox}.</li>
  * <li><i>"Init_Time_counter_type_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/languages/time_counter.properties"</i>
+ * <i>"app/tar/graphical_shell/languages/time_counter.properties"</i>
  * resources to be set.</li></ul>
  * 
  * @version 1.0
@@ -115,7 +115,7 @@ public class Init_Time_counter_type_controller
 		// "stopwatch_radio_button" image
 		final ImageView stopwatch_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/graphical_shell/resources/images/stopwatch.png").toString());
+						"/app/tar/graphical_shell/images/stopwatch.png").toString());
 		
 		stopwatch_image.setFitWidth(images_size);
 		stopwatch_image.setPreserveRatio(true);
@@ -124,7 +124,7 @@ public class Init_Time_counter_type_controller
 		// "countdown_radio_button" image
 		final ImageView countdown_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/graphical_shell/resources/images/countdown.png").toString());
+						"/app/tar/graphical_shell/images/countdown.png").toString());
 		
 		countdown_image.setFitWidth(images_size);
 		countdown_image.setPreserveRatio(true);
@@ -133,7 +133,7 @@ public class Init_Time_counter_type_controller
 		// "elapsed_from_radio_button" image
 		final ImageView elapsed_from_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/graphical_shell/resources/images/elapsed_from.png").toString());
+						"/app/tar/graphical_shell/images/elapsed_from.png").toString());
 		
 		elapsed_from_image.setFitWidth(images_size);
 		elapsed_from_image.setPreserveRatio(true);
@@ -142,7 +142,7 @@ public class Init_Time_counter_type_controller
 		// "remains_till_radio_button" image
 		final ImageView remains_till_image = new ImageView(
 				Init_Time_counter_type_controller.class.getResource(
-						"/graphical_shell/resources/images/remains_till.png").toString());
+						"/app/tar/graphical_shell/images/remains_till.png").toString());
 		
 		remains_till_image.setFitWidth(images_size);
 		remains_till_image.setPreserveRatio(true);

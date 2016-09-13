@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell.FXML_controllers;
+package app.tar.graphical_shell.FXML_controllers;
 
 import java.text.DecimalFormat;
 import java.text.ParsePosition;
@@ -38,7 +38,11 @@ import java.util.logging.Logger;
 import org.controlsfx.control.PopOver;
 import org.controlsfx.control.PopOver.ArrowLocation;
 
-import graphical_shell.GUI_settings;
+import app.tar.graphical_shell.GUI_settings;
+import app.tar.time_obj.Instance_counter;
+import app.tar.time_obj.Mode;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Settings.Locale_setting;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
@@ -54,22 +58,18 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TextFormatter.Change;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
-import time_obj.Instance_counter;
-import time_obj.Mode;
-import time_obj.Settings;
-import time_obj.Settings.Locale_setting;
 
 
 /**
  * {@link Instance_counter} initial&nbsp;values settings&nbsp;pane controller.
  * Called by {@link FXMLLoader} for
- * <i>"graphical_shell/FXML_controllers/Init_Instance_counter_layout.fxml"</i>
+ * <i>"app.tar.graphical_shell/FXML_controllers/Init_Instance_counter_layout.fxml"</i>
  * file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_Instance_counter_layout.fxml"</i> is
  * {@link GridPane}.</li>
  * <li><i>"Init_Instance_counter_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/languages/GUI_elements/labels.properties"</i>
+ * <i>"app/tar/graphical_shell/languages/GUI_elements/labels.properties"</i>
  * resources to be set.</li></ul>
  * 
  * @version 1.0

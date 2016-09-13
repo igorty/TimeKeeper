@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj.containers;
+package app.tar.time_obj.containers;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -28,9 +28,9 @@ import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.Instance_counter;
-import time_obj.Time_counter;
-import time_obj.Time_counter_control;
+import app.tar.time_obj.Instance_counter;
+import app.tar.time_obj.Time_counter;
+import app.tar.time_obj.Time_counter_control;
 
 
 /**
@@ -1074,7 +1074,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			final Transfer_collection_mode action)
 	{
 		/* All "Instance_counter" objects which present in "collection" to pass
-		 * to "time_obj.Time_counter_control" singleton */
+		 * to "app.tar.time_obj.Time_counter_control" singleton */
 		final ArrayList<Instance_counter> buffer = new ArrayList<>();
 		
 		/* Если необходимо оставить указанные элементы в списке синхронно
@@ -1086,7 +1086,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 		}
 
 		/* Searching for "Instance_counter" objects in "collection" to pass them
-		 * to "time_obj.Time_counter_control" singleton */
+		 * to "app.tar.time_obj.Time_counter_control" singleton */
 		for (final Time_counter i : collection)
 		{
 			// Если объект является экземпляром класса "Instance_counter"
@@ -1107,7 +1107,7 @@ public class Modified_ArrayList extends ArrayList<Time_counter>
 			}
 		}
 		
-		/* Choosing "time_obj.Time_counter_control" method to call depending on
+		/* Choosing "app.tar.time_obj.Time_counter_control" method to call depending on
 		 * operation needed */
 		switch (action)
 		{

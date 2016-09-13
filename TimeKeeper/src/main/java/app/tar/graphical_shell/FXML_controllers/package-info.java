@@ -19,4 +19,4 @@
  * @since 1.0
  * @author Igor Taranenko
  */
-package graphical_shell.FXML_controllers;
+package app.tar.graphical_shell.FXML_controllers;

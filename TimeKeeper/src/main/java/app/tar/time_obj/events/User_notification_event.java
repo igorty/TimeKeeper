@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj.events;
+package app.tar.time_obj.events;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -23,7 +23,7 @@ import java.util.EventObject;
 
 
 /**
- * Event object representing notification event. {@link time_obj} classes use
+ * Event object representing notification event. {@link app.tar.time_obj} classes use
  * it to notify listener, which implements {@link User_notification_listener},
  * about event occurred. This event class is provided with a&nbsp;view to
  * implement user informing about important program events via GUI.<br>

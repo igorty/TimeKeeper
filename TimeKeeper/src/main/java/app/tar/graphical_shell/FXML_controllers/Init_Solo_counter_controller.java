@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell.FXML_controllers;
+package app.tar.graphical_shell.FXML_controllers;
 
 import java.text.DecimalFormat;
 import java.text.ParsePosition;
@@ -30,7 +30,10 @@ import java.util.function.UnaryOperator;
 import org.controlsfx.control.PopOver;
 import org.controlsfx.control.PopOver.ArrowLocation;
 
-import graphical_shell.GUI_settings;
+import app.tar.graphical_shell.GUI_settings;
+import app.tar.time_obj.Days_in_year;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Solo_counter;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -43,20 +46,17 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextFormatter.Change;
 import javafx.scene.layout.GridPane;
-import time_obj.Days_in_year;
-import time_obj.Settings;
-import time_obj.Solo_counter;
 
 
 /**
  * {@link Solo_counter} initial&nbsp;values settings&nbsp;pane controller.
  * Called by {@link FXMLLoader} for
- * <i>"graphical_shell/FXML_controllers/Init_Solo_counter_layout.fxml"</i> file.<br>
+ * <i>"app.tar.graphical_shell/FXML_controllers/Init_Solo_counter_layout.fxml"</i> file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_Solo_counter_layout.fxml"</i> is
  * {@link GridPane}.</li>
  * <li><i>"Init_Solo_counter_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/languages/GUI_elements/labels.properties"</i>
+ * <i>"app/tar/graphical_shell/languages/GUI_elements/labels.properties"</i>
  * resources to be set.</li></ul>
  * 
  * @version 1.0
@@ -66,12 +66,11 @@ public class Init_Solo_counter_controller
 {
 	///// Вложенные классы public =========================================/////
 	/**
-	 * Выполняет роль контейнера для передачи начальных значений лет, месяцев,
-	 * дней, часов, минут и секунд, а&nbsp;также типа подсчета дней в месяце
-	 * (кол&#8209;ва&nbsp;дней в году) согласно именованным константам
-	 * перечисления {@link Days_in_year}. Эти данные необходимо указать
-	 * конструктору
-	 * {@link Solo_counter#Solo_counter(time_obj.Mode, java.time.Period, java.time.LocalTime, Days_in_year)}.
+	 * Serves as container for passing initial years, months, days, hours,
+	 * minutes and seconds values, as&nbsp;well&nbsp;as {@link Days_in_year}
+	 * enumeration value. This data is needed for
+	 * {@link Solo_counter#Solo_counter(app.tar.time_obj.Mode, java.time.Period, java.time.LocalTime, Days_in_year)}
+	 * constructor.
 	 *
 	 * @version 1.0
 	 * @author Igor Taranenko
@@ -94,7 +93,7 @@ public class Init_Solo_counter_controller
 		 * Contains time&nbsp;values and
 		 * days&#8209;in&#8209;year/days&#8209;in&#8209;month counting type to
 		 * pass&nbsp;on
-		 * {@link Solo_counter#Solo_counter(time_obj.Mode, Period, LocalTime, Days_in_year)}
+		 * {@link Solo_counter#Solo_counter(app.tar.time_obj.Mode, Period, LocalTime, Days_in_year)}
 		 * constructor.
 		 * 
 		 * @param period Years, months and days time&nbsp;values. <u>Can</u> be

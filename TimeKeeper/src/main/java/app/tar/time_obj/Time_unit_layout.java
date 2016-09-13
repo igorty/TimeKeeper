@@ -13,27 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 
 /**
- * Возможные варианты названий единиц времени.
+ * Possible time&nbsp;units names.
  * 
  * @version 1.0
  * @author Igor Taranenko
  */
 public enum Time_unit_layout
 {
-	/** Вместе с числовыми значениями единиц времени отображются их символы
-	 * (например символ ' для секунд). Является вариантом отображения названий
-	 * единиц времени по умолчанию. */
+	/** Signs (like&nbsp;<i>"</i> for seconds) are represented with
+	 * time&nbsp;units' numeric&nbsp;values. Is the&nbsp;default
+	 * time&nbsp;units names scheme. */
 	TUL_value_sign,
-	/** Вместе с числовыми значениями единиц времени отображются их
-	 * сокращенные названия. */
+	/** Short names are represented with time&nbsp;units' numeric&nbsp;values. */
 	TUL_short_name,
-	/** Вместе с числовыми значениями единиц времени отображаются их полные
-	 * названия. */
+	/** Full names are represented with time&nbsp;units' numeric&nbsp;values. */
 	TUL_full_name,
-	/** Показаны только числовые значения единиц времени. */
+	/** Only time&nbsp;units' numeric&nbsp;values are shown. */
 	TUL_digits_only
 }

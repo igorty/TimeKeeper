@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -39,10 +39,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.containers.Modified_ArrayList;
-import time_obj.dialog.User_notification_type;
-import time_obj.dialog.User_notification_dialog;
-import time_obj.events.User_notification_event;
+import app.tar.time_obj.containers.Modified_ArrayList;
+import app.tar.time_obj.dialog.User_notification_dialog;
+import app.tar.time_obj.dialog.User_notification_type;
+import app.tar.time_obj.events.User_notification_event;
 
 
 /**

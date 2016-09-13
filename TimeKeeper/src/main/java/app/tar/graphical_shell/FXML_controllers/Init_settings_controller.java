@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell.FXML_controllers;
+package app.tar.graphical_shell.FXML_controllers;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -26,7 +26,11 @@ import org.controlsfx.control.PopOver;
 import org.controlsfx.control.RangeSlider;
 import org.controlsfx.control.PopOver.ArrowLocation;
 
-import graphical_shell.GUI_settings;
+import app.tar.graphical_shell.GUI_settings;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Time_display_style;
+import app.tar.time_obj.Time_unit_layout;
+import app.tar.time_obj.Time_unit_name;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -45,15 +49,11 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-import time_obj.Settings;
-import time_obj.Time_display_style;
-import time_obj.Time_unit_layout;
-import time_obj.Time_unit_name;
 
 
 /**
  * Time counter settings pane controller. Called by {@link FXMLLoader} for
- * <i>"graphical_shell/FXML_controllers/Init_settings_layout.fxml"</i>.<br>
+ * <i>"app.tar.graphical_shell/FXML_controllers/Init_settings_layout.fxml"</i>.<br>
  * <b>Important!</b> {@code FXML}&#8209;loader for this class and its
  * initialization <u>must</u> be invoked only when {@link Stage} object, on
  * which the&nbsp;class's pane is located, <u>is&nbsp;already&nbsp;shown</u>
@@ -63,7 +63,7 @@ import time_obj.Time_unit_name;
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Init_settings_layout.fxml"</i> is {@link GridPane}.</li>
  * <li><i>"Init_settings_layout.fxml"</i> requires
- * <i>"graphical_shell/resources/languages/GUI_elements/labels.properties"</i>
+ * <i>"app/tar/graphical_shell/languages/GUI_elements/labels.properties"</i>
  * resources to be set.</li></ul>
  * 
  * @version 1.0
@@ -280,7 +280,7 @@ public class Init_settings_controller
 	 * {@link EnumMap#get(Object)} method returns
 	 * {@code Map<}{@link Time_unit_name}{@code , }{@link String}{@code >}
 	 * container containing time&nbsp;units keys for
-	 * <i>time_obj.resources.time_counter_resources.properties</i> file
+	 * <i>app/tar/time_obj/time_counter_resources.properties</i> file
 	 * according to specified group.<br>
 	 * <b>Important!</b> <u>This container</u> and all <u>nested</u> in it
 	 * {@code Map<}{@link Time_unit_name}{@code ,}{@link String}{@code >}

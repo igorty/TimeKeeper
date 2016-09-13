@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj.events;
+package app.tar.time_obj.events;
 
 import java.util.EventListener;
 
-import time_obj.Instance_counter;
-import time_obj.Settings;
-import time_obj.Time_counter_control;
-import time_obj.dialog.User_notification_type;
-import time_obj.dialog.User_notification_dialog;
+import app.tar.time_obj.Instance_counter;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Time_counter_control;
+import app.tar.time_obj.dialog.User_notification_dialog;
+import app.tar.time_obj.dialog.User_notification_type;
 
 
 /**
  * The&nbsp;listener interface for receiving <i>user notification event</i> from
- * {@link time_obj} classes. The&nbsp;class that is interested in processing
+ * {@link app.tar.time_obj} classes. The&nbsp;class that is interested in processing
  * the&nbsp;event implements this interface, and the&nbsp;object created with
  * that class is subscribed for the&nbsp;event using
  * {@link User_notification_dialog#set_User_notification_listener(User_notification_listener)}

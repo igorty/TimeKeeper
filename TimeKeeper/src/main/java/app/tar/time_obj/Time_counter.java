@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -36,10 +36,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.containers.Modified_ArrayList;
-import time_obj.events.Time_counter_event;
-import time_obj.events.Time_counter_text_listener;
-import time_obj.events.Time_elapsed_listener;
+import app.tar.time_obj.containers.Modified_ArrayList;
+import app.tar.time_obj.events.Time_counter_event;
+import app.tar.time_obj.events.Time_counter_text_listener;
+import app.tar.time_obj.events.Time_elapsed_listener;
 
 
 /**
@@ -132,17 +132,17 @@ public abstract class Time_counter implements Serializable
 	 * выполнения. */
 	private static final Map<Time_unit_name, String> format_conversions;
 	
-	/** Represents <i>time_obj.resources.time_counter_resources.properties</i>
+	/** Represents <i>app/tar/time_obj/time_counter_resources.properties</i>
 	 * file's <i>"TUL_value_sign"</i>&nbsp;key&nbsp;group.<br>
 	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
 	 * to change its content results in runtime exception. */
 	private static final Map<Time_unit_name, String> time_unit_signs;
-	/** Represents <i>time_obj.resources.time_counter_resources.properties</i>
+	/** Represents <i>app/tar/time_obj/time_counter_resources.properties</i>
 	 * file's <i>"TUL_short_name"</i>&nbsp;key&nbsp;group.<br>
 	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
 	 * to change its content results in runtime exception. */
 	private static final Map<Time_unit_name, String> time_unit_short_names;
-	/** Represents <i>time_obj.resources.time_counter_resources.properties</i>
+	/** Represents <i>app/tar/time_obj/time_counter_resources.properties</i>
 	 * file's <i>"TUL_digits_only"</i>&nbsp;key&nbsp;group.<br>
 	 * <b>Warning!</b> The&nbsp;container is <u>immutable</u>. An&nbsp;attempt
 	 * to change its content results in runtime exception. */
@@ -161,19 +161,19 @@ public abstract class Time_counter implements Serializable
 		// Строки для инициализации контейнера "format_conversions"
 		final String[] format_conversion_text = { "%,10d", "%2d", "%3d", "%2d",
 				"%02d", "%02d" };
-		/* Keys from "time_obj.resources.time_counter_resources.properties" file
+		/* Keys from "app/tar/time_obj/time_counter_resources.properties" file
 		 * for "time_unit_signs" container */ 
 		final String[] time_unit_sings_keys = { "TUL_value_sign.years",
 				"TUL_value_sign.months", "TUL_value_sign.days",
 				"TUL_value_sign.hours", "TUL_value_sign.minutes",
 				"TUL_value_sign.seconds" };
-		/* Keys from "time_obj.resources.time_counter_resources.properties" file
+		/* Keys from "app/tar/time_obj/time_counter_resources.properties" file
 		 * for "time_unit_short_names" container */
 		final String[] time_unit_short_names_keys = { "TUL_short_name.years",
 				"TUL_short_name.months", "TUL_short_name.days",
 				"TUL_short_name.hours", "TUL_short_name.minutes",
 				"TUL_short_name.seconds" };
-		/* Keys from "time_obj.resources.time_counter_resources.properties" file
+		/* Keys from "app/tar/time_obj/time_counter_resources.properties" file
 		 * for "time_unit_digits_only" container */
 		final String[] time_unit_digits_only_keys = { "TUL_digits_only.years",
 				"TUL_digits_only.months", "TUL_digits_only.days",
@@ -265,8 +265,8 @@ public abstract class Time_counter implements Serializable
 	
 	
 	///// Поля protected экземпляра =======================================/////
-	/** Содержит значения единиц времени согласно перечислению
-	 * {@link time_obj.Time_unit_name}. */
+	/** Contains time&nbsp;unit values according to {@link Time_unit_name}
+	 * enumeration. */
 	protected transient EnumMap<Time_unit_name, Long> time_unit_values;
 	
 	/** Флаг десериализации объекта. {@code true}&nbsp;&#0151; десериализация
@@ -284,29 +284,34 @@ public abstract class Time_counter implements Serializable
 	 * по&nbsp;умолчанию. */
 	private Time_display_style time_display_style;
 	
-	/** Содержит названия крайних отображаемых единиц времени для экземпляра
-	 * этого класса согласно перечислению
-	 * {@link time_obj.Time_unit_name}. {@code [0]}&nbsp;&#0151; крайняя левая
-	 * отображаемая единица (наибольшая отображаемая единица времени);
-	 * {@code [1]}&nbsp;&#0151; крайняя правая отображаемая единица (наименьшая
-	 * отображаемая единица времени).<br>
-	 * Данные рамки имеют отношение к стилю отображения счетчика времени
-	 * целиком согласно именованным константам
-	 * {@link time_obj.Time_display_style#TDS_custom_strict} и
-	 * {@link time_obj.Time_display_style#TDS_increase_able} в
-	 * перечислении {@link time_obj.Time_display_style}.
+	/** Class instance time&nbsp;units displaying&nbsp;range setting. Object
+	 * represents array which contains <u>2&nbsp;elements</u>, where
+	 * element&nbsp;{@code [0]} represents <u>biggest</u> possible displayed
+	 * time&nbsp;value (is on the&nbsp;<u>left</u> side), and
+	 * element&nbsp;{@code [1]} represents <u>lowest</u> possible displayed
+	 * time&nbsp;value (is on the&nbsp;<u>right</u> side). These scopes are
+	 * related to {@link Time_display_style#TDS_custom_strict} and
+	 * {@link Time_display_style#TDS_increase_able} time&nbsp;counter's display
+	 * styles.
 	 * 
-	 * @serial После десериализации переприсваивается копия и осуществляется
-	 * верификация.<br>
-	 * <i>Условия верификации.</i>
-	 * <ul><li><u>Не&nbsp;должен</u> быть {@code null}.</li>
-	 * <li><u>Не&nbsp;должен</u> содержать {@code null}.</li>
-	 * <li>Кол&#8209;во элементов массива <u>должно</u> быть&nbsp;2.</li>
-	 * <li>Метод {@link Enum#compareTo(Enum)}, вызванный элементом с
-	 * индексом&nbsp;{@code [0]} <u>должен</u> возвращать <u>отрицательное или
-	 * нулевое значение</u>.</li></ul>
-	 * При несоответствии требованиям устанавливаются значения
-	 * по&nbsp;умолчанию. */
+	 * @serial Deserialized value restrictions:
+	 * <ul><li>Cannot be {@code null}.</li>
+	 * <li>Cannot contain {@code null}.</li>
+	 * <li>Array length must be equal&nbsp;2.</li>
+	 * <li>Element&nbsp;{@code [0]} <u>must contain greater</u> time&nbsp;unit
+	 * than element&nbsp;{@code [1]}, or be <u>equal</u> to it.<br>
+	 * Examples:
+	 * <ul><li>element&nbsp;{@code [0]} containing
+	 * {@code Time_unit_name.TUN_months} value and element&nbsp;{@code [1]}
+	 * containing {@code Time_unit_name.TUN_hours}&nbsp;<u>is&nbsp;right</u>;</li>
+	 * <li>element&nbsp;{@code [0]} containing {@code Time_unit_name.TUN_days}
+	 * value and element&nbsp;{@code [1]} with <u>the&nbsp;same</u>
+	 * {@code Time_unit_name.TUN_days} value&nbsp; <u>is&nbsp;right</u>;</li>
+	 * <li>element&nbsp;{@code [0]} containing {@code Time_unit_name.TUN_days}
+	 * value and element&nbsp;{@code [1]} containing
+	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u>.</li></ul></li></ul>
+	 * If deserialized value <u>does&nbsp;not</u> fit&nbsp;under listed
+	 * restrictions, default values are set. */
 	private Time_unit_name[] time_value_edges;
 	
 	/** Содержит стиль отображения названий единиц времени для экземпляра
@@ -995,7 +1000,7 @@ public abstract class Time_counter implements Serializable
 	 * <li>{@link #build_time_string()};</li>
 	 * <li>{@link #notify_time_counter_text_listeners()}.</li></ul>
 	 * Two last listed methods are used in
-	 * {@link Settings#set_locale_setting(time_obj.Settings.Locale_setting)} and
+	 * {@link Settings#set_locale_setting(app.tar.time_obj.Settings.Locale_setting)} and
 	 * <u>are&nbsp;guaranteed</u> not&nbsp;to cause any exceptions when invoked
 	 * after this method calling.<br>
 	 * <i>Performance note.</i> Contains synchronized sections. Synchronized

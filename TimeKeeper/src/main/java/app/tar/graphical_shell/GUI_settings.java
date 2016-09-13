@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell;
+package app.tar.graphical_shell;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -26,9 +26,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import graphical_shell.events.Locale_change_listener;
-import time_obj.Settings;
-import time_obj.Settings.Locale_setting;
+import app.tar.graphical_shell.events.Locale_change_listener;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Settings.Locale_setting;
 
 
 /**
@@ -51,19 +51,19 @@ public class GUI_settings implements Serializable
 	private enum Resource
 	{
 		/** Provides dialog messages. */
-		R_messages("graphical_shell/resources/languages/messages"),
+		R_messages("app/tar/graphical_shell/languages/messages"),
 		/** Provides specific time&nbsp;counter settings names. */
-		R_time_counter("graphical_shell/resources/languages/time_counter"),
+		R_time_counter("app/tar/graphical_shell/languages/time_counter"),
 		/** Provides buttons names. */
-		R_buttons("graphical_shell/resources/languages/GUI_elements/buttons"),
+		R_buttons("app/tar/graphical_shell/languages/GUI_elements/buttons"),
 		/** Provides hints and tooltips texts. */
-		R_hints("graphical_shell/resources/languages/GUI_elements/hints"),
+		R_hints("app/tar/graphical_shell/languages/GUI_elements/hints"),
 		/** Provides labels names. */
-		R_labels("graphical_shell/resources/languages/GUI_elements/labels"),
+		R_labels("app/tar/graphical_shell/languages/GUI_elements/labels"),
 		/** Provides menu&nbsp;items names. */
-		R_menu_items("graphical_shell/resources/languages/GUI_elements/menu_items"),
+		R_menu_items("app/tar/graphical_shell/languages/GUI_elements/menu_items"),
 		/** Provides text&nbsp;fields texts. */
-		R_text_fields("graphical_shell/resources/languages/GUI_elements/text_fields");
+		R_text_fields("app/tar/graphical_shell/languages/GUI_elements/text_fields");
 		
 		
 		///// Fields default-access of-instance ===========================/////

@@ -15,22 +15,22 @@
  */
 /**
  * Application's main package, which launches graphical shell.
- * <p>{@link graphical_shell.Main_class} launches the&nbsp;program and
+ * <p>{@link app.tar.graphical_shell.Main_class} launches the&nbsp;program and
  * represents main application's window. This class binds together:
- * <ul><li><i>{@link graphical_shell.Time_counters_pane}</i>, which provides
- * graphical representation and controls to all {@link time_obj.Time_counter}
+ * <ul><li><i>{@link app.tar.graphical_shell.Time_counters_pane}</i>, which provides
+ * graphical representation and controls to all {@link app.tar.time_obj.Time_counter}
  * objects, and manipulates them;</li>
- * <li><i>{@link graphical_shell.Top_pane}</i>, which provides menu&nbsp;bar and
+ * <li><i>{@link app.tar.graphical_shell.Top_pane}</i>, which provides menu&nbsp;bar and
  * tool&nbsp;bar</li>.</ul>
- * {@link graphical_shell.New_time_counter_window} is a&nbsp;wizard providing
+ * {@link app.tar.graphical_shell.New_time_counter_window} is a&nbsp;wizard providing
  * step&nbsp;by&nbsp;step new time&nbsp;counter creating. It can be launched
  * from main&nbsp;window.
- * <p>{@link graphical_shell.New_time_counter_window} uses
- * {@link graphical_shell.FXML_controllers} package classes and their
+ * <p>{@link app.tar.graphical_shell.New_time_counter_window} uses
+ * {@link app.tar.graphical_shell.FXML_controllers} package classes and their
  * fxml&#8209;resources to build its layout.
  * [TODO: Provide further description with the project advancement]
  * 
  * @since 1.0
  * @author Igor Taranenko
  */
-package graphical_shell;
+package app.tar.graphical_shell;

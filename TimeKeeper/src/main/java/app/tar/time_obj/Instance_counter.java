@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -35,10 +35,10 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.Settings.Locale_setting;
-import time_obj.dialog.User_notification_dialog;
-import time_obj.dialog.User_notification_type;
-import time_obj.events.User_notification_event;
+import app.tar.time_obj.Settings.Locale_setting;
+import app.tar.time_obj.dialog.User_notification_dialog;
+import app.tar.time_obj.dialog.User_notification_type;
+import app.tar.time_obj.events.User_notification_event;
 
 
 /**

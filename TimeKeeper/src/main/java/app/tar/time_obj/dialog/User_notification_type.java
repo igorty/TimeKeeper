@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj.dialog;
+package app.tar.time_obj.dialog;
 
-import time_obj.events.User_notification_listener;
+import app.tar.time_obj.events.User_notification_listener;
 
 
 /**
  * Possible notification types which can be passed with
- * {@link User_notification_listener#user_notification_occurred(time_obj.events.User_notification_event, User_notification_type, String)}
+ * {@link User_notification_listener#user_notification_occurred(app.tar.time_obj.events.User_notification_event, User_notification_type, String)}
  * method.
  * 
  * @version 1.0

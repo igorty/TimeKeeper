@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 /**
- * Содержит контейнер для работы с объектами {@link time_obj.Time_counter}.
+ * Provides container to work with {@link app.tar.time_obj.Time_counter} objects.
  * 
  * @since 1.0
  * @author Igor Taranenko
  */
-package time_obj.containers;
+package app.tar.time_obj.containers;

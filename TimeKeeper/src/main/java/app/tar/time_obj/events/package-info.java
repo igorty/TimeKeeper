@@ -19,4 +19,4 @@
  * @since 1.0
  * @author Igor Taranenko
  */
-package time_obj.events;
+package app.tar.time_obj.events;

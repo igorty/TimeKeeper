@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -39,9 +39,9 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.dialog.User_notification_type;
-import time_obj.dialog.User_notification_dialog;
-import time_obj.events.User_notification_event;
+import app.tar.time_obj.dialog.User_notification_dialog;
+import app.tar.time_obj.dialog.User_notification_type;
+import app.tar.time_obj.events.User_notification_event;
 
 
 /**
@@ -288,9 +288,9 @@ public final class Settings implements Serializable
 	private enum Resource
 	{
 		/** Provides dialog messages. */
-		R_messages("time_obj/resources/messages"),
+		R_messages("app/tar/time_obj/messages"),
 		/** Provides time&nbsp;counters specified resources. */
-		R_time_counter("time_obj/resources/time_counter_resources");
+		R_time_counter("app/tar/time_obj/time_counter_resources");
 		
 		
 		///// Fields default-access of-instance ===========================/////
@@ -363,7 +363,7 @@ public final class Settings implements Serializable
 	 * <li>element&nbsp;{@code [0]} containing {@code Time_unit_name.TUN_days}
 	 * value and element&nbsp;{@code [1]} containing
 	 * {@code Time_unit_name.TUN_years}&nbsp;<u>is&nbsp;wrong</u>.</li></ul></li></ul>
-	 * If deserialized value <u>does&nbsp;not</u> fits&nbsp;under listed
+	 * If deserialized value <u>does&nbsp;not</u> fit&nbsp;under listed
 	 * restrictions, default values are set. */
 	private static Time_unit_name[] time_value_edges;
 	
@@ -525,10 +525,7 @@ public final class Settings implements Serializable
 	
 	///// Methods public of-instance ======================================/////	
 	/**
-	 * Возвращает тип подсчета дней в месяце (кол&#8209;во дней в году).
-	 * 
-	 * @return Именованная константа согласно перечислению
-	 * {@link time_obj.Days_in_year}.
+	 * Returns days&#8209;in&#8209;year/days&#8209;in&#8209;month counting type.
 	 */
 	public Days_in_year get_days_in_year()
 	{
@@ -579,13 +576,7 @@ public final class Settings implements Serializable
 
 	
 	/**
-	 * Возвращает текущий установленный стиль отображения счетчика времени для
-	 * программы согласно перечислению
-	 * {@link time_obj.Time_display_style}.
-	 * 
-	 * @return Текущий установленный стиль отображения счетчика времени для
-	 * программы согласно перечислению
-	 * {@link time_obj.Time_display_style}.
+	 * Returns current time&nbsp;counter display style application setting.
 	 */
 	public Time_display_style get_time_display_style_setting()
 	{
@@ -635,11 +626,7 @@ public final class Settings implements Serializable
 
 	
 	/**
-	 * Возвращает программную настройку отображения названий единиц времени для
-	 * программы в целом согласно перечислению {@link time_obj.Time_unit_layout}.
-	 * 
-	 * @return Программная настройка отображения названий единиц времени для
-	 * программы в целом согласно перечислению {@link time_obj.Time_unit_layout}. 
+	 * Returns current time&nbsp;units layout style application setting.
 	 */
 	public Time_unit_layout get_time_unit_layout_setting()
 	{

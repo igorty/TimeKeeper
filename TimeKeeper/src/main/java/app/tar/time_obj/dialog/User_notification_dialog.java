@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj.dialog;
+package app.tar.time_obj.dialog;
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.Instance_counter;
-import time_obj.Settings;
-import time_obj.Time_counter_control;
-import time_obj.events.User_notification_event;
-import time_obj.events.User_notification_listener;
+import app.tar.time_obj.Instance_counter;
+import app.tar.time_obj.Settings;
+import app.tar.time_obj.Time_counter_control;
+import app.tar.time_obj.events.User_notification_event;
+import app.tar.time_obj.events.User_notification_listener;
 
 
 /**
@@ -99,7 +99,7 @@ public class User_notification_dialog
 	}
 	
 	
-	/* TODO: ? Is it better to move this class in "time_obj" package and change
+	/* TODO: ? Is it better to move this class in "app.tar.time_obj" package and change
 	 * this methods's access modifier to default? */
 	/**
 	 * Notifies listener (if such present) about <i>user notification event</i>
@@ -180,7 +180,7 @@ public class User_notification_dialog
 	}
 	
 	
-	/* TODO: ? Is it better to move this class in "time_obj" package and change
+	/* TODO: ? Is it better to move this class in "app.tar.time_obj" package and change
 	 * this methods's access modifier to default? */
 	/**
 	 * Notifies listener (if such present) about <i>user notification event</i>

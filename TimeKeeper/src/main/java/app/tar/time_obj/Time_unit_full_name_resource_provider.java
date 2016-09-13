@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-import time_obj.Settings.Locale_setting;
+import app.tar.time_obj.Settings.Locale_setting;
 
 
 /**
@@ -33,7 +33,7 @@ import time_obj.Settings.Locale_setting;
  * ending in&nbsp;11 and&nbsp;0 too. Other languages may have their own rules.<br>
  * <b>Important!</b>
  * <ul><li>This class is closely related to
- * the&nbsp;<i>time_obj/resources/time_counter_resources[locale].properties</i>
+ * the&nbsp;<i>app/tar/time_obj/time_counter_resources[locale].properties</i>
  * files. Full time&nbsp;unit names in these files are represented by common
  * key&nbsp;<i>TUL_full_name</i>. Its sub&nbsp;keys have <i>numeric value keys</i>
  * which are used by supported locales. So some languages may&nbsp;not specify

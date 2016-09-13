@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package time_obj;
+package app.tar.time_obj;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -31,9 +31,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import time_obj.containers.Modified_ArrayList;
-import time_obj.events.Numeric_overflow_event;
-import time_obj.events.Numeric_overflow_listener;
+import app.tar.time_obj.containers.Modified_ArrayList;
+import app.tar.time_obj.events.Numeric_overflow_event;
+import app.tar.time_obj.events.Numeric_overflow_listener;
 
 
 /**
@@ -112,22 +112,21 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	
 	///// Поля private экземпляра =========================================/////
-	/** <u>Начальные</u> значения в годах, месяцах и днях.
+	/** Initial years, months and days values.
 	 * 
-	 * @serial Верифицируется после десериализации.<br>
-	 * <i>Условия проверки.</i>
-	 * <ul><li>Это поле <u>может</u> быть {@code null} при любом из следующих
-	 * обстоятельств:
-	 * <ul><li>режимом отсчета времени экземпляра класса является
-	 * {@link time_obj.Mode#M_stopwatch};</li>
-	 * <li>поле {@link #duration_init} <u>не&nbsp;ссылается</u> на
+	 * @serial Verified after deserialization.
+	 * <p><i>Checking conditions.</i>
+	 * <ul><li>The field <u>can</u> be {@code null} if at&nbsp;least one of
+	 * the&nbsp;following statements are correct:
+	 * <ul><li>class instance works in {@link Mode#M_stopwatch} mode;</li>
+	 * <li>{@link #duration_init} field <u>is&nbsp;not</u>
 	 * {@code null}.</li></ul></li>
-	 * <li>Метод {@link Period#isNegative()}, вызванный этим полем,
-	 * <u>должен</u> возвращать {@code false}.</li>
-	 * <li>Нормализация объекта <u>не&nbsp;должна</u> генерировать
-	 * {@link ArithmeticException}.</li></ul>
-	 * При несоответствии данным условиям генерируется исключение
-	 * {@link InvalidObjectException}. */
+	 * <li>This field's {@link Period#isNegative()} method <u>must</u> return
+	 * {@code false}.</li>
+	 * <li>This field's normalizing ({@link Period#normalized()})
+	 * <u>must&nbsp;not</u> throw {@link ArithmeticException}.</li></ul>
+	 * If field does&nbsp;not correspond to listed conditions
+	 * {@link InvalidObjectException} is thrown. */
 	private Period period_init;
 	/** <u>Текущие</u> значения в годах, месяцах и днях.
 	 * 
@@ -141,18 +140,17 @@ public class Solo_counter extends Time_counter implements Serializable
 	 * При несоответствии данным условиям генерируется исключение
 	 * {@link InvalidObjectException}. */
 	private Period period_passed;
-	/** <u>Начальные</u> значения в часах, минутах и секундах.
+	/** Initial hours, minutes and seconds values.
 	 * 
-	 * @serial Верифицируется после десериализации.<br>
-	 * <i>Условия проверки.</i>
-	 * <ul><li>Это поле <u>может</u> быть {@code null} при любом из следующих
-	 * обстоятельств:
-	 * <ul><li>режимом отсчета времени экземпляра класса является
-	 * {@link time_obj.Mode#M_stopwatch};</li>
-	 * <li>поле {@link #period_init} <u>не&nbsp;ссылается</u> на
+	 * @serial Verified after deserialization.
+	 * <p><i>Checking conditions.</i>
+	 * <ul><li>The field <u>can</u> be {@code null} if at&nbsp;least one of
+	 * the&nbsp;following statements are correct:
+	 * <ul><li>class instance works in {@link Mode#M_stopwatch} mode;</li>
+	 * <li>{@link #period_init} field <u>is&nbsp;not</u>
 	 * {@code null}.</li></ul></li></ul>
-	 * При несоответствии данным условиям генерируется исключение
-	 * {@link InvalidObjectException}. */
+	 * If field does&nbsp;not correspond to listed conditions
+	 * {@link InvalidObjectException} is thrown. */
 	private LocalTime duration_init;
 	/** <u>Текущие</u> значения в часах, минутах и секундах.
 	 * 
@@ -661,39 +659,35 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	
 	/**
-	 * Корректировка значений счетчика времени. В зависимости от переданного
-	 * аргумента добавляет либо вычитает переданное кол&#8209;во времени.<br>
-	 * <i>В&nbsp;общем случае <u>вычитание</u> времени приводит к смещению
-	 * счетчика времени <u>назад</u> по временной оси; и наоборот:
-	 * <u>добавление</u> времени приводит к смещению счетчика времени
-	 * <u>вперед</u> по временной оси.</i><br>
-	 * В режиме {@link time_obj.Mode#M_stopwatch} вычитание времени, <u>большего
-	 * чем значение счетчика времени</u>, приведет к его <u>обнулению</u> (все
-	 * равно что секундомер запущен заново).<br>
-	 * В режиме {@link time_obj.Mode#M_countdown} <u>вычитание</u> времени
-	 * приводит к <u>увеличению</u> оставшегося времени (в&nbsp;случае уже
-	 * <u>наступившего нулевого значения</u>&nbsp;&#0151; приводит к
-	 * <u>уменьшению</u> прошедшего времени после нулевого значения).
-	 * <u>Добавление</u> времени приводит к <u>уменьшению</u> оставшегося
-	 * времени (в&nbsp;случае уже <u>наступившего нулевого
-	 * значения</u>&nbsp;&#0151; приводит к <u>увеличению</u> прошедшего
-	 * времени после нулевого значения).<br>
-	 * <i>Примечание по&nbsp;производительности.</i> Данный метод содержит
-	 * синхронизированные участки.
+	 * Time counter's value adjustment. Adds or subtracts (depending on
+	 * {@code add} argument) passed {@code seconds_amount} time&nbsp;amount.
+	 * <p>In general, time <u>subtraction</u> results&nbsp;in time&nbsp;counter
+	 * value shifting <u>back</u> on the&nbsp;time&nbsp;axis; and
+	 * vice&nbsp;versa: <u>addition</u> results&nbsp;in time&nbsp;counter value
+	 * shifting <u>forward</u> on the&nbsp;time&nbsp;axis.
+	 * <p><u>Bigger</u> than time&nbsp;counter's time&nbsp;value subtraction in
+	 * {@link Mode#M_stopwatch} mode results&nbsp;in its <u>zeroing</u>
+	 * (as&nbsp;it starts from beginning).
+	 * <p>Time <u>subtraction</u> in {@link Mode#M_countdown} mode
+	 * results&nbsp;in remaining time <u>increasing</u> (hence if timer
+	 * <u>reached zero</u> already, time subtraction results&nbsp;in passed time
+	 * <u>decreasing</u>). Time <u>addition</u> results&nbsp;in remaining time
+	 * <u>decreasing</u> (hence if timer <u>reached zero</u> already, time
+	 * addition results&nbsp;in passed time <u>increasing</u>).
+	 * <p><i>Performance note.</i> Contains synchronized sections.
 	 * 
-	 * @param seconds_amount Корректирующее значение в секундах.
-	 * <u>Не&nbsp;может иметь отрицательное значение</u>.
+	 * @param seconds_amount Correction time&nbsp;amount in seconds.
+	 * <u>Cannot</u> be negative.
 	 * 
-	 * @param add {@code true}&nbsp;&#0151; переданное значение времени
-	 * добавляется; {@code false}&nbsp;&#0151; вычитается.
+	 * @param add {@code true} &#0151; time&nbsp;amount addition;
+	 * {@code false}&nbsp;&#0151; subtraction.
 	 * 
-	 * @return {@code true}&nbsp;&#0151; операция выполнена успешно;
-	 * {@code false}&nbsp;&#0151; значение счетчика времени, получившееся
-	 * в&nbsp;результате корректировки слишком большое (при&nbsp;этом остается
-	 * прежнее значение счетчика времени).
+	 * @return {@code true} &#0151; operation succeed; {@code false}&nbsp;&#0151;
+	 * addition/subtraction result is too&nbsp;big (former time&nbsp;value
+	 * remains in this case).
 	 * 
-	 * @exception IllegalArgumentException Параметр {@code seconds_amount}
-	 * меньше нуля.
+	 * @exception IllegalArgumentException {@code seconds_amount} argument is
+	 * negative.
 	 */
 	public boolean time_values_correction(
 			final long seconds_amount, final boolean add)
@@ -1229,39 +1223,37 @@ public class Solo_counter extends Time_counter implements Serializable
 	
 	
 	/**
-	 * Вспомогательный метод для
-	 * {@link #Solo_counter(Mode, Period, LocalTime, Days_in_year)} и
-	 * {@link #readObject(ObjectInputStream)}, выполняющий проверку полей
-	 * {@link Time_counter#instance_mode}, {@link #period_init} и
-	 * {@link #duration_init} на соответствие требованиям класса.
+	 * {@link #Solo_counter(Mode, Period, LocalTime, Days_in_year)} and
+	 * {@link #readObject(ObjectInputStream)} auxiliary performing
+	 * {@link Time_counter#instance_mode}, {@link #period_init} and
+	 * {@link #duration_init} fields checking.
 	 * 
-	 * @param called_from_constructor Определяет типы исключений, которые будут
-	 * генерироваться при проверке. {@code true}&nbsp;&#0151; данный метод был
-	 * вызван из конструктора, генерируются {@link ArithmeticException},
-	 * {@link IllegalArgumentException} и {@link NullPointerException}.
-	 * {@code false}&nbsp;&#0151; данный метод был вызван из
-	 * {@link #readObject(ObjectInputStream)}, генерируется
-	 * {@link InvalidObjectException}.
+	 * @param called_from_constructor Determines exception types which can be
+	 * thrown during checking. {@code true}&nbsp;&#0151; the&nbsp;method is
+	 * called from constructor; {@link ArithmeticException},
+	 * {@link IllegalArgumentException} and {@link NullPointerException} can be
+	 * thrown. {@code false}&nbsp;&#0151; the&nbsp;method is called from
+	 * {@link #readObject(ObjectInputStream)} method;
+	 * {@link InvalidObjectException} can be thrown.
 	 * 
-	 * @throws InvalidObjectException Поле десериализованного объекта
-	 * не&nbsp;прошло валидацию.
+	 * @throws InvalidObjectException Deserialized object's field did&nbsp;not
+	 * pass validation.
 	 * 
-	 * @exception ArithmeticException Если во время нормализации объекта типа
-	 * {@link Period} произошел выход числа за пределы содержащего его
-	 * примитивного типа.
+	 * @exception ArithmeticException Numeric overflow occurred during
+	 * {@link Period} normalization.
 	 * 
-	 * @exception IllegalArgumentException Если:
-	 * <ul><li>значение {@link Time_counter#instance_mode} не&nbsp;подходит для
-	 * этого класса;</li>
-	 * <li>время для установки в режиме
-	 * {@link time_obj.Mode#M_countdown} меньше секунды или {@link #period_init}
-	 * и {@link #duration_init} ссылаются на {@code null} одновременно (касается
-	 * режима {@link time_obj.Mode#M_countdown});</li>
-	 * <li>{@link #period_init} содержит отрицательное значение в своих полях
-	 * (метод {@link Period#isNegative()} возвращает true).</li></ul>
+	 * @exception IllegalArgumentException If:
+	 * <ul><li>{@link Time_counter#instance_mode} is inappropriate for this
+	 * class;</li>
+	 * <li>Initial time&nbsp;amount is less than one&nbsp;second in
+	 * {@link Mode#M_countdown} mode or {@link #period_init} and
+	 * {@link #duration_init} are both {@code null} (regarding&nbsp;to
+	 * {@link Mode#M_countdown} mode too);</li>
+	 * <li>{@link #period_init} field contains negative time&nbsp;values
+	 * ({@link Period#isNegative()} returns {@code true}).</li></ul>
 	 * 
-	 * @exception NullPointerException Если {@link Time_counter#instance_mode}
-	 * ссылается на {@code null}.
+	 * @exception NullPointerException {@link Time_counter#instance_mode} is
+	 * {@code null}.
 	 */
 	private void parameters_verifying(final boolean called_from_constructor)
 			throws InvalidObjectException

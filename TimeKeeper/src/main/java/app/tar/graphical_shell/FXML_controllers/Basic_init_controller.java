@@ -13,29 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell.FXML_controllers;
+package app.tar.graphical_shell.FXML_controllers;
 
 import java.util.ResourceBundle;
 
-import graphical_shell.GUI_settings;
-import graphical_shell.events.Locale_change_listener;
+import app.tar.graphical_shell.GUI_settings;
+import app.tar.graphical_shell.events.Locale_change_listener;
+import app.tar.time_obj.Mode;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import time_obj.Mode;
 
 
 /**
  * Root pane for <i>new&nbsp;time&nbsp;counter wizard</i> window. Called by
  * {@link FXMLLoader} for
- * <i>"graphical_shell/FXML_controllers/Basic_init_layout.fxml"</i> file.<br>
+ * <i>"app.tar.graphical_shell/FXML_controllers/Basic_init_layout.fxml"</i> file.<br>
  * <i>Notes.</i>
  * <ul><li>Root pane in <i>"Basic_init_layout.fxml"</i> is {@link BorderPane}.</li>
  * <li><i>"<i>Basic_init_layout.fxml</i>"</i> requires
- * <i>"graphical_shell/resources/languages/GUI_elements/buttons.properties"</i>
+ * <i>"app/tar/graphical_shell/languages/GUI_elements/buttons.properties"</i>
  * resources to be set.</li></ul>
  * 
  * @version 1.0

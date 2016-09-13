@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package graphical_shell.dialog;
+package app.tar.graphical_shell.dialog;
 
 import java.util.ResourceBundle;
 
-import graphical_shell.GUI_settings;
-import graphical_shell.events.Locale_change_listener;
+import app.tar.graphical_shell.GUI_settings;
+import app.tar.graphical_shell.events.Locale_change_listener;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 
